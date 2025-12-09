@@ -67,6 +67,7 @@
           auth = firebase.auth();
           db = firebase.firestore();
           basePath = `artifacts/${window.__app_id}/public/data`;
+          try { await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL); } catch(e) { console.warn('persistence set failed', e); }
           qs('#configAlert').classList.add('hidden');
         }catch(e){ console.error(e); qs('#configAlert').classList.remove('hidden'); }
       }
