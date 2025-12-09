@@ -297,6 +297,7 @@
           auth = firebase.auth();
           db = firebase.firestore();
           basePath = `artifacts/${window.__app_id}/public/data`;
+          try { await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL); } catch(e) { console.warn('persistence set failed', e); }
           configAlert().classList.add('hidden');
         } catch (e) {
           console.error(e); configAlert().classList.remove('hidden');
@@ -415,6 +416,8 @@
 
         renderCart();
         await initFirebase();
+        // Reflect current state immediately in header (in case user already logged in)
+        updateAuthUi(auth?.currentUser || null);
         // Auth-driven header toggle and ensure user doc exists with role
         auth.onAuthStateChanged(async (user)=>{
           updateAuthUi(user);
