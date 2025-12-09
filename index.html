@@ -1,1 +1,304 @@
+<!doctype html>
+<html lang="bn">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Locker Bazar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      html,body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+      .scrollbar-hide { scrollbar-width: none; -ms-overflow-style: none; }
+      .scrollbar-hide::-webkit-scrollbar { display: none; }
+    </style>
+  </head>
+  <body class="bg-gray-50 text-gray-900">
+    <header class="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-gray-200">
+      <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-green-600 text-white font-bold">LB</span>
+          <div>
+            <h1 class="text-lg font-semibold">Locker Bazar</h1>
+            <p class="text-xs text-gray-500">নিত্যপ্রয়োজনীয় বাজার</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <button id="cartBtn" class="relative inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-50">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25h9.75a2.25 2.25 0 0 0 2.197-1.757l1.125-5A2.25 2.25 0 0 0 18.375 4.5H5.106m2.394 9.75L5.106 4.5m2.394 9.75L6 18.75m0 0h12.75M6 18.75a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm12.75 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z"/></svg>
+            <span>কার্ট</span>
+            <span id="cartCount" class="absolute -top-2 -right-2 h-5 min-w-[20px] px-1 rounded-full bg-green-600 text-white text-xs flex items-center justify-center">0</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 py-4">
+      <div id="configAlert" class="hidden mb-3 rounded-lg border border-amber-300 bg-amber-50 text-amber-900 p-3 text-sm">
+        Firebase কনফিগার অনুপস্থিত। অনুগ্রহ করে গ্লোবাল ভেরিয়েবল <code>__firebase_config</code> এবং <code>__app_id</code> সেট করুন।
+      </div>
+
+      <section class="mb-4">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-base font-semibold">ক্যাটাগরি</h2>
+          <button id="resetFilter" class="text-sm text-green-700 hover:underline">সব দেখুন</button>
+        </div>
+        <div id="categoryBar" class="flex gap-2 overflow-x-auto scrollbar-hide pb-1"></div>
+      </section>
+
+      <section>
+        <div id="productsGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"></div>
+        <div id="emptyState" class="hidden text-center py-16 text-gray-500">কোন পণ্য পাওয়া যায়নি</div>
+      </section>
+    </main>
+
+    <!-- Cart Drawer -->
+    <div id="cartDrawer" class="fixed inset-0 z-40 hidden">
+      <div id="cartBackdrop" class="absolute inset-0 bg-black/40"></div>
+      <div class="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl flex flex-col">
+        <div class="p-4 border-b flex items-center justify-between">
+          <h3 class="text-lg font-semibold">আপনার কার্ট</h3>
+          <button id="closeCart" class="p-2 rounded-md hover:bg-gray-100">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+          </button>
+        </div>
+        <div id="cartItems" class="flex-1 overflow-y-auto divide-y"></div>
+        <div class="p-4 border-t space-y-3">
+          <div class="flex items-center justify-between text-sm">
+            <span class="text-gray-600">মোট</span>
+            <span id="cartTotal" class="font-semibold">৳0</span>
+          </div>
+          <button id="checkoutBtn" class="w-full inline-flex items-center justify-center rounded-lg bg-green-600 text-white px-4 py-3 font-medium hover:bg-green-700 disabled:opacity-50">অর্ডার প্লেস করুন</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40">
+      <div class="bg-white rounded-xl p-6 max-w-sm w-full text-center">
+        <div class="mx-auto mb-3 h-12 w-12 rounded-full bg-green-100 text-green-700 flex items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-7.25 7.25a1 1 0 01-1.414 0l-3-3a1 1 0 111.414-1.414l2.293 2.293 6.543-6.543a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+        </div>
+        <h3 class="text-lg font-semibold mb-1">আপনার অর্ডার সফল হয়েছে!</h3>
+        <p class="text-sm text-gray-600">শীঘ্রই আপনাকে কল/মেসেজে নিশ্চিত করা হবে।</p>
+        <button id="successOk" class="mt-4 inline-flex items-center justify-center rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium hover:bg-gray-50">ঠিক আছে</button>
+      </div>
+    </div>
+
+    <!-- Firebase Config (Provided) -->
+    <script>
+      window.__firebase_config = {
+        apiKey: "AIzaSyAcj9y2jgxqatG3_IXkBjMT0yvBoardpJw",
+        authDomain: "bazar-201e6.firebaseapp.com",
+        projectId: "bazar-201e6",
+        storageBucket: "bazar-201e6.firebasestorage.app",
+        messagingSenderId: "465394666878",
+        appId: "1:465394666878:web:7f4ecb390746a57baef72f",
+        measurementId: "G-3WJ6CCGSYS"
+      };
+      window.__app_id = "bazar-201e6";
+    </script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+    <script>
+      // Helpers
+      const fmtCurrency = (n) => `৳${(n||0).toLocaleString('bn-BD')}`;
+      const qs = (s, r=document) => r.querySelector(s);
+      const qsa = (s, r=document) => Array.from(r.querySelectorAll(s));
+
+      // State
+      let app = null, auth = null, db = null, unsubProducts = null;
+      let basePath = null; // artifacts/{__app_id}/public/data
+      let products = [];
+      let currentCategory = 'All';
+
+      // Cart
+      const CART_KEY = 'locker_cart';
+      const loadCart = () => {
+        try { return JSON.parse(localStorage.getItem(CART_KEY) || '[]'); } catch { return []; }
+      };
+      const saveCart = (items) => { localStorage.setItem(CART_KEY, JSON.stringify(items)); renderCart(); };
+      const getCart = () => loadCart();
+      const setCart = (items) => saveCart(items);
+      const addToCart = (p) => {
+        const cart = getCart();
+        const idx = cart.findIndex(i => i.id === p.id);
+        if (idx >= 0) { cart[idx].qty += 1; }
+        else { cart.push({ id: p.id, name: p.name, price: p.price, qty: 1 }); }
+        setCart(cart);
+        toast('কার্টে যোগ হয়েছে');
+      };
+      const removeFromCart = (id) => { setCart(getCart().filter(i => i.id !== id)); };
+      const updateQty = (id, delta) => {
+        const cart = getCart().map(i => i.id === id ? { ...i, qty: Math.max(1, i.qty + delta) } : i);
+        setCart(cart);
+      };
+
+      // UI Elements
+      const productsGrid = () => qs('#productsGrid');
+      const categoryBar = () => qs('#categoryBar');
+      const emptyState = () => qs('#emptyState');
+      const cartCount = () => qs('#cartCount');
+      const cartDrawer = () => qs('#cartDrawer');
+      const cartItemsEl = () => qs('#cartItems');
+      const cartTotalEl = () => qs('#cartTotal');
+      const configAlert = () => qs('#configAlert');
+
+      function toast(msg) {
+        const el = document.createElement('div');
+        el.className = 'fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white text-sm px-3 py-2 rounded-lg shadow';
+        el.textContent = msg;
+        document.body.appendChild(el);
+        setTimeout(() => { el.remove(); }, 1500);
+      }
+
+      function renderCategories(list) {
+        const cats = Array.from(new Set(['All', ...list.map(p => p.category).filter(Boolean)])).slice(0, 20);
+        const wrap = categoryBar();
+        wrap.innerHTML = '';
+        cats.forEach(cat => {
+          const btn = document.createElement('button');
+          btn.className = 'px-3 py-2 rounded-full border text-sm whitespace-nowrap ' + (currentCategory===cat ? 'bg-green-600 text-white border-green-600' : 'bg-white border-gray-200 hover:bg-gray-50');
+          btn.textContent = cat;
+          btn.addEventListener('click', () => { currentCategory = cat; renderProducts(); renderCategories(products); });
+          wrap.appendChild(btn);
+        });
+      }
+
+      function productCard(p) {
+        const el = document.createElement('div');
+        el.className = 'bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col';
+        el.innerHTML = `
+          <div class="aspect-[4/3] bg-gray-100 overflow-hidden">
+            ${p.imageUrl ? `<img src="${p.imageUrl}" alt="${p.name}" class="h-full w-full object-cover"/>` : ''}
+          </div>
+          <div class="p-3 flex-1 flex flex-col gap-2">
+            <div class="text-sm text-green-700 font-medium">${p.category || ''}</div>
+            <div class="font-semibold leading-snug">${p.name}</div>
+            <div class="text-xs text-gray-500 line-clamp-2">${p.description || ''}</div>
+            <div class="mt-auto flex items-center justify-between pt-2">
+              <div class="font-bold">${fmtCurrency(p.price)}</div>
+              <button class="addBtn inline-flex items-center gap-1 rounded-lg bg-green-600 text-white px-3 py-2 text-sm hover:bg-green-700">যোগ করুন</button>
+            </div>
+          </div>`;
+        el.querySelector('.addBtn').addEventListener('click', () => addToCart(p));
+        return el;
+      }
+
+      function renderProducts() {
+        const grid = productsGrid();
+        grid.innerHTML = '';
+        const list = currentCategory==='All' ? products : products.filter(p => p.category === currentCategory);
+        if (list.length === 0) { emptyState().classList.remove('hidden'); return; } else { emptyState().classList.add('hidden'); }
+        list.forEach(p => grid.appendChild(productCard(p)));
+      }
+
+      function renderCart() {
+        const items = getCart();
+        cartCount().textContent = String(items.reduce((s,i)=>s+i.qty,0));
+        cartItemsEl().innerHTML = items.map(i => `
+          <div class="p-3 flex items-start justify-between gap-3">
+            <div>
+              <div class="font-medium">${i.name}</div>
+              <div class="text-sm text-gray-600">${fmtCurrency(i.price)}</div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button data-id="${i.id}" data-delta="-1" class="qtyBtn h-7 w-7 inline-flex items-center justify-center rounded-md border">-</button>
+              <span class="min-w-[2ch] text-center">${i.qty}</span>
+              <button data-id="${i.id}" data-delta="1" class="qtyBtn h-7 w-7 inline-flex items-center justify-center rounded-md border">+</button>
+              <button data-remove="${i.id}" class="ml-2 text-red-600 text-sm">মুছুন</button>
+            </div>
+          </div>
+        `).join('');
+        cartItemsEl().querySelectorAll('.qtyBtn').forEach(b=>b.addEventListener('click', e=>{
+          const id = e.currentTarget.getAttribute('data-id');
+          const delta = parseInt(e.currentTarget.getAttribute('data-delta'));
+          updateQty(id, delta);
+        }));
+        cartItemsEl().querySelectorAll('[data-remove]').forEach(b=>b.addEventListener('click', e=>{
+          removeFromCart(e.currentTarget.getAttribute('data-remove'));
+        }));
+        const total = items.reduce((s,i)=>s + i.price * i.qty, 0);
+        cartTotalEl().textContent = fmtCurrency(total);
+      }
+
+      function openCart(open=true){ cartDrawer().classList.toggle('hidden', !open); }
+
+      // Firebase init (compat to keep it simple in single file)
+      async function initFirebase() {
+        const missing = !(window.__firebase_config && window.__app_id);
+        if (missing) { configAlert().classList.remove('hidden'); return; }
+        try {
+          app = firebase.initializeApp(window.__firebase_config);
+          auth = firebase.auth();
+          db = firebase.firestore();
+          basePath = `artifacts/${window.__app_id}/public/data`;
+          configAlert().classList.add('hidden');
+        } catch (e) {
+          console.error(e); configAlert().classList.remove('hidden');
+        }
+      }
+
+      function watchProducts() {
+        if (!db || !basePath) return;
+        if (unsubProducts) unsubProducts();
+        unsubProducts = db.collection(`${basePath}/products`).onSnapshot((snap)=>{
+          products = snap.docs.map(d=>({ id: d.id, ...d.data() }));
+          renderCategories(products);
+          renderProducts();
+        }, (err)=>{
+          console.error('Products snapshot error', err);
+        });
+      }
+
+      async function ensureAnonAuth() {
+        if (!auth) throw new Error('Auth not initialized');
+        if (auth.currentUser) return auth.currentUser;
+        return await auth.signInAnonymously().then(res => res.user);
+      }
+
+      async function placeOrder() {
+        try {
+          if (!db || !basePath) { toast('কনফিগার সেট করুন'); return; }
+          const items = getCart();
+          if (!items.length) { toast('কার্ট খালি'); return; }
+          const user = await ensureAnonAuth();
+          const totalAmount = items.reduce((s,i)=>s+i.price*i.qty,0);
+          await db.collection(`${basePath}/orders`).add({
+            userId: user.uid,
+            items,
+            totalAmount,
+            status: 'Pending',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          });
+          setCart([]);
+          openCart(false);
+          qs('#successModal').classList.remove('hidden');
+          qs('#successModal').classList.add('flex');
+        } catch (e) {
+          console.error(e); toast('অর্ডার ব্যর্থ, পুনরায় চেষ্টা করুন');
+        }
+      }
+
+      // Events
+      window.addEventListener('DOMContentLoaded', async () => {
+        // Buttons
+        qs('#cartBtn').addEventListener('click', ()=>openCart(true));
+        qs('#closeCart').addEventListener('click', ()=>openCart(false));
+        qs('#cartBackdrop').addEventListener('click', ()=>openCart(false));
+        qs('#checkoutBtn').addEventListener('click', placeOrder);
+        qs('#resetFilter').addEventListener('click', ()=>{ currentCategory='All'; renderProducts(); renderCategories(products); });
+        qs('#successOk').addEventListener('click', ()=>{ qs('#successModal').classList.add('hidden'); qs('#successModal').classList.remove('flex'); });
+
+        renderCart();
+        await initFirebase();
+        watchProducts();
+      });
+    </script>
+  </body>
+  </html>
 
