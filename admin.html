@@ -264,11 +264,17 @@
       async function addAdminByUid(uid){
         if (!uid) return;
         await db.collection(`${basePath}/admins`).doc(uid).set({ isAdmin: true }, { merge: true });
+        try{
+          await db.collection(`${basePath}/users`).doc(uid).set({ role: 'admin', updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+        }catch(e){ console.warn('failed to set user role admin', e); }
       }
 
       async function removeAdminByUid(uid){
         if (!uid) return;
         await db.collection(`${basePath}/admins`).doc(uid).delete();
+        try{
+          await db.collection(`${basePath}/users`).doc(uid).set({ role: 'user', updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+        }catch(e){ console.warn('failed to set user role user', e); }
       }
 
       function watchOrders(){

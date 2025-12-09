@@ -89,14 +89,18 @@
               const snap = await db.collection(`${basePath}/admins`).doc(user.uid).get();
               isAdmin = snap.exists;
             } catch {}
-            // Create/merge user profile document
+            // Create/merge user profile document (fail loudly)
             try {
               await db.collection(`${basePath}/users`).doc(user.uid).set({
                 email: user.email || email,
                 role: isAdmin ? 'admin' : 'user',
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
               }, { merge: true });
-            } catch {}
+            } catch(writeErr){
+              err.classList.remove('hidden');
+              err.textContent = 'প্রোফাইল সেভ ব্যর্থ: ' + (writeErr?.code || writeErr?.message || 'unknown');
+              return;
+            }
             window.location.href = isAdmin ? 'admin.html' : 'index.html';
           }catch(e){
             err.classList.remove('hidden'); err.textContent='সাইন আপ ব্যর্থ';
