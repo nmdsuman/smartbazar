@@ -21,7 +21,7 @@
           <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-green-600 text-white font-bold">LB</span>
           <div>
             <h1 class="text-lg font-semibold">Locker Bazar Admin</h1>
-            <p class="text-xs text-gray-500">সাইন ইন করুন</p>
+            <p id="authTitle" class="text-xs text-gray-500">সাইন ইন করুন</p>
           </div>
         </div>
         <form id="loginForm" class="space-y-3">
@@ -33,7 +33,9 @@
             <label class="block text-sm mb-1">পাসওয়ার্ড</label>
             <input id="password" type="password" class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-600" required />
           </div>
-          <button class="w-full rounded-lg bg-green-600 text-white px-4 py-2 font-medium hover:bg-green-700">লগইন</button>
+          <button id="authSubmit" class="w-full rounded-lg bg-green-600 text-white px-4 py-2 font-medium hover:bg-green-700">লগইন</button>
+          <p class="text-xs text-gray-600">একাউন্ট নেই? <button type="button" id="switchToSignup" class="text-green-700 hover:underline">সাইন আপ করুন</button></p>
+          <p class="text-xs text-gray-600 hidden" id="switchToLoginWrap">একাউন্ট আছে? <button type="button" id="switchToLogin" class="text-green-700 hover:underline">লগইন করুন</button></p>
           <p id="authError" class="hidden text-sm text-red-600"></p>
         </form>
       </div>
@@ -56,6 +58,31 @@
       </header>
 
       <main class="max-w-6xl mx-auto px-4 py-4 space-y-6">
+        <section class="bg-white border border-gray-200 rounded-2xl p-4">
+          <h3 class="text-base font-semibold mb-3">অ্যাডমিন ব্যবস্থাপনা</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+            <div class="md:col-span-2">
+              <label class="block text-sm mb-1">ইউজার UID (Firebase Auth)</label>
+              <input id="adminUid" class="w-full rounded-lg border border-gray-300 px-3 py-2" placeholder="উদাহরণ: S0meUid123..." />
+            </div>
+            <div class="flex gap-2">
+              <button id="addAdminBtn" class="rounded-lg bg-green-600 text-white px-4 py-2 text-sm hover:bg-green-700">অ্যাডমিন যুক্ত করুন</button>
+              <button id="removeAdminBtn" class="rounded-lg border border-gray-200 px-4 py-2 text-sm hover:bg-gray-50">মুছে ফেলুন</button>
+            </div>
+          </div>
+          <div class="mt-4 overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead>
+                <tr class="border-b bg-gray-50">
+                  <th class="text-left p-2">UID</th>
+                  <th class="text-left p-2">স্ট্যাটাস</th>
+                  <th class="text-left p-2">অ্যাকশন</th>
+                </tr>
+              </thead>
+              <tbody id="adminsTbody"></tbody>
+            </table>
+          </div>
+        </section>
         <section class="bg-white border border-gray-200 rounded-2xl p-4">
           <h3 class="text-base font-semibold mb-3">পণ্য যোগ/সম্পাদনা</h3>
           <form id="productForm" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -159,8 +186,8 @@
       const fmtCurrency = (n) => `৳${(n||0).toLocaleString('bn-BD')}`;
 
       let app=null, auth=null, db=null, storage=null, basePath=null;
-      let unsubProducts=null, unsubOrders=null;
-      let currentUser=null, isAdmin=false;
+      let unsubProducts=null, unsubOrders=null, unsubAdmins=null;
+      let currentUser=null, isAdmin=false, authMode='login';
 
       async function initFirebase(){
         const missing = !(window.__firebase_config && window.__app_id);
@@ -209,6 +236,39 @@
             tr.querySelector('[data-del]')?.addEventListener('click', ()=>deleteProduct(p));
           });
         }, err=>console.error(err));
+      }
+
+      function watchAdmins(){
+        if (unsubAdmins) unsubAdmins();
+        unsubAdmins = db.collection(`${basePath}/admins`).onSnapshot(snap=>{
+          const tbody = qs('#adminsTbody');
+          if (!tbody) return;
+          tbody.innerHTML = '';
+          snap.forEach(doc=>{
+            const uid = doc.id;
+            const tr = document.createElement('tr');
+            tr.className = 'border-b';
+            tr.innerHTML = `
+              <td class="p-2 font-mono text-xs">${uid}</td>
+              <td class="p-2">isAdmin: ${doc.data()?.isAdmin ? 'true' : 'false'}</td>
+              <td class="p-2"><button data-remove-admin="${uid}" class="rounded-md border px-3 py-1 text-xs hover:bg-gray-50">মুছুন</button></td>
+            `;
+            tbody.appendChild(tr);
+            tr.querySelector('[data-remove-admin]')?.addEventListener('click', async ()=>{
+              try{ await db.collection(`${basePath}/admins`).doc(uid).delete(); }catch(e){ console.error(e); }
+            });
+          });
+        }, err=>console.error(err));
+      }
+
+      async function addAdminByUid(uid){
+        if (!uid) return;
+        await db.collection(`${basePath}/admins`).doc(uid).set({ isAdmin: true }, { merge: true });
+      }
+
+      async function removeAdminByUid(uid){
+        if (!uid) return;
+        await db.collection(`${basePath}/admins`).doc(uid).delete();
       }
 
       function watchOrders(){
@@ -331,6 +391,7 @@
             isAdmin = await checkAdmin(user.uid);
             if (isAdmin){
               setView(true);
+              watchAdmins();
               watchProducts();
               watchOrders();
             } else {
@@ -342,19 +403,39 @@
           }catch(e){ console.error(e); }
         });
 
+        const updateAuthUi = () => {
+          qs('#authTitle').textContent = authMode==='signup' ? 'সাইন আপ করুন' : 'সাইন ইন করুন';
+          qs('#authSubmit').textContent = authMode==='signup' ? 'সাইন আপ' : 'লগইন';
+          qs('#switchToSignup').parentElement.classList.toggle('hidden', authMode==='signup');
+          qs('#switchToLoginWrap').classList.toggle('hidden', authMode!=='signup');
+        };
+        qs('#switchToSignup').addEventListener('click', ()=>{ authMode='signup'; updateAuthUi(); });
+        qs('#switchToLogin').addEventListener('click', ()=>{ authMode='login'; updateAuthUi(); });
+        updateAuthUi();
+
         qs('#loginForm').addEventListener('submit', async (e)=>{
           e.preventDefault();
           const email = qs('#email').value.trim();
           const password = qs('#password').value;
           qs('#authError').classList.add('hidden');
           qs('#authError').textContent='';
-          try{ await auth.signInWithEmailAndPassword(email, password); }
-          catch(err){ qs('#authError').classList.remove('hidden'); qs('#authError').textContent = 'লগইন ব্যর্থ'; }
+          try{ 
+            if (authMode==='signup') {
+              await auth.createUserWithEmailAndPassword(email, password);
+            } else {
+              await auth.signInWithEmailAndPassword(email, password);
+            }
+          } catch(err){ 
+            qs('#authError').classList.remove('hidden'); 
+            qs('#authError').textContent = authMode==='signup' ? 'সাইন আপ ব্যর্থ' : 'লগইন ব্যর্থ'; 
+          }
         });
 
         qs('#logoutBtn').addEventListener('click', async ()=>{ await auth.signOut(); });
         qs('#saveProduct').addEventListener('click', saveProduct);
         qs('#resetForm').addEventListener('click', (e)=>{ e.preventDefault(); resetForm(); });
+        qs('#addAdminBtn').addEventListener('click', async (e)=>{ e.preventDefault(); const uid=qs('#adminUid').value.trim(); try{ await addAdminByUid(uid); qs('#adminUid').value=''; }catch(err){ console.error(err); } });
+        qs('#removeAdminBtn').addEventListener('click', async (e)=>{ e.preventDefault(); const uid=qs('#adminUid').value.trim(); try{ await removeAdminByUid(uid); qs('#adminUid').value=''; }catch(err){ console.error(err); } });
       });
     </script>
   </body>
