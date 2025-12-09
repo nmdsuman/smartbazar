@@ -418,6 +418,8 @@
         await initFirebase();
         // Reflect current state immediately in header (in case user already logged in)
         updateAuthUi(auth?.currentUser || null);
+        // If redirected just after login, optimistically show logged-in UI
+        try{ if (localStorage.getItem('lb_last_login')) { updateAuthUi({ isAnonymous:false }); } }catch{}
         // Short retry loop: reflect state quickly if init is still resolving
         try{
           let tries = 0;
