@@ -97,6 +97,8 @@
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
               }, { merge: true });
             }catch{}
+            try{ localStorage.setItem('lb_last_login', '1'); }catch{}
+            await new Promise(r=>setTimeout(r, 400));
             window.location.href = admin ? 'admin.html' : 'index.html';
           }catch(e){
             err.classList.remove('hidden'); err.textContent='লগইন ব্যর্থ';
