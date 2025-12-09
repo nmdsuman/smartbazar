@@ -54,10 +54,11 @@
     </script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
     <script>
       const qs = (s, r=document) => r.querySelector(s);
-      let app=null, auth=null;
+      let app=null, auth=null, db=null, basePath=null;
 
       async function initFirebase(){
         const missing = !(window.__firebase_config && window.__app_id);
@@ -65,6 +66,8 @@
         try{
           app = firebase.initializeApp(window.__firebase_config);
           auth = firebase.auth();
+          db = firebase.firestore();
+          basePath = `artifacts/${window.__app_id}/public/data`;
           qs('#configAlert').classList.add('hidden');
         }catch(e){ console.error(e); qs('#configAlert').classList.remove('hidden'); }
       }
@@ -77,13 +80,16 @@
           const email = qs('#email').value.trim();
           const password = qs('#password').value;
           const err = qs('#authError');
-          const info = qs('#postSignup');
           err.classList.add('hidden'); err.textContent='';
-          info.classList.add('hidden'); info.textContent='';
           try{
             const { user } = await auth.createUserWithEmailAndPassword(email, password);
-            info.classList.remove('hidden');
-            info.textContent = `সাইন আপ সম্পন্ন! আপনার UID: ${user.uid}. অ্যাডমিন করতে admin.html > অ্যাডমিন ব্যবস্থাপনা থেকে UID দিন।`;
+            // Check if this user is an admin; redirect accordingly
+            let goAdmin = false;
+            try {
+              const snap = await db.collection(`${basePath}/admins`).doc(user.uid).get();
+              goAdmin = snap.exists;
+            } catch {}
+            window.location.href = goAdmin ? 'admin.html' : 'index.html';
           }catch(e){
             err.classList.remove('hidden'); err.textContent='সাইন আপ ব্যর্থ';
           }
