@@ -88,13 +88,16 @@
           err.classList.add('hidden'); err.textContent='';
           try{
             const { user } = await auth.signInWithEmailAndPassword(email, password);
-            if (await isAdmin(user.uid)){
-              window.location.href = 'admin.html';
-            } else {
-              err.classList.remove('hidden');
-              err.textContent = 'আপনার অ্যাক্সেস নেই। প্রথমে অ্যাডমিন হিসেবে যুক্ত করুন।';
-              await auth.signOut();
-            }
+            const admin = await isAdmin(user.uid);
+            // Upsert user profile with role
+            try{
+              await db.collection(`${basePath}/users`).doc(user.uid).set({
+                email: user.email || email,
+                role: admin ? 'admin' : 'user',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+              }, { merge: true });
+            }catch{}
+            window.location.href = admin ? 'admin.html' : 'index.html';
           }catch(e){
             err.classList.remove('hidden'); err.textContent='লগইন ব্যর্থ';
           }

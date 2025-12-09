@@ -83,13 +83,21 @@
           err.classList.add('hidden'); err.textContent='';
           try{
             const { user } = await auth.createUserWithEmailAndPassword(email, password);
-            // Check if this user is an admin; redirect accordingly
-            let goAdmin = false;
+            // Determine role based on admins collection
+            let isAdmin = false;
             try {
               const snap = await db.collection(`${basePath}/admins`).doc(user.uid).get();
-              goAdmin = snap.exists;
+              isAdmin = snap.exists;
             } catch {}
-            window.location.href = goAdmin ? 'admin.html' : 'index.html';
+            // Create/merge user profile document
+            try {
+              await db.collection(`${basePath}/users`).doc(user.uid).set({
+                email: user.email || email,
+                role: isAdmin ? 'admin' : 'user',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+              }, { merge: true });
+            } catch {}
+            window.location.href = isAdmin ? 'admin.html' : 'index.html';
           }catch(e){
             err.classList.remove('hidden'); err.textContent='সাইন আপ ব্যর্থ';
           }

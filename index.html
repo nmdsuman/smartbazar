@@ -362,9 +362,20 @@
 
         renderCart();
         await initFirebase();
-        // Auth-driven header toggle
-        auth.onAuthStateChanged((user)=>{
+        // Auth-driven header toggle and ensure user doc exists with role
+        auth.onAuthStateChanged(async (user)=>{
           updateAuthUi(user);
+          if (user && !user.isAnonymous && db && basePath){
+            try{
+              const adminSnap = await db.collection(`${basePath}/admins`).doc(user.uid).get();
+              const role = adminSnap.exists ? 'admin' : 'user';
+              await db.collection(`${basePath}/users`).doc(user.uid).set({
+                email: user.email || '',
+                role,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+              }, { merge: true });
+            }catch(e){ console.warn('user upsert failed', e); }
+          }
         });
         watchProducts();
       });
