@@ -102,6 +102,10 @@
             <input id="profileName" class="w-full rounded-lg border border-gray-300 px-3 py-2" placeholder="আপনার নাম" />
           </div>
           <div>
+            <label class="block text-sm mb-1">মোবাইল</label>
+            <input id="profilePhone" class="w-full rounded-lg border border-gray-300 px-3 py-2" placeholder="আপনার মোবাইল" />
+          </div>
+          <div>
             <label class="block text-sm mb-1">ঠিকানা</label>
             <textarea id="profileAddress" rows="2" class="w-full rounded-lg border border-gray-300 px-3 py-2" placeholder="ডেলিভারি ঠিকানা"></textarea>
           </div>
@@ -356,16 +360,16 @@
       // Profile helpers
       function openProfile(open=true){ const m=qs('#profileModal'); m.classList.toggle('hidden', !open); m.classList.toggle('flex', open); }
       async function loadUserProfile(user){
-        if (!user || user.isAnonymous || !db || !basePath) return { name:'', address:'' };
+        if (!user || user.isAnonymous || !db || !basePath) return { name:'', phone:'', address:'' };
         try{
           const snap = await db.collection(`${basePath}/users`).doc(user.uid).get();
           const d = snap.exists ? snap.data() : {};
-          return { name: d.name || '', address: d.address || '' };
-        }catch{ return { name:'', address:'' }; }
+          return { name: d.name || '', phone: d.phone || '', address: d.address || '' };
+        }catch{ return { name:'', phone:'', address:'' }; }
       }
       async function saveUserProfile(user, data){
         if (!user || user.isAnonymous || !db || !basePath) return;
-        await db.collection(`${basePath}/users`).doc(user.uid).set({ name: data.name||'', address: data.address||'' }, { merge: true });
+        await db.collection(`${basePath}/users`).doc(user.uid).set({ name: data.name||'', phone: data.phone||'', address: data.address||'' }, { merge: true });
       }
       function updateAuthUi(user){
         const loggedIn = !!user && !user.isAnonymous;
@@ -374,6 +378,7 @@
         show(qs('#signupLink'), !loggedIn);
         show(qs('#profileBtn'), loggedIn);
         show(qs('#logoutBtn'), loggedIn);
+        show(qs('#ordersLink'), loggedIn);
       }
 
       // Events
@@ -392,6 +397,7 @@
           const user = auth?.currentUser;
           const prof = await loadUserProfile(user);
           qs('#profileName').value = prof.name || '';
+          qs('#profilePhone').value = prof.phone || '';
           qs('#profileAddress').value = prof.address || '';
           openProfile(true);
         });
@@ -399,8 +405,9 @@
         qs('#saveProfile')?.addEventListener('click', async ()=>{
           const user = auth?.currentUser;
           const name = qs('#profileName').value.trim();
+          const phone = qs('#profilePhone').value.trim();
           const address = qs('#profileAddress').value.trim();
-          await saveUserProfile(user, { name, address });
+          await saveUserProfile(user, { name, phone, address });
           openProfile(false);
           toast('প্রোফাইল সেভ হয়েছে');
         });
