@@ -27,6 +27,7 @@
         <div class="flex items-center gap-3">
           <a id="signupLink" href="signup.html" class="hidden sm:inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-50">সাইন আপ</a>
           <a id="loginLink" href="login.html" class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-50">লগইন</a>
+          <a id="ordersLink" href="orders.html" class="hidden inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-50">অর্ডারস</a>
           <button id="profileBtn" class="hidden inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-50">প্রোফাইল</button>
           <button id="logoutBtn" class="hidden inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-50">লগআউট</button>
           <button id="cartBtn" class="relative inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-50">
@@ -69,9 +70,22 @@
         </div>
         <div id="cartItems" class="flex-1 overflow-y-auto divide-y"></div>
         <div class="p-4 border-t space-y-3">
-          <div class="flex items-center justify-between text-sm">
-            <span class="text-gray-600">মোট</span>
-            <span id="cartTotal" class="font-semibold">৳0</span>
+          <div class="space-y-2">
+            <div class="grid grid-cols-2 gap-2">
+              <input id="coName" class="col-span-2 rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="নাম" />
+              <input id="coPhone" class="rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="মোবাইল" />
+              <select id="coArea" class="rounded-lg border border-gray-300 px-3 py-2 text-sm">
+                <option value="InsideCity">সিটি এর ভিতরে</option>
+                <option value="OutsideCity">সিটি এর বাইরে</option>
+              </select>
+              <textarea id="coAddress" rows="2" class="col-span-2 rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="সম্পূর্ণ ঠিকানা"></textarea>
+              <textarea id="coNotes" rows="2" class="col-span-2 rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="ডেলিভারি নোট (ঐচ্ছিক)"></textarea>
+            </div>
+          </div>
+          <div class="space-y-1 text-sm">
+            <div class="flex items-center justify-between"><span class="text-gray-600">সাবটোটাল</span><span id="cartSubtotal">৳0</span></div>
+            <div class="flex items-center justify-between"><span class="text-gray-600">ডেলিভারি ফি</span><span id="deliveryFee">৳0</span></div>
+            <div class="flex items-center justify-between font-semibold"><span>মোট</span><span id="cartTotal">৳0</span></div>
           </div>
           <button id="checkoutBtn" class="w-full inline-flex items-center justify-center rounded-lg bg-green-600 text-white px-4 py-3 font-medium hover:bg-green-700 disabled:opacity-50">অর্ডার প্লেস করুন</button>
         </div>
@@ -170,6 +184,8 @@
       const cartDrawer = () => qs('#cartDrawer');
       const cartItemsEl = () => qs('#cartItems');
       const cartTotalEl = () => qs('#cartTotal');
+      const cartSubtotalEl = () => qs('#cartSubtotal');
+      const deliveryFeeEl = () => qs('#deliveryFee');
       const configAlert = () => qs('#configAlert');
 
       function toast(msg) {
@@ -247,7 +263,23 @@
           removeFromCart(e.currentTarget.getAttribute('data-remove'));
         }));
         const total = items.reduce((s,i)=>s + i.price * i.qty, 0);
-        cartTotalEl().textContent = fmtCurrency(total);
+        cartSubtotalEl()?.textContent = fmtCurrency(total);
+        updateTotals();
+      }
+
+      function deliveryFeeForArea(area, subtotal){
+        const fees = { InsideCity: 60, OutsideCity: 120 };
+        return fees[area] ?? 60;
+      }
+
+      function updateTotals(){
+        const items = getCart();
+        const subtotal = items.reduce((s,i)=>s + i.price * i.qty, 0);
+        const area = qs('#coArea')?.value || 'InsideCity';
+        const fee = deliveryFeeForArea(area, subtotal);
+        cartSubtotalEl()?.textContent = fmtCurrency(subtotal);
+        deliveryFeeEl()?.textContent = fmtCurrency(fee);
+        cartTotalEl()?.textContent = fmtCurrency(subtotal + fee);
       }
 
       function openCart(open=true){ cartDrawer().classList.toggle('hidden', !open); }
@@ -290,12 +322,25 @@
           if (!db || !basePath) { toast('কনফিগার সেট করুন'); return; }
           const items = getCart();
           if (!items.length) { toast('কার্ট খালি'); return; }
-          const user = await ensureAnonAuth();
-          const totalAmount = items.reduce((s,i)=>s+i.price*i.qty,0);
+          const name = qs('#coName').value.trim();
+          const phone = qs('#coPhone').value.trim();
+          const address = qs('#coAddress').value.trim();
+          const area = qs('#coArea').value;
+          const notes = qs('#coNotes').value.trim();
+          if (!name || !phone || !address) { toast('নাম, মোবাইল ও ঠিকানা দিন'); return; }
+          const user = auth?.currentUser && !auth.currentUser.isAnonymous ? auth.currentUser : await ensureAnonAuth();
+          // upsert user profile basics
+          try{ await db.collection(`${basePath}/users`).doc(user.uid).set({ name, phone, address, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }); }catch{}
+          const subtotal = items.reduce((s,i)=>s+i.price*i.qty,0);
+          const deliveryFee = deliveryFeeForArea(area, subtotal);
+          const totalAmount = subtotal + deliveryFee;
           await db.collection(`${basePath}/orders`).add({
             userId: user.uid,
             items,
+            subtotal,
+            deliveryFee,
             totalAmount,
+            customer: { name, phone, address, area, deliveryNotes: notes },
             status: 'Pending',
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
           });
@@ -338,6 +383,7 @@
         qs('#closeCart').addEventListener('click', ()=>openCart(false));
         qs('#cartBackdrop').addEventListener('click', ()=>openCart(false));
         qs('#checkoutBtn').addEventListener('click', placeOrder);
+        qs('#coArea')?.addEventListener('change', updateTotals);
         qs('#resetFilter').addEventListener('click', ()=>{ currentCategory='All'; renderProducts(); renderCategories(products); });
         qs('#successOk').addEventListener('click', ()=>{ qs('#successModal').classList.add('hidden'); qs('#successModal').classList.remove('flex'); });
 
@@ -374,6 +420,12 @@
                 role,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
               }, { merge: true });
+              // Prefill checkout inputs from profile
+              const u = await db.collection(`${basePath}/users`).doc(user.uid).get();
+              const d = u.exists ? u.data() : {};
+              if (qs('#coName')) qs('#coName').value = d?.name || '';
+              if (qs('#coPhone')) qs('#coPhone').value = d?.phone || '';
+              if (qs('#coAddress')) qs('#coAddress').value = d?.address || '';
             }catch(e){ console.warn('user upsert failed', e); }
           }
         });
