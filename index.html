@@ -25,8 +25,8 @@
           </div>
         </div>
         <div class="flex items-center gap-3">
-          <a id="signupLink" href="signup.html" class="hidden sm:inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-50">সাইন আপ</a>
-          <a id="loginLink" href="login.html" class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-50">লগইন</a>
+          <a id="signupLink" href="signup.html" class="hidden sm:inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-50 transition transform active:scale-95 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2">সাইন আপ</a>
+          <a id="loginLink" href="login.html" class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-50 transition transform active:scale-95 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2">লগইন</a>
           <a id="ordersLink" href="orders.html" class="hidden inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-50">অর্ডারস</a>
           <button id="profileBtn" class="hidden inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-50">প্রোফাইল</button>
           <button id="logoutBtn" class="hidden inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-50">লগআউট</button>
@@ -418,6 +418,14 @@
         await initFirebase();
         // Reflect current state immediately in header (in case user already logged in)
         updateAuthUi(auth?.currentUser || null);
+        // Short retry loop: reflect state quickly if init is still resolving
+        try{
+          let tries = 0;
+          const tick = setInterval(()=>{
+            if (auth?.currentUser){ updateAuthUi(auth.currentUser); clearInterval(tick); }
+            if (++tries > 20) clearInterval(tick);
+          }, 100);
+        }catch{}
         // Auth-driven header toggle and ensure user doc exists with role
         auth.onAuthStateChanged(async (user)=>{
           updateAuthUi(user);
