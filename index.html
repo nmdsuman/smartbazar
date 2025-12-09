@@ -423,7 +423,7 @@
           let tries = 0;
           const tick = setInterval(()=>{
             if (auth?.currentUser){ updateAuthUi(auth.currentUser); clearInterval(tick); }
-            if (++tries > 20) clearInterval(tick);
+            if (++tries > 50) clearInterval(tick); // up to ~5s
           }, 100);
         }catch{}
         // Auth-driven header toggle and ensure user doc exists with role
@@ -447,6 +447,8 @@
             }catch(e){ console.warn('user upsert failed', e); }
           }
         });
+        // Also listen to token changes (some environments restore user via token first)
+        auth.onIdTokenChanged((user)=>{ updateAuthUi(user); try{ localStorage.removeItem('lb_last_login'); }catch{} });
         watchProducts();
       });
     </script>
