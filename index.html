@@ -25,8 +25,10 @@
           </div>
         </div>
         <div class="flex items-center gap-3">
-          <a href="signup.html" class="hidden sm:inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-50">সাইন আপ</a>
-          <a href="login.html" class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-50">লগইন</a>
+          <a id="signupLink" href="signup.html" class="hidden sm:inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-50">সাইন আপ</a>
+          <a id="loginLink" href="login.html" class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-50">লগইন</a>
+          <button id="profileBtn" class="hidden inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-50">প্রোফাইল</button>
+          <button id="logoutBtn" class="hidden inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-50">লগআউট</button>
           <button id="cartBtn" class="relative inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium hover:bg-gray-50">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25h9.75a2.25 2.25 0 0 0 2.197-1.757l1.125-5A2.25 2.25 0 0 0 18.375 4.5H5.106m2.394 9.75L5.106 4.5m2.394 9.75L6 18.75m0 0h12.75M6 18.75a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm12.75 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z"/></svg>
             <span>কার্ট</span>
@@ -76,6 +78,26 @@
       </div>
     </div>
 
+    <!-- Profile Modal -->
+    <div id="profileModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40">
+      <div class="bg-white rounded-xl p-6 max-w-sm w-full">
+        <h4 class="text-base font-semibold mb-3">প্রোফাইল</h4>
+        <div class="space-y-3">
+          <div>
+            <label class="block text-sm mb-1">নাম</label>
+            <input id="profileName" class="w-full rounded-lg border border-gray-300 px-3 py-2" placeholder="আপনার নাম" />
+          </div>
+          <div>
+            <label class="block text-sm mb-1">ঠিকানা</label>
+            <textarea id="profileAddress" rows="2" class="w-full rounded-lg border border-gray-300 px-3 py-2" placeholder="ডেলিভারি ঠিকানা"></textarea>
+          </div>
+        </div>
+        <div class="mt-4 flex items-center justify-end gap-2">
+          <button id="closeProfile" class="rounded-lg border border-gray-200 px-4 py-2 text-sm hover:bg-gray-50">বন্ধ</button>
+          <button id="saveProfile" class="rounded-lg bg-green-600 text-white px-4 py-2 text-sm hover:bg-green-700">সেভ</button>
+        </div>
+      </div>
+    </div>
     <!-- Success Modal -->
     <div id="successModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40">
       <div class="bg-white rounded-xl p-6 max-w-sm w-full text-center">
@@ -286,6 +308,29 @@
         }
       }
 
+      // Profile helpers
+      function openProfile(open=true){ const m=qs('#profileModal'); m.classList.toggle('hidden', !open); m.classList.toggle('flex', open); }
+      async function loadUserProfile(user){
+        if (!user || user.isAnonymous || !db || !basePath) return { name:'', address:'' };
+        try{
+          const snap = await db.collection(`${basePath}/users`).doc(user.uid).get();
+          const d = snap.exists ? snap.data() : {};
+          return { name: d.name || '', address: d.address || '' };
+        }catch{ return { name:'', address:'' }; }
+      }
+      async function saveUserProfile(user, data){
+        if (!user || user.isAnonymous || !db || !basePath) return;
+        await db.collection(`${basePath}/users`).doc(user.uid).set({ name: data.name||'', address: data.address||'' }, { merge: true });
+      }
+      function updateAuthUi(user){
+        const loggedIn = !!user && !user.isAnonymous;
+        const show = (el, on) => { if (!el) return; el.classList.toggle('hidden', !on); };
+        show(qs('#loginLink'), !loggedIn);
+        show(qs('#signupLink'), !loggedIn);
+        show(qs('#profileBtn'), loggedIn);
+        show(qs('#logoutBtn'), loggedIn);
+      }
+
       // Events
       window.addEventListener('DOMContentLoaded', async () => {
         // Buttons
@@ -296,8 +341,31 @@
         qs('#resetFilter').addEventListener('click', ()=>{ currentCategory='All'; renderProducts(); renderCategories(products); });
         qs('#successOk').addEventListener('click', ()=>{ qs('#successModal').classList.add('hidden'); qs('#successModal').classList.remove('flex'); });
 
+        // Profile UI events
+        qs('#profileBtn')?.addEventListener('click', async ()=>{
+          const user = auth?.currentUser;
+          const prof = await loadUserProfile(user);
+          qs('#profileName').value = prof.name || '';
+          qs('#profileAddress').value = prof.address || '';
+          openProfile(true);
+        });
+        qs('#closeProfile')?.addEventListener('click', ()=>openProfile(false));
+        qs('#saveProfile')?.addEventListener('click', async ()=>{
+          const user = auth?.currentUser;
+          const name = qs('#profileName').value.trim();
+          const address = qs('#profileAddress').value.trim();
+          await saveUserProfile(user, { name, address });
+          openProfile(false);
+          toast('প্রোফাইল সেভ হয়েছে');
+        });
+        qs('#logoutBtn')?.addEventListener('click', async ()=>{ try{ await auth.signOut(); }catch(e){} });
+
         renderCart();
         await initFirebase();
+        // Auth-driven header toggle
+        auth.onAuthStateChanged((user)=>{
+          updateAuthUi(user);
+        });
         watchProducts();
       });
     </script>
