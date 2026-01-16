@@ -67,6 +67,22 @@
     </div>
   </main>
 
+  <!-- Invoice Preview Modal -->
+  <div id="inv-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+    <div class="bg-white w-full max-w-2xl rounded shadow-lg overflow-hidden">
+      <div class="px-4 py-3 border-b flex items-center justify-between">
+        <h3 class="font-semibold">Order Summary</h3>
+        <button id="inv-close" class="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200">Close</button>
+      </div>
+      <div class="p-4 space-y-4" id="inv-body">
+        <!-- Filled by JS: items table and totals -->
+      </div>
+      <div class="px-4 py-3 border-t flex items-center justify-end gap-2">
+        <button id="inv-confirm" class="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700">Confirm Order</button>
+      </div>
+    </div>
+  </div>
+
   <script type="module" src="js/firebase-config.js"></script>
   <script type="module" src="js/auth.js"></script>
   <script type="module" src="js/app.js"></script>
