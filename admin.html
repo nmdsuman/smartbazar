@@ -18,7 +18,7 @@
   </script>
 </head>
 <body class="bg-gray-50">
-  <header class="bg-white border-b">
+  <header class="bg-white border-b sticky top-0 z-50">
     <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
       <a href="index.html" class="text-xl font-bold">Bazar</a>
       <nav class="flex items-center gap-4">
@@ -30,14 +30,13 @@
       </nav>
     </div>
 
-  <!-- Product Edit Modal -->
   <div id="edit-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
-    <div class="bg-white w-full max-w-xl rounded shadow-lg overflow-hidden">
+    <div class="bg-white w-full max-w-xl rounded shadow-lg overflow-hidden m-4">
       <div class="px-4 py-3 border-b flex items-center justify-between">
         <h3 class="font-semibold">Edit Product</h3>
         <button id="edit-close" class="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200">Close</button>
       </div>
-      <form id="edit-form" class="p-4 grid grid-cols-1 gap-3">
+      <form id="edit-form" class="p-4 grid grid-cols-1 gap-3 max-h-[80vh] overflow-y-auto">
         <div>
           <label class="block text-sm mb-1">Title</label>
           <input type="text" name="title" class="w-full border rounded px-3 py-2"/>
@@ -79,9 +78,8 @@
   </div>
   </header>
 
-  <!-- Left Admin Sidebar -->
-  <aside class="hidden md:block fixed left-4 top-28 z-40">
-    <nav class="bg-white border rounded-lg shadow-sm w-56 p-3 space-y-1 admin-nav">
+  <aside class="hidden md:block fixed left-4 top-24 z-40 w-56 h-[calc(100vh-7rem)] overflow-y-auto">
+    <nav class="bg-white border rounded-lg shadow-sm p-3 space-y-1 admin-nav">
       <a href="#add" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
         <span>Add Product</span>
       </a>
@@ -98,7 +96,7 @@
     </nav>
   </aside>
 
-  <main class="max-w-6xl mx-auto px-4 py-8">
+  <main class="max-w-6xl px-4 py-8 md:ml-64 transition-all duration-300">
     <h1 class="text-2xl font-semibold mb-6">Admin Dashboard</h1>
 
     <section id="add" class="bg-white border rounded-lg p-6 mb-8">
@@ -145,7 +143,7 @@
 
     <section id="products" class="bg-white border rounded-lg p-6">
       <h2 class="text-lg font-semibold mb-4">All Products</h2>
-      <div id="admin-products" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"></div>
+      <div id="admin-products" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
       <div id="admin-empty" class="text-gray-500 hidden">No products found.</div>
     </section>
 
@@ -195,14 +193,13 @@
     </section>
   </main>
 
-  <!-- Order Detail Modal -->
   <div id="order-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
-    <div class="bg-white w-full max-w-3xl rounded shadow-lg overflow-hidden">
+    <div class="bg-white w-full max-w-3xl rounded shadow-lg overflow-hidden m-4">
       <div class="px-4 py-3 border-b flex items-center justify-between">
         <h3 class="font-semibold">Order Details</h3>
         <button id="order-close" class="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200">Close</button>
       </div>
-      <div class="p-4 space-y-4">
+      <div class="p-4 space-y-4 max-h-[80vh] overflow-y-auto">
         <div class="text-sm text-gray-700" id="order-meta"></div>
         <div>
           <table class="w-full text-sm border">
