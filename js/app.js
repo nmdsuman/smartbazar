@@ -1,4 +1,5 @@
 import { auth, db } from './firebase-config.js';
+import { onAuthStateChanged } from 'firebase/auth';
 import { initAuthHeader } from './auth.js';
 import {
   collection,
@@ -15,6 +16,7 @@ import {
 // CART utils (localStorage)
 const CART_KEY = 'bazar_cart';
 let shippingSettings = null; // { baseFee, extraPerBlock, blockGrams, fallbackFee }
+let cloudSaveTimer = null;
 
 function readCart() {
   try {
@@ -27,6 +29,17 @@ function readCart() {
 function writeCart(cart) {
   localStorage.setItem(CART_KEY, JSON.stringify(cart));
   updateCartBadge();
+  // Also persist to cloud for logged-in users (debounced)
+  if (auth.currentUser) {
+    if (cloudSaveTimer) clearTimeout(cloudSaveTimer);
+    cloudSaveTimer = setTimeout(async () => {
+      try {
+        await setDoc(doc(db, 'users', auth.currentUser.uid), { cart }, { merge: true });
+      } catch (e) {
+        console.warn('Cloud cart save failed', e);
+      }
+    }, 250);
+  }
 }
 
 export function addToCart(item) {
@@ -159,8 +172,19 @@ export async function renderCartPage() {
     } catch {}
   }
 
+  async function loadShippingSettings() {
+    try {
+      const ref = doc(db, 'settings', 'shipping');
+      const snap = await getDoc(ref);
+      if (snap.exists()) shippingSettings = snap.data();
+    } catch {}
+  }
+
   function refresh() {
+    const raw = localStorage.getItem(CART_KEY);
+    console.debug('Cart raw localStorage', raw);
     const cart = readCart();
+    console.debug('Parsed cart items', cart);
     itemsEl.innerHTML = '';
     if (cart.length === 0) {
       emptyEl.classList.remove('hidden');
