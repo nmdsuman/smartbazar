@@ -71,10 +71,26 @@
   </div>
   </header>
 
+  <!-- Left Admin Sidebar -->
+  <aside class="hidden md:block fixed left-4 top-28 z-40">
+    <nav class="bg-white border rounded-lg shadow-sm w-56 p-3 space-y-1 admin-nav">
+      <a href="#add" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
+        <span>Add Product</span>
+      </a>
+      <a href="#orders-section" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
+        <span>Orders</span>
+        <span id="orders-badge" class="hidden ml-2 inline-flex items-center justify-center text-xs rounded-full bg-blue-600 text-white min-w-5 h-5 px-1">0</span>
+      </a>
+      <a href="#shipping" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
+        <span>Delivery Settings</span>
+      </a>
+    </nav>
+  </aside>
+
   <main class="max-w-6xl mx-auto px-4 py-8">
     <h1 class="text-2xl font-semibold mb-6">Admin Dashboard</h1>
 
-    <section class="bg-white border rounded-lg p-6 mb-8">
+    <section id="add" class="bg-white border rounded-lg p-6 mb-8">
       <h2 class="text-lg font-semibold mb-4">Add Product</h2>
       <form id="add-product-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
@@ -114,7 +130,7 @@
       <div id="admin-empty" class="text-gray-500 hidden">No products found.</div>
     </section>
 
-    <section class="bg-white border rounded-lg p-6 mt-8">
+    <section id="orders-section" class="bg-white border rounded-lg p-6 mt-8">
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-lg font-semibold">Recent Orders</h2>
         <div class="flex items-center gap-2">
@@ -133,7 +149,7 @@
       <div id="orders-empty" class="text-gray-500">No orders yet.</div>
     </section>
 
-    <section class="bg-white border rounded-lg p-6 mt-8">
+    <section id="shipping" class="bg-white border rounded-lg p-6 mt-8">
       <h2 class="text-lg font-semibold mb-4">Delivery Settings</h2>
       <form id="shipping-form" class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
