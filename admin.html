@@ -1,449 +1,72 @@
-<!doctype html>
-<html lang="bn">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Locker Bazar Admin</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-      html,body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial; }
-    </style>
-  </head>
-  <body class="bg-gray-50 text-gray-900">
-    <div id="configAlert" class="hidden m-3 rounded-lg border border-amber-300 bg-amber-50 text-amber-900 p-3 text-sm">Firebase কনফিগার অনুপস্থিত। <code>__firebase_config</code> এবং <code>__app_id</code> দিন।</div>
-
-    <div id="authView" class="min-h-screen flex items-center justify-center p-4">
-      <div class="w-full max-w-sm bg-white border border-gray-200 rounded-2xl p-6 space-y-4">
-        <div class="flex items-center gap-3">
-          <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-green-600 text-white font-bold">LB</span>
-          <div>
-            <h1 class="text-lg font-semibold">Locker Bazar Admin</h1>
-            <p id="authTitle" class="text-xs text-gray-500">সাইন ইন করুন</p>
-          </div>
-        </div>
-        <form id="loginForm" class="space-y-3">
-          <div>
-            <label class="block text-sm mb-1">ইমেইল</label>
-            <input id="email" type="email" class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-600" required />
-          </div>
-          <div>
-            <label class="block text-sm mb-1">পাসওয়ার্ড</label>
-            <input id="password" type="password" class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-600" required />
-          </div>
-          <button id="authSubmit" class="w-full rounded-lg bg-green-600 text-white px-4 py-2 font-medium hover:bg-green-700">লগইন</button>
-          <p class="text-xs text-gray-600">একাউন্ট নেই? <button type="button" id="switchToSignup" class="text-green-700 hover:underline">সাইন আপ করুন</button></p>
-          <p class="text-xs text-gray-600 hidden" id="switchToLoginWrap">একাউন্ট আছে? <button type="button" id="switchToLogin" class="text-green-700 hover:underline">লগইন করুন</button></p>
-          <p id="authError" class="hidden text-sm text-red-600"></p>
-        </form>
-      </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bazar — Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="data:,">
+  <script type="importmap">
+  {
+    "imports": {
+      "firebase/app": "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js",
+      "firebase/auth": "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js",
+      "firebase/firestore": "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js",
+      "firebase/analytics": "https://www.gstatic.com/firebasejs/10.13.1/firebase-analytics.js"
+    }
+  }
+  </script>
+</head>
+<body class="bg-gray-50">
+  <header class="bg-white border-b">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+      <a href="index.html" class="text-xl font-bold">Bazar</a>
+      <nav class="flex items-center gap-4">
+        <a href="index.html" class="hover:text-blue-600">Home</a>
+        <a href="cart.html" class="hover:text-blue-600">Cart</a>
+        <button id="logout-btn" data-logout class="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200">Logout</button>
+      </nav>
     </div>
+  </header>
 
-    <div id="adminView" class="hidden">
-      <header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-gray-200">
-        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-green-600 text-white font-bold">LB</span>
-            <div>
-              <h2 class="text-lg font-semibold">ড্যাশবোর্ড</h2>
-              <p class="text-xs text-gray-500">পণ্য ও অর্ডার ব্যবস্থাপনা</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-2">
-            <button id="logoutBtn" class="rounded-lg border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50">লগআউট</button>
-          </div>
+  <main class="max-w-6xl mx-auto px-4 py-8">
+    <h1 class="text-2xl font-semibold mb-6">Admin Dashboard</h1>
+
+    <section class="bg-white border rounded-lg p-6 mb-8">
+      <h2 class="text-lg font-semibold mb-4">Add Product</h2>
+      <form id="add-product-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm mb-1">Title</label>
+          <input type="text" name="title" required class="w-full border rounded px-3 py-2"/>
         </div>
-      </header>
-
-      <main class="max-w-6xl mx-auto px-4 py-4 space-y-6">
-        <section class="bg-white border border-gray-200 rounded-2xl p-4">
-          <h3 class="text-base font-semibold mb-3">অ্যাডমিন ব্যবস্থাপনা</h3>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
-            <div class="md:col-span-2">
-              <label class="block text-sm mb-1">ইউজার UID (Firebase Auth)</label>
-              <input id="adminUid" class="w-full rounded-lg border border-gray-300 px-3 py-2" placeholder="উদাহরণ: S0meUid123..." />
-            </div>
-            <div class="flex gap-2">
-              <button id="addAdminBtn" class="rounded-lg bg-green-600 text-white px-4 py-2 text-sm hover:bg-green-700">অ্যাডমিন যুক্ত করুন</button>
-              <button id="removeAdminBtn" class="rounded-lg border border-gray-200 px-4 py-2 text-sm hover:bg-gray-50">মুছে ফেলুন</button>
-            </div>
-          </div>
-          <div class="mt-4 overflow-x-auto">
-            <table class="min-w-full text-sm">
-              <thead>
-                <tr class="border-b bg-gray-50">
-                  <th class="text-left p-2">UID</th>
-                  <th class="text-left p-2">স্ট্যাটাস</th>
-                  <th class="text-left p-2">অ্যাকশন</th>
-                </tr>
-              </thead>
-              <tbody id="adminsTbody"></tbody>
-            </table>
-          </div>
-        </section>
-        <section class="bg-white border border-gray-200 rounded-2xl p-4">
-          <h3 class="text-base font-semibold mb-3">পণ্য যোগ/সম্পাদনা</h3>
-          <form id="productForm" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <input type="hidden" id="editingId" />
-            <div>
-              <label class="block text-sm mb-1">পণ্যের নাম</label>
-              <input id="pName" class="w-full rounded-lg border border-gray-300 px-3 py-2" required />
-            </div>
-            <div>
-              <label class="block text-sm mb-1">ক্যাটাগরি</label>
-              <input id="pCategory" class="w-full rounded-lg border border-gray-300 px-3 py-2" placeholder="চাল/ডাল/সবজি..." required />
-            </div>
-            <div>
-              <label class="block text-sm mb-1">মূল্য (৳)</label>
-              <input id="pPrice" type="number" step="0.01" min="0" class="w-full rounded-lg border border-gray-300 px-3 py-2" required />
-            </div>
-            <div class="sm:col-span-2">
-              <label class="block text-sm mb-1">বিবরণ</label>
-              <textarea id="pDescription" rows="2" class="w-full rounded-lg border border-gray-300 px-3 py-2"></textarea>
-            </div>
-            <div class="sm:col-span-2">
-              <label class="block text-sm mb-1">ছবি</label>
-              <input id="pImage" type="file" accept="image/*" class="block w-full text-sm" />
-            </div>
-            <div class="sm:col-span-2 flex items-center gap-2">
-              <button class="rounded-lg bg-green-600 text-white px-4 py-2 font-medium hover:bg-green-700" id="saveProduct">সেভ</button>
-              <button type="button" class="rounded-lg border border-gray-200 px-4 py-2 text-sm hover:bg-gray-50" id="resetForm">রিসেট</button>
-              <span id="formMsg" class="text-sm text-gray-600"></span>
-            </div>
-          </form>
-        </section>
-
-        <section class="bg-white border border-gray-200 rounded-2xl p-4">
-          <h3 class="text-base font-semibold mb-3">পণ্যের তালিকা</h3>
-          <div class="overflow-x-auto">
-            <table class="min-w-full text-sm">
-              <thead>
-                <tr class="border-b bg-gray-50">
-                  <th class="text-left p-2">ছবি</th>
-                  <th class="text-left p-2">নাম</th>
-                  <th class="text-left p-2">ক্যাটাগরি</th>
-                  <th class="text-left p-2">মূল্য</th>
-                  <th class="text-left p-2">অ্যাকশন</th>
-                </tr>
-              </thead>
-              <tbody id="productsTbody"></tbody>
-            </table>
-          </div>
-        </section>
-
-        <section class="bg-white border border-gray-200 rounded-2xl p-4">
-          <h3 class="text-base font-semibold mb-3">অর্ডারসমূহ</h3>
-          <div class="overflow-x-auto">
-            <table class="min-w-full text-sm">
-              <thead>
-                <tr class="border-b bg-gray-50">
-                  <th class="text-left p-2">অর্ডার ID</th>
-                  <th class="text-left p-2">মোট</th>
-                  <th class="text-left p-2">সময়</th>
-                  <th class="text-left p-2">স্ট্যাটাস</th>
-                  <th class="text-left p-2">বিস্তারিত</th>
-                </tr>
-              </thead>
-              <tbody id="ordersTbody"></tbody>
-            </table>
-          </div>
-        </section>
-      </main>
-    </div>
-
-    <div id="orderModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40">
-      <div class="bg-white rounded-xl p-6 max-w-md w-full">
-        <h4 class="text-base font-semibold mb-3">অর্ডার বিস্তারিত</h4>
-        <div id="orderItems" class="space-y-2 max-h-80 overflow-y-auto"></div>
-        <div class="mt-4 text-right">
-          <button id="closeOrderModal" class="rounded-lg border border-gray-200 px-4 py-2 text-sm hover:bg-gray-50">বন্ধ করুন</button>
+        <div>
+          <label class="block text-sm mb-1">Price (USD)</label>
+          <input type="number" step="0.01" min="0" name="price" required class="w-full border rounded px-3 py-2"/>
         </div>
-      </div>
-    </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm mb-1">Image URL</label>
+          <input type="url" name="image" required class="w-full border rounded px-3 py-2"/>
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm mb-1">Description</label>
+          <textarea name="description" rows="3" class="w-full border rounded px-3 py-2"></textarea>
+        </div>
+        <div class="md:col-span-2">
+          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Add Product</button>
+        </div>
+      </form>
+      <div id="admin-message" class="text-sm mt-4"></div>
+    </section>
 
-    <!-- Firebase Config (Provided) -->
-    <script>
-      window.__firebase_config = {
-        apiKey: "AIzaSyAcj9y2jgxqatG3_IXkBjMT0yvBoardpJw",
-        authDomain: "bazar-201e6.firebaseapp.com",
-        projectId: "bazar-201e6",
-        storageBucket: "bazar-201e6.firebasestorage.app",
-        messagingSenderId: "465394666878",
-        appId: "1:465394666878:web:7f4ecb390746a57baef72f",
-        measurementId: "G-3WJ6CCGSYS"
-      };
-      window.__app_id = "bazar-201e6";
-    </script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+    <section class="bg-white border rounded-lg p-6">
+      <h2 class="text-lg font-semibold mb-4">All Products</h2>
+      <div id="admin-products" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"></div>
+      <div id="admin-empty" class="text-gray-500 hidden">No products found.</div>
+    </section>
+  </main>
 
-    <script>
-      const qs = (s, r=document) => r.querySelector(s);
-      const fmtCurrency = (n) => `৳${(n||0).toLocaleString('bn-BD')}`;
-
-      let app=null, auth=null, db=null, storage=null, basePath=null;
-      let unsubProducts=null, unsubOrders=null, unsubAdmins=null;
-      let currentUser=null, isAdmin=false, authMode='login';
-
-      async function initFirebase(){
-        const missing = !(window.__firebase_config && window.__app_id);
-        if (missing) { qs('#configAlert').classList.remove('hidden'); return; }
-        try{
-          app = firebase.initializeApp(window.__firebase_config);
-          auth = firebase.auth();
-          db = firebase.firestore();
-          storage = firebase.storage();
-          basePath = `artifacts/${window.__app_id}/public/data`;
-          qs('#configAlert').classList.add('hidden');
-        }catch(e){ console.error(e); qs('#configAlert').classList.remove('hidden'); }
-      }
-
-      function setView(authenticated){
-        qs('#authView').classList.toggle('hidden', authenticated);
-        qs('#adminView').classList.toggle('hidden', !authenticated);
-      }
-
-      async function checkAdmin(uid){
-        const ref = db.collection(`${basePath}/admins`).doc(uid);
-        const doc = await ref.get();
-        return doc.exists;
-      }
-
-      function watchProducts(){
-        if (unsubProducts) unsubProducts();
-        unsubProducts = db.collection(`${basePath}/products`).onSnapshot(snap=>{
-          const tbody = qs('#productsTbody');
-          tbody.innerHTML = '';
-          snap.forEach(doc=>{
-            const p = { id: doc.id, ...doc.data() };
-            const tr = document.createElement('tr');
-            tr.className = 'border-b';
-            tr.innerHTML = `
-              <td class="p-2">${p.imageUrl ? `<img src="${p.imageUrl}" class="h-12 w-12 rounded object-cover"/>` : ''}</td>
-              <td class="p-2 font-medium">${p.name || ''}</td>
-              <td class="p-2">${p.category || ''}</td>
-              <td class="p-2">${fmtCurrency(p.price)}</td>
-              <td class="p-2 space-x-2">
-                <button data-edit="${p.id}" class="rounded-md border px-3 py-1 text-xs hover:bg-gray-50">সম্পাদনা</button>
-                <button data-del="${p.id}" class="rounded-md border px-3 py-1 text-xs text-red-600 hover:bg-red-50">মুছে ফেলুন</button>
-              </td>`;
-            tbody.appendChild(tr);
-            tr.querySelector('[data-edit]')?.addEventListener('click', ()=>loadIntoForm(p));
-            tr.querySelector('[data-del]')?.addEventListener('click', ()=>deleteProduct(p));
-          });
-        }, err=>console.error(err));
-      }
-
-      function watchAdmins(){
-        if (unsubAdmins) unsubAdmins();
-        unsubAdmins = db.collection(`${basePath}/admins`).onSnapshot(snap=>{
-          const tbody = qs('#adminsTbody');
-          if (!tbody) return;
-          tbody.innerHTML = '';
-          snap.forEach(doc=>{
-            const uid = doc.id;
-            const tr = document.createElement('tr');
-            tr.className = 'border-b';
-            tr.innerHTML = `
-              <td class="p-2 font-mono text-xs">${uid}</td>
-              <td class="p-2">isAdmin: ${doc.data()?.isAdmin ? 'true' : 'false'}</td>
-              <td class="p-2"><button data-remove-admin="${uid}" class="rounded-md border px-3 py-1 text-xs hover:bg-gray-50">মুছুন</button></td>
-            `;
-            tbody.appendChild(tr);
-            tr.querySelector('[data-remove-admin]')?.addEventListener('click', async ()=>{
-              try{ await db.collection(`${basePath}/admins`).doc(uid).delete(); }catch(e){ console.error(e); }
-            });
-          });
-        }, err=>console.error(err));
-      }
-
-      async function addAdminByUid(uid){
-        if (!uid) return;
-        await db.collection(`${basePath}/admins`).doc(uid).set({ isAdmin: true }, { merge: true });
-        try{
-          await db.collection(`${basePath}/users`).doc(uid).set({ role: 'admin', updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
-        }catch(e){ console.warn('failed to set user role admin', e); }
-      }
-
-      async function removeAdminByUid(uid){
-        if (!uid) return;
-        await db.collection(`${basePath}/admins`).doc(uid).delete();
-        try{
-          await db.collection(`${basePath}/users`).doc(uid).set({ role: 'user', updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
-        }catch(e){ console.warn('failed to set user role user', e); }
-      }
-
-      function watchOrders(){
-        if (unsubOrders) unsubOrders();
-        unsubOrders = db.collection(`${basePath}/orders`).orderBy('createdAt','desc').onSnapshot(snap=>{
-          const tbody = qs('#ordersTbody');
-          tbody.innerHTML = '';
-          snap.forEach(doc=>{
-            const o = { id: doc.id, ...doc.data() };
-            const created = o.createdAt?.toDate ? o.createdAt.toDate() : null;
-            const tr = document.createElement('tr');
-            tr.className = 'border-b';
-            tr.innerHTML = `
-              <td class="p-2 font-mono text-xs">${o.id}</td>
-              <td class="p-2">${fmtCurrency(o.totalAmount)}</td>
-              <td class="p-2">${created ? created.toLocaleString('bn-BD') : ''}</td>
-              <td class="p-2">${o.status || 'Pending'}</td>
-              <td class="p-2"><button data-order="${o.id}" class="rounded-md border px-3 py-1 text-xs hover:bg-gray-50">বিস্তারিত</button></td>`;
-            tbody.appendChild(tr);
-            tr.querySelector('[data-order]')?.addEventListener('click', ()=>openOrder(o));
-          });
-        }, err=>console.error(err));
-      }
-
-      function loadIntoForm(p){
-        qs('#editingId').value = p.id;
-        qs('#pName').value = p.name || '';
-        qs('#pCategory').value = p.category || '';
-        qs('#pPrice').value = p.price || 0;
-        qs('#pDescription').value = p.description || '';
-        qs('#formMsg').textContent = 'সম্পাদনা মোড';
-      }
-
-      function resetForm(){
-        qs('#editingId').value = '';
-        qs('#productForm').reset();
-        qs('#formMsg').textContent = '';
-      }
-
-      async function uploadImageIfAny(file){
-        if (!file) return null;
-        const path = `${basePath}/uploads/products/${Date.now()}_${file.name}`;
-        const ref = storage.ref().child(path);
-        await ref.put(file);
-        const url = await ref.getDownloadURL();
-        return { imageUrl: url, storagePath: path };
-      }
-
-      async function saveProduct(e){
-        e.preventDefault();
-        const name = qs('#pName').value.trim();
-        const category = qs('#pCategory').value.trim();
-        const price = parseFloat(qs('#pPrice').value) || 0;
-        const description = qs('#pDescription').value.trim();
-        const file = qs('#pImage').files[0];
-        const editingId = qs('#editingId').value;
-        try{
-          qs('#formMsg').textContent = 'সেভ হচ্ছে...';
-          let img = await uploadImageIfAny(file);
-          if (editingId){
-            const ref = db.collection(`${basePath}/products`).doc(editingId);
-            const upd = { name, category, price, description };
-            if (img) Object.assign(upd, img);
-            await ref.update(upd);
-          } else {
-            const ref = db.collection(`${basePath}/products`).doc();
-            const data = { name, category, price, description, ...(img||{}) };
-            await ref.set(data);
-          }
-          resetForm();
-          qs('#formMsg').textContent = 'সেভ সম্পন্ন';
-          setTimeout(()=>qs('#formMsg').textContent='',1000);
-        }catch(err){
-          console.error(err);
-          qs('#formMsg').textContent = 'ত্রুটি হয়েছে';
-        }
-      }
-
-      async function deleteProduct(p){
-        if (!confirm('পণ্যটি মুছে ফেলতে চান?')) return;
-        try{
-          await db.collection(`${basePath}/products`).doc(p.id).delete();
-          if (p.storagePath){
-            try { await storage.ref().child(p.storagePath).delete(); } catch(e){ console.warn('image delete failed', e); }
-          }
-        }catch(err){ console.error(err); }
-      }
-
-      function openOrder(o){
-        const cont = qs('#orderItems');
-        cont.innerHTML = (o.items||[]).map(i=>`
-          <div class="flex items-center justify-between">
-            <div>
-              <div class="font-medium">${i.name}</div>
-              <div class="text-xs text-gray-600">পরিমাণ: ${i.qty}</div>
-            </div>
-            <div class="font-medium">${fmtCurrency(i.price * i.qty)}</div>
-          </div>
-        `).join('');
-        const modal = qs('#orderModal');
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-      }
-
-      function closeOrder(){
-        const modal = qs('#orderModal');
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-      }
-
-      window.addEventListener('DOMContentLoaded', async ()=>{
-        qs('#closeOrderModal').addEventListener('click', closeOrder);
-        await initFirebase();
-        if (!auth) return;
-
-        auth.onAuthStateChanged(async (user)=>{
-          currentUser = user;
-          if (!user) { setView(false); return; }
-          try{
-            isAdmin = await checkAdmin(user.uid);
-            if (isAdmin){
-              setView(true);
-              watchAdmins();
-              watchProducts();
-              watchOrders();
-            } else {
-              setView(false);
-              qs('#authError').classList.remove('hidden');
-              qs('#authError').textContent = 'আপনার অ্যাক্সেস নেই';
-              await auth.signOut();
-            }
-          }catch(e){ console.error(e); }
-        });
-
-        const updateAuthUi = () => {
-          qs('#authTitle').textContent = authMode==='signup' ? 'সাইন আপ করুন' : 'সাইন ইন করুন';
-          qs('#authSubmit').textContent = authMode==='signup' ? 'সাইন আপ' : 'লগইন';
-          qs('#switchToSignup').parentElement.classList.toggle('hidden', authMode==='signup');
-          qs('#switchToLoginWrap').classList.toggle('hidden', authMode!=='signup');
-        };
-        qs('#switchToSignup').addEventListener('click', ()=>{ authMode='signup'; updateAuthUi(); });
-        qs('#switchToLogin').addEventListener('click', ()=>{ authMode='login'; updateAuthUi(); });
-        updateAuthUi();
-
-        qs('#loginForm').addEventListener('submit', async (e)=>{
-          e.preventDefault();
-          const email = qs('#email').value.trim();
-          const password = qs('#password').value;
-          qs('#authError').classList.add('hidden');
-          qs('#authError').textContent='';
-          try{ 
-            if (authMode==='signup') {
-              await auth.createUserWithEmailAndPassword(email, password);
-            } else {
-              await auth.signInWithEmailAndPassword(email, password);
-            }
-          } catch(err){ 
-            qs('#authError').classList.remove('hidden'); 
-            qs('#authError').textContent = authMode==='signup' ? 'সাইন আপ ব্যর্থ' : 'লগইন ব্যর্থ'; 
-          }
-        });
-
-        qs('#logoutBtn').addEventListener('click', async ()=>{ await auth.signOut(); });
-        qs('#saveProduct').addEventListener('click', saveProduct);
-        qs('#resetForm').addEventListener('click', (e)=>{ e.preventDefault(); resetForm(); });
-        qs('#addAdminBtn').addEventListener('click', async (e)=>{ e.preventDefault(); const uid=qs('#adminUid').value.trim(); try{ await addAdminByUid(uid); qs('#adminUid').value=''; }catch(err){ console.error(err); } });
-        qs('#removeAdminBtn').addEventListener('click', async (e)=>{ e.preventDefault(); const uid=qs('#adminUid').value.trim(); try{ await removeAdminByUid(uid); qs('#adminUid').value=''; }catch(err){ console.error(err); } });
-      });
-    </script>
-  </body>
-  </html>
-
+  <script type="module" src="js/firebase-config.js"></script>
+  <script type="module" src="js/auth.js"></script>
+  <script type="module" src="js/admin.js"></script>
+</body>
+</html>

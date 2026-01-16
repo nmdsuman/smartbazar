@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Bazar — Login</title>
+  <title>Bazar — Sign Up</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="icon" href="data:,">
   <script type="importmap">
@@ -20,24 +20,24 @@
 <body class="bg-gray-50">
   <div class="min-h-screen flex items-center justify-center px-4">
     <div class="w-full max-w-md bg-white p-8 rounded-xl shadow border">
-      <h1 class="text-2xl font-semibold mb-6 text-center">Login</h1>
-      <form id="login-form" class="space-y-4">
+      <h1 class="text-2xl font-semibold mb-6 text-center">Create Account</h1>
+      <form id="signup-form" class="space-y-4">
         <div>
           <label class="block text-sm mb-1">Email</label>
           <input type="email" name="email" required class="w-full border rounded px-3 py-2 focus:outline-none focus:ring" placeholder="you@example.com"/>
         </div>
         <div>
           <label class="block text-sm mb-1">Password</label>
-          <input type="password" name="password" required class="w-full border rounded px-3 py-2 focus:outline-none focus:ring" placeholder="••••••••"/>
+          <input type="password" name="password" minlength="6" required class="w-full border rounded px-3 py-2 focus:outline-none focus:ring" placeholder="Min 6 characters"/>
         </div>
-        <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Login</button>
+        <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Sign Up</button>
       </form>
 
-      <div id="login-error" class="text-red-600 text-sm mt-4 hidden"></div>
+      <div id="signup-error" class="text-red-600 text-sm mt-4 hidden"></div>
 
       <p class="text-sm text-gray-600 mt-6 text-center">
-        New here?
-        <a class="text-blue-600 hover:underline" href="signup.html">Create an account</a>
+        Already have an account?
+        <a class="text-blue-600 hover:underline" href="login.html">Login</a>
       </p>
 
       <div class="mt-6 text-center">
@@ -49,8 +49,8 @@
   <script type="module" src="js/firebase-config.js"></script>
   <script type="module" src="js/auth.js"></script>
   <script type="module">
-    import { initLoginPage } from './js/auth.js';
-    initLoginPage();
+    import { initSignupPage } from './js/auth.js';
+    initSignupPage();
   </script>
 </body>
 </html>
