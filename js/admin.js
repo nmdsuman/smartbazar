@@ -8,7 +8,8 @@ import {
   serverTimestamp,
   onSnapshot,
   query,
-  orderBy
+  orderBy,
+  updateDoc
 } from 'firebase/firestore';
 
 requireAdmin();
@@ -34,6 +35,7 @@ form?.addEventListener('submit', async (e) => {
   const image = (data.get('image') || '').toString().trim();
   const description = (data.get('description') || '').toString().trim();
   const weight = (data.get('weight') || '').toString().trim();
+  const size = (data.get('size') || '').toString().trim();
 
   if (!title || !image || Number.isNaN(price)) {
     setMessage('Please fill all required fields correctly.', false);
@@ -47,6 +49,7 @@ form?.addEventListener('submit', async (e) => {
       image,
       description,
       weight: weight || null,
+      size: size || null,
       createdAt: serverTimestamp(),
       createdBy: auth.currentUser ? auth.currentUser.uid : null
     });
@@ -77,7 +80,7 @@ function renderProducts() {
           <h3 class="font-semibold text-lg mb-1">${data.title}</h3>
           <p class="text-sm text-gray-600 line-clamp-2 mb-3">${data.description || ''}</p>
           <div class="mt-auto flex items-center justify-between">
-            <span class="text-blue-700 font-semibold">৳${Number(data.price).toFixed(2)}${data.weight ? ` · ${data.weight}` : ''}</span>
+            <span class="text-blue-700 font-semibold">৳${Number(data.price).toFixed(2)}${data.weight ? ` · ${data.weight}` : ''}${data.size ? ` · ${data.size}` : ''}</span>
             <button class="delete bg-red-600 text-white px-3 py-1.5 rounded hover:bg-red-700">Delete</button>
           </div>
         </div>
@@ -115,16 +118,26 @@ function renderOrders() {
     snap.forEach(docSnap => {
       const o = docSnap.data();
       const div = document.createElement('div');
-      div.className = 'border rounded p-3 flex items-center justify-between';
+      div.className = 'border rounded p-3 grid grid-cols-1 md:grid-cols-3 gap-3 items-center';
       const count = Array.isArray(o.items) ? o.items.reduce((s,i)=>s+i.qty,0) : 0;
       const when = o.createdAt?.toDate ? o.createdAt.toDate().toLocaleString() : '';
       div.innerHTML = `
         <div>
           <div class="font-medium">Order #${docSnap.id.slice(-6)}</div>
           <div class="text-sm text-gray-600">Items: ${count} · User: ${o.userId || 'guest'} · ${when}</div>
+          <div class="text-sm text-gray-600">${o.customer?.name || ''} · ${o.customer?.phone || ''}</div>
         </div>
         <div class="font-semibold">৳${Number(o.total || 0).toFixed(2)}</div>
+        <div class="flex items-center gap-2">
+          <label class="text-sm">Status</label>
+          <select class="border rounded px-2 py-1 admin-status">
+            ${['Pending','Processing','Shipped','Delivered','Cancelled'].map(s=>`<option ${o.status===s?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </div>
       `;
+      div.querySelector('.admin-status').addEventListener('change', async (e)=>{
+        try { await updateDoc(doc(db,'orders',docSnap.id), { status: e.target.value }); } catch(err) { alert('Failed to update: '+err.message); }
+      });
       frag.appendChild(div);
     });
     ordersListEl.appendChild(frag);

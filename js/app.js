@@ -6,7 +6,10 @@ import {
   query,
   orderBy,
   addDoc,
-  serverTimestamp
+  serverTimestamp,
+  doc,
+  getDoc,
+  setDoc
 } from 'firebase/firestore';
 
 // CART utils (localStorage)
@@ -117,8 +120,44 @@ export function renderCartPage() {
   const summaryEl = document.getElementById('cart-summary');
   const totalEl = document.getElementById('cart-total');
   const checkoutBtn = document.getElementById('checkout-btn');
+  const nameInput = document.getElementById('chk-name');
+  const phoneInput = document.getElementById('chk-phone');
+  const addressInput = document.getElementById('chk-address');
+  const deliveryEl = document.getElementById('delivery-fee');
+  const grandTotalEl = document.getElementById('grand-total');
 
   if (!itemsEl) return;
+
+  function parseWeightToGrams(w) {
+    if (!w) return 0;
+    const s = String(w).trim().toLowerCase();
+    const m = s.match(/([0-9]*\.?[0-9]+)\s*(kg|g)?/);
+    if (!m) return 0;
+    const val = parseFloat(m[1]);
+    const unit = m[2] || 'g';
+    return unit === 'kg' ? Math.round(val * 1000) : Math.round(val);
+  }
+
+  function calcDelivery(cart) {
+    const totalGrams = cart.reduce((sum, i) => sum + parseWeightToGrams(i.weight) * i.qty, 0);
+    if (totalGrams <= 0) return 80; // fallback flat fee when weights are unknown
+    // Base 60 for first 1000g, then +30 per additional 1000g block
+    const base = 60;
+    const extraBlocks = Math.max(0, Math.ceil(totalGrams / 1000) - 1);
+    return base + extraBlocks * 30;
+  }
+
+  async function loadProfile() {
+    try {
+      if (!auth.currentUser) return;
+      const ref = doc(db, 'users', auth.currentUser.uid);
+      const snap = await getDoc(ref);
+      const p = snap.exists() ? snap.data() : {};
+      if (nameInput && p.name) nameInput.value = p.name;
+      if (phoneInput && p.phone) phoneInput.value = p.phone;
+      if (addressInput && p.address) addressInput.value = p.address;
+    } catch {}
+  }
 
   function refresh() {
     const cart = readCart();
@@ -127,6 +166,8 @@ export function renderCartPage() {
       emptyEl.classList.remove('hidden');
       summaryEl.classList.add('hidden');
       totalEl.textContent = '৳0.00';
+      if (deliveryEl) deliveryEl.textContent = '৳0.00';
+      if (grandTotalEl) grandTotalEl.textContent = '৳0.00';
       return;
     }
     emptyEl.classList.add('hidden');
@@ -162,18 +203,37 @@ export function renderCartPage() {
       itemsEl.appendChild(row);
     });
     totalEl.textContent = `৳${total.toFixed(2)}`;
+    const delivery = calcDelivery(cart);
+    if (deliveryEl) deliveryEl.textContent = `৳${delivery.toFixed(2)}`;
+    if (grandTotalEl) grandTotalEl.textContent = `৳${(total + delivery).toFixed(2)}`;
   }
 
   checkoutBtn?.addEventListener('click', async () => {
     const cart = readCart();
     if (cart.length === 0) return;
     const total = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+    const delivery = calcDelivery(cart);
+    const name = nameInput ? nameInput.value.trim() : '';
+    const phone = phoneInput ? phoneInput.value.trim() : '';
+    const address = addressInput ? addressInput.value.trim() : '';
+    if (!name || !phone || !address) {
+      alert('Please enter name, phone, and address.');
+      return;
+    }
     try {
+      // Save/merge profile
+      if (auth.currentUser) {
+        await setDoc(doc(db, 'users', auth.currentUser.uid), { name, phone, address }, { merge: true });
+      }
       await addDoc(collection(db, 'orders'), {
         items: cart,
-        total,
+        subtotal: total,
+        delivery,
+        total: total + delivery,
         currency: 'BDT',
         userId: auth.currentUser ? auth.currentUser.uid : null,
+        customer: { name, phone, address },
+        status: 'Pending',
         createdAt: serverTimestamp()
       });
       localStorage.removeItem(CART_KEY);
@@ -187,6 +247,7 @@ export function renderCartPage() {
   });
 
   refresh();
+  loadProfile();
 }
 
 // Initialize header + home
