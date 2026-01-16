@@ -145,6 +145,11 @@ export async function renderCartPage() {
   const addressInput = document.getElementById('chk-address');
   const deliveryEl = document.getElementById('delivery-fee');
   const grandTotalEl = document.getElementById('grand-total');
+  // Invoice modal elements
+  const invModal = document.getElementById('inv-modal');
+  const invBody = document.getElementById('inv-body');
+  const invClose = document.getElementById('inv-close');
+  const invConfirm = document.getElementById('inv-confirm');
 
   if (!itemsEl) return;
 
@@ -247,39 +252,79 @@ export async function renderCartPage() {
   checkoutBtn?.addEventListener('click', async () => {
     const cart = readCart();
     if (cart.length === 0) return;
-    const total = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+    const subtotal = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
     const delivery = calcDelivery(cart);
     const name = nameInput ? nameInput.value.trim() : '';
     const phone = phoneInput ? phoneInput.value.trim() : '';
     const address = addressInput ? addressInput.value.trim() : '';
     if (!name || !phone || !address) {
-      alert('Please enter name, phone, and address.');
+      // Simple inline validation styling
+      [nameInput, phoneInput, addressInput].forEach(el => el && el.classList.add('ring-1','ring-red-400'));
       return;
     }
-    try {
-      // Save/merge profile
-      if (auth.currentUser) {
-        await setDoc(doc(db, 'users', auth.currentUser.uid), { name, phone, address }, { merge: true });
+    [nameInput, phoneInput, addressInput].forEach(el => el && el.classList.remove('ring-1','ring-red-400'));
+
+    // Build invoice preview HTML
+    const rows = cart.map(i => `
+      <tr>
+        <td class="p-2 border">
+          <div class="flex items-center gap-2"><img src="${i.image}" alt="${i.title}" class="w-10 h-10 object-cover rounded border"/><span>${i.title}${i.weight?` · ${i.weight}`:''}</span></div>
+        </td>
+        <td class="p-2 border text-right">${i.qty}</td>
+        <td class="p-2 border text-right">৳${Number(i.price).toFixed(2)}</td>
+        <td class="p-2 border text-right">৳${(i.qty*i.price).toFixed(2)}</td>
+      </tr>`).join('');
+    invBody.innerHTML = `
+      <div class="text-sm text-gray-700">${name} · ${phone}<br/>${address}</div>
+      <table class="w-full text-sm border">
+        <thead class="bg-gray-50"><tr><th class="text-left p-2 border">Product</th><th class="text-right p-2 border">Qty</th><th class="text-right p-2 border">Price</th><th class="text-right p-2 border">Total</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="text-right space-y-1">
+        <div>Subtotal: <span class="font-semibold">৳${subtotal.toFixed(2)}</span></div>
+        <div>Delivery: <span class="font-semibold">৳${delivery.toFixed(2)}</span></div>
+        <div class="text-lg">Total: <span class="font-semibold">৳${(subtotal+delivery).toFixed(2)}</span></div>
+      </div>
+    `;
+    // Show modal
+    invModal?.classList.remove('hidden');
+    invModal?.classList.add('flex');
+
+    // Wire confirm once per open
+    const onConfirm = async () => {
+      try {
+        // Save/merge profile
+        if (auth.currentUser) {
+          await setDoc(doc(db, 'users', auth.currentUser.uid), { name, phone, address }, { merge: true });
+        }
+        const docRef = await addDoc(collection(db, 'orders'), {
+          items: cart,
+          subtotal,
+          delivery,
+          total: subtotal + delivery,
+          currency: 'BDT',
+          userId: auth.currentUser ? auth.currentUser.uid : null,
+          customer: { name, phone, address },
+          status: 'Pending',
+          createdAt: serverTimestamp()
+        });
+        localStorage.removeItem(CART_KEY);
+        updateCartBadge();
+        invModal.classList.add('hidden'); invModal.classList.remove('flex');
+        // Redirect to orders with success flag
+        window.location.href = `orders.html?placed=${encodeURIComponent(docRef.id)}`;
+      } catch (e) {
+        alert('Failed to place order: ' + e.message);
+      } finally {
+        invConfirm?.removeEventListener('click', onConfirm);
       }
-      const docRef = await addDoc(collection(db, 'orders'), {
-        items: cart,
-        subtotal: total,
-        delivery,
-        total: total + delivery,
-        currency: 'BDT',
-        userId: auth.currentUser ? auth.currentUser.uid : null,
-        customer: { name, phone, address },
-        status: 'Pending',
-        createdAt: serverTimestamp()
-      });
-      localStorage.removeItem(CART_KEY);
-      updateCartBadge();
-      refresh();
-      // Redirect to orders with success flag
-      window.location.href = `orders.html?placed=${encodeURIComponent(docRef.id)}`;
-    } catch (e) {
-      alert('Failed to place order: ' + e.message);
-    }
+    };
+    invConfirm?.addEventListener('click', onConfirm);
+  });
+
+  invClose?.addEventListener('click', () => {
+    invModal?.classList.add('hidden');
+    invModal?.classList.remove('flex');
   });
 
   await loadShippingSettings();
