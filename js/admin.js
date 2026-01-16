@@ -23,6 +23,7 @@ const emptyEl = document.getElementById('admin-empty');
 const ordersListEl = document.getElementById('orders-list');
 const ordersEmptyEl = document.getElementById('orders-empty');
 const ordersFilter = document.getElementById('orders-filter');
+const ordersBadge = document.getElementById('orders-badge');
 const shippingForm = document.getElementById('shipping-form');
 const shippingMsg = document.getElementById('shipping-message');
 // Order modal elements
@@ -159,6 +160,7 @@ function drawOrders() {
   const subset = lastOrders.filter(o => filterVal === 'All' || o.data.status === filterVal);
   if (subset.length === 0) {
     ordersEmptyEl?.classList.remove('hidden');
+    updateOrdersBadge();
     return;
   }
   ordersEmptyEl?.classList.add('hidden');
@@ -192,6 +194,7 @@ function drawOrders() {
     frag.appendChild(div);
   });
   ordersListEl.appendChild(frag);
+  updateOrdersBadge();
 }
 
 function renderOrders() {
@@ -404,3 +407,15 @@ modalPrintBtn?.addEventListener('click', ()=>{
   `);
   w.document.close();
 });
+
+// Sidebar badge updater
+function updateOrdersBadge(){
+  if (!ordersBadge) return;
+  const pending = lastOrders.filter(o => (o.data.status || 'Pending') === 'Pending').length;
+  if (pending > 0) {
+    ordersBadge.textContent = String(pending);
+    ordersBadge.classList.remove('hidden');
+  } else {
+    ordersBadge.classList.add('hidden');
+  }
+}
