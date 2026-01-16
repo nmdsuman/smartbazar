@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bazar — Profile</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="data:,">
+  <script type="importmap">
+  {
+    "imports": {
+      "firebase/app": "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js",
+      "firebase/auth": "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js",
+      "firebase/firestore": "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js",
+      "firebase/analytics": "https://www.gstatic.com/firebasejs/10.13.1/firebase-analytics.js"
+    }
+  }
+  </script>
+</head>
+<body class="bg-gray-50">
+  <header class="bg-white border-b">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+      <a href="index.html" class="text-xl font-bold">Bazar</a>
+      <nav class="flex items-center gap-4">
+        <a href="index.html" class="hover:text-blue-600">Home</a>
+        <a href="orders.html" class="hover:text-blue-600">Orders</a>
+        <a href="profile.html" class="hover:text-blue-600 font-semibold">Profile</a>
+        <a href="cart.html" class="relative hover:text-blue-600">Cart<span id="cart-count" class="ml-1 inline-flex items-center justify-center text-xs rounded-full bg-blue-600 text-white w-5 h-5">0</span></a>
+        <button id="logout-btn" data-logout class="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200">Logout</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-4 py-8">
+    <h1 class="text-2xl font-semibold mb-6">My Profile</h1>
+    <form id="profile-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm mb-1">Full Name</label>
+        <input name="name" type="text" class="w-full border rounded px-3 py-2"/>
+      </div>
+      <div>
+        <label class="block text-sm mb-1">Phone</label>
+        <input name="phone" type="tel" class="w-full border rounded px-3 py-2"/>
+      </div>
+      <div class="md:col-span-2">
+        <label class="block text-sm mb-1">Address</label>
+        <textarea name="address" rows="3" class="w-full border rounded px-3 py-2"></textarea>
+      </div>
+      <div class="md:col-span-2">
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Save</button>
+      </div>
+    </form>
+    <div id="profile-message" class="text-sm mt-3"></div>
+  </main>
+
+  <script type="module" src="js/firebase-config.js"></script>
+  <script type="module" src="js/auth.js"></script>
+  <script type="module" src="js/profile.js"></script>
+</body>
+</html>

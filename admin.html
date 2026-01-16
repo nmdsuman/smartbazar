@@ -24,6 +24,7 @@
       <nav class="flex items-center gap-4">
         <a href="index.html" class="hover:text-blue-600">Home</a>
         <a href="orders.html" class="hover:text-blue-600">Orders</a>
+        <a href="profile.html" class="hover:text-blue-600">Profile</a>
         <a href="cart.html" class="hover:text-blue-600">Cart</a>
         <button id="logout-btn" data-logout class="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200">Logout</button>
       </nav>
@@ -77,6 +78,32 @@
       <h2 class="text-lg font-semibold mb-4">Recent Orders</h2>
       <div id="orders-list" class="space-y-3"></div>
       <div id="orders-empty" class="text-gray-500">No orders yet.</div>
+    </section>
+
+    <section class="bg-white border rounded-lg p-6 mt-8">
+      <h2 class="text-lg font-semibold mb-4">Delivery Settings</h2>
+      <form id="shipping-form" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+          <label class="block text-sm mb-1">Base Fee (first block)</label>
+          <input type="number" step="1" min="0" name="baseFee" class="w-full border rounded px-3 py-2"/>
+        </div>
+        <div>
+          <label class="block text-sm mb-1">Extra per block</label>
+          <input type="number" step="1" min="0" name="extraPerBlock" class="w-full border rounded px-3 py-2"/>
+        </div>
+        <div>
+          <label class="block text-sm mb-1">Block Size (grams)</label>
+          <input type="number" step="1" min="1" name="blockGrams" class="w-full border rounded px-3 py-2"/>
+        </div>
+        <div>
+          <label class="block text-sm mb-1">Fallback Fee</label>
+          <input type="number" step="1" min="0" name="fallbackFee" class="w-full border rounded px-3 py-2"/>
+        </div>
+        <div class="md:col-span-4">
+          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Save Settings</button>
+        </div>
+      </form>
+      <div id="shipping-message" class="text-sm mt-3"></div>
     </section>
   </main>
 
