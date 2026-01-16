@@ -1,10 +1,12 @@
-import { db } from './firebase-config.js';
+import { auth, db } from './firebase-config.js';
 import { initAuthHeader } from './auth.js';
 import {
   collection,
   getDocs,
   query,
-  orderBy
+  orderBy,
+  addDoc,
+  serverTimestamp
 } from 'firebase/firestore';
 
 // CART utils (localStorage)
@@ -81,7 +83,7 @@ async function renderProducts() {
           <h3 class="font-semibold text-lg mb-1">${d.title}</h3>
           <p class="text-sm text-gray-600 line-clamp-2 mb-3">${d.description || ''}</p>
           <div class="mt-auto flex items-center justify-between">
-            <span class="text-blue-700 font-semibold">$${Number(d.price).toFixed(2)}</span>
+            <span class="text-blue-700 font-semibold">৳${Number(d.price).toFixed(2)}${d.weight ? ` · ${d.weight}` : ''}</span>
             <button class="add-to-cart bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700">Add to Cart</button>
           </div>
         </div>
@@ -91,7 +93,8 @@ async function renderProducts() {
           id: doc.id,
           title: d.title,
           price: Number(d.price),
-          image: d.image
+          image: d.image,
+          weight: d.weight || ''
         });
       });
       frag.appendChild(card);
@@ -123,7 +126,7 @@ export function renderCartPage() {
     if (cart.length === 0) {
       emptyEl.classList.remove('hidden');
       summaryEl.classList.add('hidden');
-      totalEl.textContent = '$0.00';
+      totalEl.textContent = '৳0.00';
       return;
     }
     emptyEl.classList.add('hidden');
@@ -140,7 +143,7 @@ export function renderCartPage() {
           <img src="${item.image}" alt="${item.title}" class="w-16 h-16 object-cover rounded">
           <div>
             <div class="font-medium">${item.title}</div>
-            <div class="text-sm text-gray-600">$${item.price.toFixed(2)}</div>
+            <div class="text-sm text-gray-600">৳${item.price.toFixed(2)}</div>
           </div>
         </div>
         <div class="flex items-center gap-2">
@@ -158,11 +161,29 @@ export function renderCartPage() {
       });
       itemsEl.appendChild(row);
     });
-    totalEl.textContent = `$${total.toFixed(2)}`;
+    totalEl.textContent = `৳${total.toFixed(2)}`;
   }
 
-  checkoutBtn?.addEventListener('click', () => {
-    alert('Checkout is a demo in this client-only app.');
+  checkoutBtn?.addEventListener('click', async () => {
+    const cart = readCart();
+    if (cart.length === 0) return;
+    const total = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+    try {
+      await addDoc(collection(db, 'orders'), {
+        items: cart,
+        total,
+        currency: 'BDT',
+        userId: auth.currentUser ? auth.currentUser.uid : null,
+        createdAt: serverTimestamp()
+      });
+      localStorage.removeItem(CART_KEY);
+      updateCartBadge();
+      refresh();
+      alert('Order placed successfully.');
+      window.location.href = 'index.html';
+    } catch (e) {
+      alert('Failed to place order: ' + e.message);
+    }
   });
 
   refresh();
