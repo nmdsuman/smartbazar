@@ -67,6 +67,8 @@ form?.addEventListener('submit', async (e) => {
   const description = (data.get('description') || '').toString().trim();
   const weight = (data.get('weight') || '').toString().trim();
   const size = (data.get('size') || '').toString().trim();
+  const stock = Number(data.get('stock') || 0);
+  const active = data.get('active') ? true : false;
 
   if (!title || !image || Number.isNaN(price)) {
     setMessage('Please fill all required fields correctly.', false);
@@ -81,6 +83,8 @@ form?.addEventListener('submit', async (e) => {
       description,
       weight: weight || null,
       size: size || null,
+      stock: Number.isFinite(stock) ? stock : 0,
+      active: !!active,
       createdAt: serverTimestamp(),
       createdBy: auth.currentUser ? auth.currentUser.uid : null
     });
@@ -112,11 +116,18 @@ function renderProducts() {
         <div class="p-4 flex-1 flex flex-col">
           <h3 class="font-semibold text-lg mb-1">${data.title}</h3>
           <p class="text-sm text-gray-600 line-clamp-2 mb-3">${data.description || ''}</p>
-          <div class="mt-auto flex items-center justify-between">
-            <span class="text-blue-700 font-semibold">৳${Number(data.price).toFixed(2)}${data.weight ? ` · ${data.weight}` : ''}${data.size ? ` · ${data.size}` : ''}</span>
-            <div class="flex items-center gap-2">
-              <button class="edit bg-gray-100 px-3 py-1.5 rounded hover:bg-gray-200">Edit</button>
-              <button class="delete bg-red-600 text-white px-3 py-1.5 rounded hover:bg-red-700">Delete</button>
+          <div class="mt-auto space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-blue-700 font-semibold">৳${Number(data.price).toFixed(2)}${data.weight ? ` · ${data.weight}` : ''}${data.size ? ` · ${data.size}` : ''}</span>
+              <span class="text-sm ${data.active === false ? 'text-red-600' : 'text-green-700'}">${data.active === false ? 'Inactive' : 'Active'}</span>
+            </div>
+            <div class="flex items-center justify-between text-sm">
+              <span>Stock: <strong>${Number(data.stock || 0)}</strong></span>
+              <div class="flex items-center gap-2">
+                <button class="toggle-active bg-gray-100 px-3 py-1.5 rounded hover:bg-gray-200">${data.active === false ? 'Activate' : 'Deactivate'}</button>
+                <button class="edit bg-gray-100 px-3 py-1.5 rounded hover:bg-gray-200">Edit</button>
+                <button class="delete bg-red-600 text-white px-3 py-1.5 rounded hover:bg-red-700">Delete</button>
+              </div>
             </div>
           </div>
         </div>
@@ -137,10 +148,19 @@ function renderProducts() {
         editForm.size.value = data.size || '';
         editForm.image.value = data.image || '';
         editForm.description.value = data.description || '';
+        if (editForm.stock) editForm.stock.value = Number(data.stock || 0);
+        if (editForm.active) editForm.active.checked = data.active === false ? false : true;
         editMsg.textContent = '';
         editMsg.className = 'text-sm';
         editModal.classList.remove('hidden');
         editModal.classList.add('flex');
+      });
+      card.querySelector('.toggle-active').addEventListener('click', async () => {
+        try {
+          await updateDoc(doc(db, 'products', d.id), { active: data.active === false ? true : false });
+        } catch (err) {
+          alert('Update failed: ' + err.message);
+        }
       });
       frag.appendChild(card);
     });
