@@ -43,6 +43,24 @@
           <span>Total</span>
           <span id="cart-total" class="font-semibold">৳0.00</span>
         </div>
+        <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm mb-1">Full Name</label>
+            <input id="chk-name" type="text" class="w-full border rounded px-3 py-2" placeholder="Customer name"/>
+          </div>
+          <div>
+            <label class="block text-sm mb-1">Phone</label>
+            <input id="chk-phone" type="tel" class="w-full border rounded px-3 py-2" placeholder="01XXXXXXXXX"/>
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-sm mb-1">Address</label>
+            <textarea id="chk-address" rows="2" class="w-full border rounded px-3 py-2" placeholder="Delivery address"></textarea>
+          </div>
+        </div>
+        <div class="mt-4 text-sm text-gray-700 space-y-1">
+          <div class="flex items-center justify-between"><span>Delivery</span><span id="delivery-fee">৳0.00</span></div>
+          <div class="flex items-center justify-between font-semibold text-base"><span>Grand Total</span><span id="grand-total">৳0.00</span></div>
+        </div>
         <button id="checkout-btn" class="mt-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Checkout</button>
       </div>
     </div>
