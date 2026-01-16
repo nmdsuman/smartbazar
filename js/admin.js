@@ -164,7 +164,7 @@ function renderOrders() {
       div.querySelector('.admin-status').addEventListener('change', async (e)=>{
         try { await updateDoc(doc(db,'orders',docSnap.id), { status: e.target.value }); } catch(err) { alert('Failed to update: '+err.message); }
       });
-      div.querySelector('.view').addEventListener('click', ()=> openOrderModal(docSnap.id, o));
+      div.querySelector('.view').addEventListener('click', ()=> { window.location.href = `view.html?id=${docSnap.id}`; });
       frag.appendChild(div);
     });
     ordersListEl.appendChild(frag);
