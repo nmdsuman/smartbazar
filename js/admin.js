@@ -9,7 +9,9 @@ import {
   onSnapshot,
   query,
   orderBy,
-  updateDoc
+  updateDoc,
+  getDoc,
+  setDoc
 } from 'firebase/firestore';
 
 requireAdmin();
@@ -20,6 +22,8 @@ const listEl = document.getElementById('admin-products');
 const emptyEl = document.getElementById('admin-empty');
 const ordersListEl = document.getElementById('orders-list');
 const ordersEmptyEl = document.getElementById('orders-empty');
+const shippingForm = document.getElementById('shipping-form');
+const shippingMsg = document.getElementById('shipping-message');
 
 function setMessage(text, ok = true) {
   if (!msg) return;
@@ -147,3 +151,40 @@ function renderOrders() {
 }
 
 renderOrders();
+
+// Delivery settings
+async function loadShipping() {
+  if (!shippingForm) return;
+  try {
+    const ref = doc(db, 'settings', 'shipping');
+    const snap = await getDoc(ref);
+    const s = snap.exists() ? snap.data() : {};
+    shippingForm.baseFee.value = s.baseFee ?? '';
+    shippingForm.extraPerBlock.value = s.extraPerBlock ?? '';
+    shippingForm.blockGrams.value = s.blockGrams ?? '';
+    shippingForm.fallbackFee.value = s.fallbackFee ?? '';
+  } catch (e) {
+    if (shippingMsg) shippingMsg.textContent = 'Failed to load settings: ' + e.message;
+  }
+}
+
+shippingForm?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  try {
+    const payload = {
+      baseFee: Number(shippingForm.baseFee.value || 0),
+      extraPerBlock: Number(shippingForm.extraPerBlock.value || 0),
+      blockGrams: Number(shippingForm.blockGrams.value || 1000),
+      fallbackFee: Number(shippingForm.fallbackFee.value || 0),
+      updatedAt: serverTimestamp()
+    };
+    await setDoc(doc(db, 'settings', 'shipping'), payload, { merge: true });
+    shippingMsg.textContent = 'Settings saved.';
+    shippingMsg.className = 'text-sm mt-3 text-green-700';
+  } catch (e) {
+    shippingMsg.textContent = 'Save failed: ' + e.message;
+    shippingMsg.className = 'text-sm mt-3 text-red-700';
+  }
+});
+
+loadShipping();

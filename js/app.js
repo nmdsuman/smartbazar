@@ -14,6 +14,7 @@ import {
 
 // CART utils (localStorage)
 const CART_KEY = 'bazar_cart';
+let shippingSettings = null; // { baseFee, extraPerBlock, blockGrams, fallbackFee }
 
 function readCart() {
   try {
@@ -111,7 +112,7 @@ async function renderProducts() {
 }
 
 // Render cart page
-export function renderCartPage() {
+export async function renderCartPage() {
   initAuthHeader();
   updateCartBadge();
 
@@ -139,12 +140,11 @@ export function renderCartPage() {
   }
 
   function calcDelivery(cart) {
+    const cfg = shippingSettings || { baseFee: 60, extraPerBlock: 30, blockGrams: 1000, fallbackFee: 80 };
     const totalGrams = cart.reduce((sum, i) => sum + parseWeightToGrams(i.weight) * i.qty, 0);
-    if (totalGrams <= 0) return 80; // fallback flat fee when weights are unknown
-    // Base 60 for first 1000g, then +30 per additional 1000g block
-    const base = 60;
-    const extraBlocks = Math.max(0, Math.ceil(totalGrams / 1000) - 1);
-    return base + extraBlocks * 30;
+    if (totalGrams <= 0) return cfg.fallbackFee;
+    const extraBlocks = Math.max(0, Math.ceil(totalGrams / (cfg.blockGrams || 1000)) - 1);
+    return (cfg.baseFee || 0) + extraBlocks * (cfg.extraPerBlock || 0);
   }
 
   async function loadProfile() {
@@ -246,6 +246,7 @@ export function renderCartPage() {
     }
   });
 
+  await loadShippingSettings();
   refresh();
   loadProfile();
 }
