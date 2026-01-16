@@ -159,9 +159,9 @@ async function loadShipping() {
     const ref = doc(db, 'settings', 'shipping');
     const snap = await getDoc(ref);
     const s = snap.exists() ? snap.data() : {};
-    shippingForm.baseFee.value = s.baseFee ?? '';
-    shippingForm.extraPerBlock.value = s.extraPerBlock ?? '';
-    shippingForm.blockGrams.value = s.blockGrams ?? '';
+    shippingForm.fixedFee.value = s.fixedFee ?? '';
+    shippingForm.fixedUpToGrams.value = s.fixedUpToGrams ?? '';
+    shippingForm.extraPerKg.value = s.extraPerKg ?? '';
     shippingForm.fallbackFee.value = s.fallbackFee ?? '';
   } catch (e) {
     if (shippingMsg) shippingMsg.textContent = 'Failed to load settings: ' + e.message;
@@ -172,9 +172,9 @@ shippingForm?.addEventListener('submit', async (e) => {
   e.preventDefault();
   try {
     const payload = {
-      baseFee: Number(shippingForm.baseFee.value || 0),
-      extraPerBlock: Number(shippingForm.extraPerBlock.value || 0),
-      blockGrams: Number(shippingForm.blockGrams.value || 1000),
+      fixedFee: Number(shippingForm.fixedFee.value || 0),
+      fixedUpToGrams: Number(shippingForm.fixedUpToGrams.value || 0),
+      extraPerKg: Number(shippingForm.extraPerKg.value || 0),
       fallbackFee: Number(shippingForm.fallbackFee.value || 0),
       updatedAt: serverTimestamp()
     };

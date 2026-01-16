@@ -153,11 +153,16 @@ export async function renderCartPage() {
   }
 
   function calcDelivery(cart) {
-    const cfg = shippingSettings || { baseFee: 60, extraPerBlock: 30, blockGrams: 1000, fallbackFee: 80 };
+    const cfg = shippingSettings || { fixedFee: 60, fixedUpToGrams: 1000, extraPerKg: 30, fallbackFee: 80 };
     const totalGrams = cart.reduce((sum, i) => sum + parseWeightToGrams(i.weight) * i.qty, 0);
     if (totalGrams <= 0) return cfg.fallbackFee;
-    const extraBlocks = Math.max(0, Math.ceil(totalGrams / (cfg.blockGrams || 1000)) - 1);
-    return (cfg.baseFee || 0) + extraBlocks * (cfg.extraPerBlock || 0);
+    const fixedUpTo = Number(cfg.fixedUpToGrams || 0);
+    const base = Number(cfg.fixedFee || 0);
+    const extraPerKg = Number(cfg.extraPerKg || 0);
+    if (fixedUpTo > 0 && totalGrams <= fixedUpTo) return base;
+    const overGrams = Math.max(0, totalGrams - fixedUpTo);
+    const extraKgBlocks = Math.ceil(overGrams / 1000);
+    return base + extraKgBlocks * extraPerKg;
   }
 
   async function loadProfile() {
