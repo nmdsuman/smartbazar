@@ -84,19 +84,19 @@
       <h2 class="text-lg font-semibold mb-4">Delivery Settings</h2>
       <form id="shipping-form" class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
-          <label class="block text-sm mb-1">Base Fee (first block)</label>
-          <input type="number" step="1" min="0" name="baseFee" class="w-full border rounded px-3 py-2"/>
+          <label class="block text-sm mb-1">Fixed Fee (BDT)</label>
+          <input type="number" step="1" min="0" name="fixedFee" class="w-full border rounded px-3 py-2"/>
         </div>
         <div>
-          <label class="block text-sm mb-1">Extra per block</label>
-          <input type="number" step="1" min="0" name="extraPerBlock" class="w-full border rounded px-3 py-2"/>
+          <label class="block text-sm mb-1">Fixed Up To (grams)</label>
+          <input type="number" step="1" min="0" name="fixedUpToGrams" class="w-full border rounded px-3 py-2"/>
         </div>
         <div>
-          <label class="block text-sm mb-1">Block Size (grams)</label>
-          <input type="number" step="1" min="1" name="blockGrams" class="w-full border rounded px-3 py-2"/>
+          <label class="block text-sm mb-1">Extra Per Kg After</label>
+          <input type="number" step="1" min="0" name="extraPerKg" class="w-full border rounded px-3 py-2"/>
         </div>
         <div>
-          <label class="block text-sm mb-1">Fallback Fee</label>
+          <label class="block text-sm mb-1">Fallback Fee (unknown weight)</label>
           <input type="number" step="1" min="0" name="fallbackFee" class="w-full border rounded px-3 py-2"/>
         </div>
         <div class="md:col-span-4">
