@@ -62,6 +62,14 @@
           <label class="block text-sm mb-1">Description</label>
           <textarea name="description" rows="3" class="w-full border rounded px-3 py-2"></textarea>
         </div>
+        <div>
+          <label class="block text-sm mb-1">Stock</label>
+          <input type="number" name="stock" min="0" step="1" class="w-full border rounded px-3 py-2"/>
+        </div>
+        <div class="flex items-center gap-2">
+          <input id="edit-active" type="checkbox" name="active" class="border rounded"/>
+          <label for="edit-active" class="text-sm">Active (visible in shop)</label>
+        </div>
         <div class="flex items-center justify-end gap-2">
           <button type="submit" class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">Save</button>
         </div>
@@ -119,6 +127,14 @@
         <div class="md:col-span-2">
           <label class="block text-sm mb-1">Description</label>
           <textarea name="description" rows="3" class="w-full border rounded px-3 py-2"></textarea>
+        </div>
+        <div>
+          <label class="block text-sm mb-1">Stock</label>
+          <input type="number" name="stock" min="0" step="1" value="0" class="w-full border rounded px-3 py-2"/>
+        </div>
+        <div class="flex items-center gap-2 mt-6">
+          <input id="add-active" type="checkbox" name="active" checked class="border rounded"/>
+          <label for="add-active" class="text-sm">Active (visible in shop)</label>
         </div>
         <div class="md:col-span-2">
           <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Add Product</button>
