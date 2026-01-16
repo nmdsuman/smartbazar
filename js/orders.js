@@ -37,7 +37,10 @@ import { collection, onSnapshot, query, where } from 'firebase/firestore';
               <div class="text-sm text-gray-700">${items}</div>
               <div class="text-sm text-gray-600">Status: ${o.status || 'Pending'}</div>
             </div>
-            <div class="font-semibold">৳${Number(o.total || 0).toFixed(2)}</div>
+            <div class="text-right space-y-2">
+              <div class="font-semibold">৳${Number(o.total || 0).toFixed(2)}</div>
+              <a class="inline-block text-sm px-3 py-1 rounded bg-gray-100 hover:bg-gray-200" href="view.html?id=${d.id}">View</a>
+            </div>
           </div>
         `;
         frag.appendChild(div);

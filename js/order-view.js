@@ -1,6 +1,6 @@
 import { auth, db } from './firebase-config.js';
 import { initAuthHeader } from './auth.js';
-import { collection, doc, getDoc, getDocs, onSnapshot, orderBy, query, setDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, orderBy, query, updateDoc } from 'firebase/firestore';
 
 (function init(){
   initAuthHeader();
@@ -23,6 +23,7 @@ import { collection, doc, getDoc, getDocs, onSnapshot, orderBy, query, setDoc, u
   let shippingCfg = null;
   let items = [];
   let orderData = null;
+  let canEdit = false; // computed based on role and order status
 
   function parseWeightToGrams(w){
     if (!w) return 0; const s=String(w).trim().toLowerCase();
@@ -46,24 +47,33 @@ import { collection, doc, getDoc, getDocs, onSnapshot, orderBy, query, setDoc, u
       const line = Number(it.price)*Number(it.qty); subtotal += line;
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td class="p-2 border">${it.title}${it.weight?` · ${it.weight}`:''}</td>
-        <td class="p-2 border text-right">৳${Number(it.price).toFixed(2)}</td>
-        <td class="p-2 border text-right"><input type="number" min="1" value="${it.qty}" data-idx="${idx}" class="w-20 border rounded px-2 py-1 qty"/></td>
-        <td class="p-2 border text-right">৳${line.toFixed(2)}</td>
-        <td class="p-2 border text-right"><button data-idx="${idx}" class="remove text-red-600">Remove</button></td>
+        <td class=\"p-2 border\"><div class=\"flex items-center gap-2\"><img src=\"${it.image||''}\" alt=\"${it.title}\" class=\"w-10 h-10 object-cover rounded border\"/><span>${it.title}${it.weight?` · ${it.weight}`:''}</span></div></td>
+        <td class=\"p-2 border text-right\">৳${Number(it.price).toFixed(2)}</td>
+        <td class=\"p-2 border text-right\">${canEdit ? `<input type=\"number\" min=\"1\" value=\"${it.qty}\" data-idx=\"${idx}\" class=\"w-20 border rounded px-2 py-1 qty\"/>` : `<span>${it.qty}</span>`}</td>
+        <td class=\"p-2 border text-right\">৳${line.toFixed(2)}</td>
+        <td class=\"p-2 border text-right\">${canEdit ? `<button data-idx=\"${idx}\" class=\"remove text-red-600\">Remove</button>` : ''}</td>
       `;
-      tr.querySelector('.qty').addEventListener('change', (e)=>{
-        const i = Number(e.target.getAttribute('data-idx')); items[i].qty = Math.max(1, Number(e.target.value)||1); render();
-      });
-      tr.querySelector('.remove').addEventListener('click', ()=>{
-        const i = Number(tr.querySelector('.remove').getAttribute('data-idx')); items.splice(i,1); render();
-      });
+      if (canEdit) {
+        tr.querySelector('.qty')?.addEventListener('change', (e)=>{
+          const i = Number(e.target.getAttribute('data-idx')); items[i].qty = Math.max(1, Number(e.target.value)||1); render();
+        });
+        tr.querySelector('.remove')?.addEventListener('click', ()=>{
+          const i = Number(tr.querySelector('.remove').getAttribute('data-idx'));
+          items.splice(i,1); render();
+        });
+      }
       tbody.appendChild(tr);
     });
     const delivery = calcDelivery();
     subtotalEl.textContent = `৳${subtotal.toFixed(2)}`;
     deliveryEl.textContent = `৳${delivery.toFixed(2)}`;
     totalEl.textContent = `৳${(subtotal+delivery).toFixed(2)}`;
+
+    // Toggle add/save controls
+    addSelect.disabled = !canEdit;
+    addQty.disabled = !canEdit;
+    addBtn.disabled = !canEdit;
+    saveBtn.disabled = !canEdit;
   }
 
   function fillProductsSelect(){
@@ -80,6 +90,7 @@ import { collection, doc, getDoc, getDocs, onSnapshot, orderBy, query, setDoc, u
   });
 
   saveBtn.addEventListener('click', async ()=>{
+    if (!canEdit) return;
     try {
       const subtotal = items.reduce((s,i)=> s + Number(i.price)*Number(i.qty), 0);
       const delivery = calcDelivery();
@@ -123,6 +134,9 @@ import { collection, doc, getDoc, getDocs, onSnapshot, orderBy, query, setDoc, u
   auth.onAuthStateChanged(async (user)=>{
     if (!user) { window.location.replace('login.html'); return; }
     try {
+      // Determine role
+      const uSnap = await getDoc(doc(db,'users', user.uid));
+      const role = uSnap.exists() && uSnap.data()?.role ? uSnap.data().role : 'user';
       // shipping settings
       const setSnap = await getDoc(doc(db,'settings','shipping'));
       if (setSnap.exists()) shippingCfg = setSnap.data();
@@ -134,8 +148,13 @@ import { collection, doc, getDoc, getDocs, onSnapshot, orderBy, query, setDoc, u
       const ordSnap = await getDoc(doc(db,'orders', orderId));
       if (!ordSnap.exists()) { empty.textContent = 'Order not found.'; return; }
       orderData = ordSnap.data();
+      // Permission: admin can edit always; user can edit only if owns and status Pending
+      const isOwner = orderData.userId && (orderData.userId === user.uid);
+      canEdit = role === 'admin' || (isOwner && (orderData.status === 'Pending'));
+      // If user (not admin) tries to view someone else's order, redirect
+      if (role !== 'admin' && !isOwner) { window.location.replace('orders.html'); return; }
       items = Array.isArray(orderData.items) ? orderData.items.map(x=>({ ...x })) : [];
-      meta.textContent = `${orderData.customer?.name||''} · ${orderData.customer?.phone||''} · ${orderData.customer?.address||''}`;
+      meta.textContent = `${orderData.status||'Pending'} · ${orderData.customer?.name||''} · ${orderData.customer?.phone||''} · ${orderData.customer?.address||''}`;
       render();
       empty.classList.add('hidden'); view.classList.remove('hidden');
     } catch (e) {
