@@ -24,6 +24,23 @@ const ordersListEl = document.getElementById('orders-list');
 const ordersEmptyEl = document.getElementById('orders-empty');
 const shippingForm = document.getElementById('shipping-form');
 const shippingMsg = document.getElementById('shipping-message');
+// Order modal elements
+const modal = document.getElementById('order-modal');
+const modalClose = document.getElementById('order-close');
+const modalMeta = document.getElementById('order-meta');
+const modalItemsTbody = document.getElementById('order-items');
+const modalAddSelect = document.getElementById('order-add-select');
+const modalAddQty = document.getElementById('order-add-qty');
+const modalAddBtn = document.getElementById('order-add-btn');
+const modalSubtotalEl = document.getElementById('order-subtotal');
+const modalDeliveryEl = document.getElementById('order-delivery');
+const modalTotalEl = document.getElementById('order-total');
+const modalSaveBtn = document.getElementById('order-save');
+const modalPrintBtn = document.getElementById('order-print');
+
+let productsCache = [];
+let shippingCfg = null; // cached shipping settings for calc
+let currentOrder = { id: null, data: null, items: [] };
 
 function setMessage(text, ok = true) {
   if (!msg) return;
@@ -73,9 +90,11 @@ function renderProducts() {
       return;
     }
     emptyEl.classList.add('hidden');
+    productsCache = [];
     const frag = document.createDocumentFragment();
     snap.forEach(d => {
       const data = d.data();
+      productsCache.push({ id: d.id, ...data, price: Number(data.price) });
       const card = document.createElement('div');
       card.className = 'border rounded-lg bg-white overflow-hidden flex flex-col';
       card.innerHTML = `
@@ -122,7 +141,7 @@ function renderOrders() {
     snap.forEach(docSnap => {
       const o = docSnap.data();
       const div = document.createElement('div');
-      div.className = 'border rounded p-3 grid grid-cols-1 md:grid-cols-3 gap-3 items-center';
+      div.className = 'border rounded p-3 grid grid-cols-1 md:grid-cols-4 gap-3 items-center';
       const count = Array.isArray(o.items) ? o.items.reduce((s,i)=>s+i.qty,0) : 0;
       const when = o.createdAt?.toDate ? o.createdAt.toDate().toLocaleString() : '';
       div.innerHTML = `
@@ -138,10 +157,14 @@ function renderOrders() {
             ${['Pending','Processing','Shipped','Delivered','Cancelled'].map(s=>`<option ${o.status===s?'selected':''}>${s}</option>`).join('')}
           </select>
         </div>
+        <div class="text-right">
+          <button class="view px-3 py-1 rounded bg-gray-100 hover:bg-gray-200">View</button>
+        </div>
       `;
       div.querySelector('.admin-status').addEventListener('change', async (e)=>{
         try { await updateDoc(doc(db,'orders',docSnap.id), { status: e.target.value }); } catch(err) { alert('Failed to update: '+err.message); }
       });
+      div.querySelector('.view').addEventListener('click', ()=> openOrderModal(docSnap.id, o));
       frag.appendChild(div);
     });
     ordersListEl.appendChild(frag);
@@ -159,10 +182,13 @@ async function loadShipping() {
     const ref = doc(db, 'settings', 'shipping');
     const snap = await getDoc(ref);
     const s = snap.exists() ? snap.data() : {};
-    shippingForm.fixedFee.value = s.fixedFee ?? '';
-    shippingForm.fixedUpToGrams.value = s.fixedUpToGrams ?? '';
-    shippingForm.extraPerKg.value = s.extraPerKg ?? '';
-    shippingForm.fallbackFee.value = s.fallbackFee ?? '';
+    shippingCfg = s;
+    if (shippingForm) {
+      shippingForm.fixedFee.value = s.fixedFee ?? '';
+      shippingForm.fixedUpToGrams.value = s.fixedUpToGrams ?? '';
+      shippingForm.extraPerKg.value = s.extraPerKg ?? '';
+      shippingForm.fallbackFee.value = s.fallbackFee ?? '';
+    }
   } catch (e) {
     if (shippingMsg) shippingMsg.textContent = 'Failed to load settings: ' + e.message;
   }
@@ -188,3 +214,116 @@ shippingForm?.addEventListener('submit', async (e) => {
 });
 
 loadShipping();
+
+// Helpers for order modal
+function parseWeightToGrams(w){
+  if (!w) return 0; const s=String(w).trim().toLowerCase();
+  const m=s.match(/([0-9]*\.?[0-9]+)\s*(kg|g)?/); if(!m) return 0;
+  const v=parseFloat(m[1]); const u=m[2]||'g'; return u==='kg'?Math.round(v*1000):Math.round(v);
+}
+function calcDeliveryForItems(items){
+  const cfg = shippingCfg || { fixedFee:60, fixedUpToGrams:1000, extraPerKg:30, fallbackFee:80 };
+  const grams = items.reduce((s,i)=> s + parseWeightToGrams(i.weight)*i.qty, 0);
+  if (grams<=0) return cfg.fallbackFee||0;
+  const base = Number(cfg.fixedFee||0); const upTo = Number(cfg.fixedUpToGrams||0); const extraKg=Number(cfg.extraPerKg||0);
+  if (upTo>0 && grams<=upTo) return base;
+  const over = Math.max(0, grams - upTo); const blocks = Math.ceil(over/1000);
+  return base + blocks*extraKg;
+}
+
+function renderModalItems(){
+  const items = currentOrder.items;
+  modalItemsTbody.innerHTML='';
+  let subtotal=0;
+  items.forEach((it, idx)=>{
+    const line = it.price*it.qty; subtotal+=line;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="p-2 border">${it.title}${it.weight?` · ${it.weight}`:''}</td>
+      <td class="p-2 border text-right">৳${Number(it.price).toFixed(2)}</td>
+      <td class="p-2 border text-right"><input type="number" min="1" value="${it.qty}" data-idx="${idx}" class="w-20 border rounded px-2 py-1 qty"/></td>
+      <td class="p-2 border text-right">৳${line.toFixed(2)}</td>
+      <td class="p-2 border text-right"><button data-idx="${idx}" class="remove text-red-600">Remove</button></td>
+    `;
+    tr.querySelector('.qty').addEventListener('change', (e)=>{
+      const i = Number(e.target.getAttribute('data-idx')); currentOrder.items[i].qty = Math.max(1, Number(e.target.value)||1); renderModalItems();
+    });
+    tr.querySelector('.remove').addEventListener('click', ()=>{
+      const i = Number(tr.querySelector('.remove').getAttribute('data-idx'));
+      currentOrder.items.splice(i,1); renderModalItems();
+    });
+    modalItemsTbody.appendChild(tr);
+  });
+  const delivery = calcDeliveryForItems(items);
+  modalSubtotalEl.textContent = `৳${subtotal.toFixed(2)}`;
+  modalDeliveryEl.textContent = `৳${delivery.toFixed(2)}`;
+  modalTotalEl.textContent = `৳${(subtotal+delivery).toFixed(2)}`;
+}
+
+function openOrderModal(id, data){
+  currentOrder.id = id;
+  currentOrder.data = data;
+  currentOrder.items = Array.isArray(data.items) ? data.items.map(x=>({ ...x })) : [];
+  modalMeta.textContent = `Order #${id.slice(-6)} · ${data.customer?.name||''} · ${data.customer?.phone||''}`;
+  // populate product select
+  modalAddSelect.innerHTML = '<option value="">Select product</option>' + productsCache.map(p=>`<option value="${p.id}">${p.title} — ৳${Number(p.price).toFixed(2)}${p.weight?` · ${p.weight}`:''}</option>`).join('');
+  renderModalItems();
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+}
+
+modalClose?.addEventListener('click', ()=>{
+  modal.classList.add('hidden');
+  modal.classList.remove('flex');
+});
+
+modalAddBtn?.addEventListener('click', ()=>{
+  const pid = modalAddSelect.value; const qty = Math.max(1, Number(modalAddQty.value)||1);
+  if (!pid) return;
+  const p = productsCache.find(x=>x.id===pid); if(!p) return;
+  const existing = currentOrder.items.find(i=>i.id===pid);
+  if (existing) existing.qty += qty; else currentOrder.items.push({ id: pid, title: p.title, price: Number(p.price), image: p.image, weight: p.weight||'', qty });
+  renderModalItems();
+});
+
+modalSaveBtn?.addEventListener('click', async ()=>{
+  try {
+    const subtotal = currentOrder.items.reduce((s,i)=> s + Number(i.price)*Number(i.qty), 0);
+    const delivery = calcDeliveryForItems(currentOrder.items);
+    await updateDoc(doc(db,'orders', currentOrder.id), {
+      items: currentOrder.items,
+      subtotal,
+      delivery,
+      total: subtotal + delivery
+    });
+    alert('Order updated');
+    modal.classList.add('hidden'); modal.classList.remove('flex');
+  } catch (e) { alert('Save failed: ' + e.message); }
+});
+
+modalPrintBtn?.addEventListener('click', ()=>{
+  const w = window.open('', '_blank');
+  const rows = currentOrder.items.map(i=>`<tr><td>${i.title}${i.weight?` · ${i.weight}`:''}</td><td style='text-align:right'>${i.qty}</td><td style='text-align:right'>৳${Number(i.price).toFixed(2)}</td><td style='text-align:right'>৳${(i.qty*i.price).toFixed(2)}</td></tr>`).join('');
+  const subtotal = currentOrder.items.reduce((s,i)=> s + Number(i.price)*Number(i.qty), 0);
+  const delivery = calcDeliveryForItems(currentOrder.items);
+  const total = subtotal + delivery;
+  w.document.write(`
+    <html><head><title>Invoice</title><style>
+    body{font-family:Arial,sans-serif;padding:24px}
+    table{width:100%;border-collapse:collapse} td,th{border:1px solid #ddd;padding:6px}
+    </style></head><body>
+      <h2>Bazar — Delivery Invoice</h2>
+      <div>Order #${currentOrder.id.slice(-6)}</div>
+      <div>${currentOrder.data.customer?.name||''} · ${currentOrder.data.customer?.phone||''}</div>
+      <div>${currentOrder.data.customer?.address||''}</div>
+      <hr/>
+      <table><thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead><tbody>
+      ${rows}
+      </tbody></table>
+      <h3 style='text-align:right'>Subtotal: ৳${subtotal.toFixed(2)}<br/>Delivery: ৳${delivery.toFixed(2)}<br/>Total: ৳${total.toFixed(2)}</h3>
+      <p>Thank you.</p>
+      <script>window.print();</script>
+    </body></html>
+  `);
+  w.document.close();
+});
