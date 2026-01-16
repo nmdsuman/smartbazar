@@ -152,6 +152,27 @@ function renderProducts() {
 
 renderProducts();
 
+// Section visibility control (show only one section at a time)
+const sectionMap = {
+  add: document.getElementById('add'),
+  products: document.getElementById('products'),
+  'orders-section': document.getElementById('orders-section'),
+  shipping: document.getElementById('shipping')
+};
+
+function showSection(id) {
+  const key = id && sectionMap[id] ? id : 'products';
+  Object.entries(sectionMap).forEach(([k, el]) => {
+    if (!el) return;
+    if (k === key) el.classList.remove('hidden');
+    else el.classList.add('hidden');
+  });
+}
+
+window.addEventListener('hashchange', () => showSection(location.hash.replace('#','')));
+// Initial section
+showSection(location.hash.replace('#',''));
+
 // Live Orders list
 function drawOrders() {
   if (!ordersListEl) return;
