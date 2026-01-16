@@ -22,6 +22,7 @@ const listEl = document.getElementById('admin-products');
 const emptyEl = document.getElementById('admin-empty');
 const ordersListEl = document.getElementById('orders-list');
 const ordersEmptyEl = document.getElementById('orders-empty');
+const ordersFilter = document.getElementById('orders-filter');
 const shippingForm = document.getElementById('shipping-form');
 const shippingMsg = document.getElementById('shipping-message');
 // Order modal elements
@@ -41,6 +42,14 @@ const modalPrintBtn = document.getElementById('order-print');
 let productsCache = [];
 let shippingCfg = null; // cached shipping settings for calc
 let currentOrder = { id: null, data: null, items: [] };
+let lastOrders = [];
+
+// Product Edit modal
+const editModal = document.getElementById('edit-modal');
+const editClose = document.getElementById('edit-close');
+const editForm = document.getElementById('edit-form');
+const editMsg = document.getElementById('edit-message');
+let currentEditProductId = null;
 
 function setMessage(text, ok = true) {
   if (!msg) return;
@@ -104,7 +113,10 @@ function renderProducts() {
           <p class="text-sm text-gray-600 line-clamp-2 mb-3">${data.description || ''}</p>
           <div class="mt-auto flex items-center justify-between">
             <span class="text-blue-700 font-semibold">৳${Number(data.price).toFixed(2)}${data.weight ? ` · ${data.weight}` : ''}${data.size ? ` · ${data.size}` : ''}</span>
-            <button class="delete bg-red-600 text-white px-3 py-1.5 rounded hover:bg-red-700">Delete</button>
+            <div class="flex items-center gap-2">
+              <button class="edit bg-gray-100 px-3 py-1.5 rounded hover:bg-gray-200">Edit</button>
+              <button class="delete bg-red-600 text-white px-3 py-1.5 rounded hover:bg-red-700">Delete</button>
+            </div>
           </div>
         </div>
       `;
@@ -115,6 +127,19 @@ function renderProducts() {
         } catch (err) {
           alert('Delete failed: ' + err.message);
         }
+      });
+      card.querySelector('.edit').addEventListener('click', () => {
+        currentEditProductId = d.id;
+        editForm.title.value = data.title || '';
+        editForm.price.value = data.price || 0;
+        editForm.weight.value = data.weight || '';
+        editForm.size.value = data.size || '';
+        editForm.image.value = data.image || '';
+        editForm.description.value = data.description || '';
+        editMsg.textContent = '';
+        editMsg.className = 'text-sm';
+        editModal.classList.remove('hidden');
+        editModal.classList.add('flex');
       });
       frag.appendChild(card);
     });
@@ -127,47 +152,54 @@ function renderProducts() {
 renderProducts();
 
 // Live Orders list
+function drawOrders() {
+  if (!ordersListEl) return;
+  ordersListEl.innerHTML = '';
+  const filterVal = ordersFilter?.value || 'All';
+  const subset = lastOrders.filter(o => filterVal === 'All' || o.data.status === filterVal);
+  if (subset.length === 0) {
+    ordersEmptyEl?.classList.remove('hidden');
+    return;
+  }
+  ordersEmptyEl?.classList.add('hidden');
+  const frag = document.createDocumentFragment();
+  subset.forEach(({ id, data: o }) => {
+    const div = document.createElement('div');
+    div.className = 'border rounded p-3 grid grid-cols-1 md:grid-cols-4 gap-3 items-center';
+    const count = Array.isArray(o.items) ? o.items.reduce((s,i)=>s+i.qty,0) : 0;
+    const when = o.createdAt?.toDate ? o.createdAt.toDate().toLocaleString() : '';
+    div.innerHTML = `
+      <div>
+        <div class="font-medium">Order #${id.slice(-6)}</div>
+        <div class="text-sm text-gray-600">Items: ${count} · User: ${o.userId || 'guest'} · ${when}</div>
+        <div class="text-sm text-gray-600">${o.customer?.name || ''} · ${o.customer?.phone || ''}</div>
+      </div>
+      <div class="font-semibold">৳${Number(o.total || 0).toFixed(2)}</div>
+      <div class="flex items-center gap-2">
+        <label class="text-sm">Status</label>
+        <select class="border rounded px-2 py-1 admin-status">
+          ${['Pending','Processing','Shipped','Delivered','Cancelled'].map(s=>`<option ${o.status===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="text-right">
+        <button class="view px-3 py-1 rounded bg-gray-100 hover:bg-gray-200">View</button>
+      </div>
+    `;
+    div.querySelector('.admin-status').addEventListener('change', async (e)=>{
+      try { await updateDoc(doc(db,'orders',id), { status: e.target.value }); } catch(err) { alert('Failed to update: '+err.message); }
+    });
+    div.querySelector('.view').addEventListener('click', ()=> { window.location.href = `view.html?id=${id}`; });
+    frag.appendChild(div);
+  });
+  ordersListEl.appendChild(frag);
+}
+
 function renderOrders() {
   if (!ordersListEl) return;
   const oq = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
   onSnapshot(oq, (snap) => {
-    ordersListEl.innerHTML = '';
-    if (snap.empty) {
-      ordersEmptyEl?.classList.remove('hidden');
-      return;
-    }
-    ordersEmptyEl?.classList.add('hidden');
-    const frag = document.createDocumentFragment();
-    snap.forEach(docSnap => {
-      const o = docSnap.data();
-      const div = document.createElement('div');
-      div.className = 'border rounded p-3 grid grid-cols-1 md:grid-cols-4 gap-3 items-center';
-      const count = Array.isArray(o.items) ? o.items.reduce((s,i)=>s+i.qty,0) : 0;
-      const when = o.createdAt?.toDate ? o.createdAt.toDate().toLocaleString() : '';
-      div.innerHTML = `
-        <div>
-          <div class="font-medium">Order #${docSnap.id.slice(-6)}</div>
-          <div class="text-sm text-gray-600">Items: ${count} · User: ${o.userId || 'guest'} · ${when}</div>
-          <div class="text-sm text-gray-600">${o.customer?.name || ''} · ${o.customer?.phone || ''}</div>
-        </div>
-        <div class="font-semibold">৳${Number(o.total || 0).toFixed(2)}</div>
-        <div class="flex items-center gap-2">
-          <label class="text-sm">Status</label>
-          <select class="border rounded px-2 py-1 admin-status">
-            ${['Pending','Processing','Shipped','Delivered','Cancelled'].map(s=>`<option ${o.status===s?'selected':''}>${s}</option>`).join('')}
-          </select>
-        </div>
-        <div class="text-right">
-          <button class="view px-3 py-1 rounded bg-gray-100 hover:bg-gray-200">View</button>
-        </div>
-      `;
-      div.querySelector('.admin-status').addEventListener('change', async (e)=>{
-        try { await updateDoc(doc(db,'orders',docSnap.id), { status: e.target.value }); } catch(err) { alert('Failed to update: '+err.message); }
-      });
-      div.querySelector('.view').addEventListener('click', ()=> { window.location.href = `view.html?id=${docSnap.id}`; });
-      frag.appendChild(div);
-    });
-    ordersListEl.appendChild(frag);
+    lastOrders = snap.docs.map(d => ({ id: d.id, data: d.data() }));
+    drawOrders();
   }, (err)=>{
     console.error('Orders load failed', err);
   });
@@ -214,6 +246,41 @@ shippingForm?.addEventListener('submit', async (e) => {
 });
 
 loadShipping();
+
+// Orders filter change
+ordersFilter?.addEventListener('change', drawOrders);
+
+// Edit modal handlers
+editClose?.addEventListener('click', ()=>{
+  editModal.classList.add('hidden');
+  editModal.classList.remove('flex');
+});
+
+editForm?.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  if (!currentEditProductId) return;
+  const data = new FormData(editForm);
+  const payload = {
+    title: (data.get('title')||'').toString().trim(),
+    price: Number(data.get('price')||0),
+    weight: (data.get('weight')||'').toString().trim() || null,
+    size: (data.get('size')||'').toString().trim() || null,
+    image: (data.get('image')||'').toString().trim(),
+    description: (data.get('description')||'').toString().trim() || ''
+  };
+  try {
+    await updateDoc(doc(db,'products', currentEditProductId), payload);
+    editMsg.textContent = 'Product updated.';
+    editMsg.className = 'text-sm text-green-700';
+    setTimeout(()=>{
+      editModal.classList.add('hidden');
+      editModal.classList.remove('flex');
+    }, 500);
+  } catch (e) {
+    editMsg.textContent = 'Save failed: ' + e.message;
+    editMsg.className = 'text-sm text-red-700';
+  }
+});
 
 // Helpers for order modal
 function parseWeightToGrams(w){
