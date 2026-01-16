@@ -43,15 +43,23 @@ import { collection, onSnapshot, query, where } from 'firebase/firestore';
         div.className = 'border rounded p-4';
         const items = (o.items || []).map(i => `${i.title} x${i.qty}`).join(', ');
         const when = o.createdAt?.toDate ? o.createdAt.toDate().toLocaleString() : '';
+        const status = (o.status || 'Pending');
+        const badgeClass = {
+          'Pending': 'bg-yellow-50 text-yellow-800 border-yellow-200',
+          'Processing': 'bg-blue-50 text-blue-800 border-blue-200',
+          'Shipped': 'bg-indigo-50 text-indigo-800 border-indigo-200',
+          'Delivered': 'bg-green-50 text-green-800 border-green-200',
+          'Cancelled': 'bg-red-50 text-red-800 border-red-200'
+        }[status] || 'bg-gray-50 text-gray-800 border-gray-200';
         div.innerHTML = `
           <div class="flex items-start justify-between">
             <div>
               <div class="font-semibold">Order #${d.id.slice(-6)} · <span class="text-sm text-gray-600">${when}</span></div>
               <div class="text-sm text-gray-700">${items}</div>
-              <div class="text-sm text-gray-600">Status: ${o.status || 'Pending'}</div>
+              <span class="inline-block mt-1 text-xs px-2 py-0.5 rounded border ${badgeClass}">${status}</span>
             </div>
             <div class="text-right space-y-2">
-              <div class="font-semibold">৳${Number(o.total || 0).toFixed(2)}</div>
+              <div class="font-semibold">Tk ${Number(o.total || 0).toFixed(2)}</div>
               <a class="inline-block text-sm px-3 py-1 rounded bg-gray-100 hover:bg-gray-200" href="view.html?id=${d.id}">View</a>
             </div>
           </div>
