@@ -17,6 +17,8 @@ const form = document.getElementById('add-product-form');
 const msg = document.getElementById('admin-message');
 const listEl = document.getElementById('admin-products');
 const emptyEl = document.getElementById('admin-empty');
+const ordersListEl = document.getElementById('orders-list');
+const ordersEmptyEl = document.getElementById('orders-empty');
 
 function setMessage(text, ok = true) {
   if (!msg) return;
@@ -31,6 +33,7 @@ form?.addEventListener('submit', async (e) => {
   const price = Number(data.get('price'));
   const image = (data.get('image') || '').toString().trim();
   const description = (data.get('description') || '').toString().trim();
+  const weight = (data.get('weight') || '').toString().trim();
 
   if (!title || !image || Number.isNaN(price)) {
     setMessage('Please fill all required fields correctly.', false);
@@ -43,6 +46,7 @@ form?.addEventListener('submit', async (e) => {
       price,
       image,
       description,
+      weight: weight || null,
       createdAt: serverTimestamp(),
       createdBy: auth.currentUser ? auth.currentUser.uid : null
     });
@@ -73,7 +77,7 @@ function renderProducts() {
           <h3 class="font-semibold text-lg mb-1">${data.title}</h3>
           <p class="text-sm text-gray-600 line-clamp-2 mb-3">${data.description || ''}</p>
           <div class="mt-auto flex items-center justify-between">
-            <span class="text-blue-700 font-semibold">$${Number(data.price).toFixed(2)}</span>
+            <span class="text-blue-700 font-semibold">৳${Number(data.price).toFixed(2)}${data.weight ? ` · ${data.weight}` : ''}</span>
             <button class="delete bg-red-600 text-white px-3 py-1.5 rounded hover:bg-red-700">Delete</button>
           </div>
         </div>
@@ -95,3 +99,38 @@ function renderProducts() {
 }
 
 renderProducts();
+
+// Live Orders list
+function renderOrders() {
+  if (!ordersListEl) return;
+  const oq = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
+  onSnapshot(oq, (snap) => {
+    ordersListEl.innerHTML = '';
+    if (snap.empty) {
+      ordersEmptyEl?.classList.remove('hidden');
+      return;
+    }
+    ordersEmptyEl?.classList.add('hidden');
+    const frag = document.createDocumentFragment();
+    snap.forEach(docSnap => {
+      const o = docSnap.data();
+      const div = document.createElement('div');
+      div.className = 'border rounded p-3 flex items-center justify-between';
+      const count = Array.isArray(o.items) ? o.items.reduce((s,i)=>s+i.qty,0) : 0;
+      const when = o.createdAt?.toDate ? o.createdAt.toDate().toLocaleString() : '';
+      div.innerHTML = `
+        <div>
+          <div class="font-medium">Order #${docSnap.id.slice(-6)}</div>
+          <div class="text-sm text-gray-600">Items: ${count} · User: ${o.userId || 'guest'} · ${when}</div>
+        </div>
+        <div class="font-semibold">৳${Number(o.total || 0).toFixed(2)}</div>
+      `;
+      frag.appendChild(div);
+    });
+    ordersListEl.appendChild(frag);
+  }, (err)=>{
+    console.error('Orders load failed', err);
+  });
+}
+
+renderOrders();

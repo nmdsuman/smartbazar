@@ -142,7 +142,7 @@ export function renderCartPage() {
         <div class="flex items-center gap-3">
           <img src="${item.image}" alt="${item.title}" class="w-16 h-16 object-cover rounded">
           <div>
-            <div class="font-medium">${item.title}</div>
+            <div class="font-medium">${item.title}${item.weight ? ` · ${item.weight}` : ''}</div>
             <div class="text-sm text-gray-600">৳${item.price.toFixed(2)}</div>
           </div>
         </div>
