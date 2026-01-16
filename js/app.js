@@ -92,28 +92,34 @@ async function renderProducts() {
     const frag = document.createDocumentFragment();
     snap.forEach(doc => {
       const d = doc.data();
+      if (d.active === false) return; // hide inactive
       const card = document.createElement('div');
       card.className = 'border rounded-lg bg-white overflow-hidden flex flex-col';
+      const stock = Number(d.stock || 0);
+      const out = stock <= 0;
       card.innerHTML = `
         <img src="${d.image}" alt="${d.title}" class="h-48 w-full object-cover">
         <div class="p-4 flex-1 flex flex-col">
           <h3 class="font-semibold text-lg mb-1">${d.title}</h3>
           <p class="text-sm text-gray-600 line-clamp-2 mb-3">${d.description || ''}</p>
+          <div class="text-sm text-gray-600 mb-2">Stock: ${out ? 'Out of stock' : stock}</div>
           <div class="mt-auto flex items-center justify-between">
             <span class="text-blue-700 font-semibold">৳${Number(d.price).toFixed(2)}${d.weight ? ` · ${d.weight}` : ''}</span>
-            <button class="add-to-cart bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700">Add to Cart</button>
+            <button class="add-to-cart ${out ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white px-3 py-1.5 rounded" ${out ? 'disabled' : ''}>${out ? 'Out of stock' : 'Add to Cart'}</button>
           </div>
         </div>
       `;
-      card.querySelector('.add-to-cart').addEventListener('click', () => {
-        addToCart({
-          id: doc.id,
-          title: d.title,
-          price: Number(d.price),
-          image: d.image,
-          weight: d.weight || ''
+      if (!out) {
+        card.querySelector('.add-to-cart').addEventListener('click', () => {
+          addToCart({
+            id: doc.id,
+            title: d.title,
+            price: Number(d.price),
+            image: d.image,
+            weight: d.weight || ''
+          });
         });
-      });
+      }
       frag.appendChild(card);
     });
     grid.appendChild(frag);
@@ -255,7 +261,7 @@ export async function renderCartPage() {
       if (auth.currentUser) {
         await setDoc(doc(db, 'users', auth.currentUser.uid), { name, phone, address }, { merge: true });
       }
-      await addDoc(collection(db, 'orders'), {
+      const docRef = await addDoc(collection(db, 'orders'), {
         items: cart,
         subtotal: total,
         delivery,
@@ -269,8 +275,8 @@ export async function renderCartPage() {
       localStorage.removeItem(CART_KEY);
       updateCartBadge();
       refresh();
-      alert('Order placed successfully.');
-      window.location.href = 'index.html';
+      // Redirect to orders with success flag
+      window.location.href = `orders.html?placed=${encodeURIComponent(docRef.id)}`;
     } catch (e) {
       alert('Failed to place order: ' + e.message);
     }

@@ -310,7 +310,9 @@ editForm?.addEventListener('submit', async (e)=>{
     weight: (data.get('weight')||'').toString().trim() || null,
     size: (data.get('size')||'').toString().trim() || null,
     image: (data.get('image')||'').toString().trim(),
-    description: (data.get('description')||'').toString().trim() || ''
+    description: (data.get('description')||'').toString().trim() || '',
+    stock: Number(data.get('stock')||0),
+    active: data.get('active') ? true : false
   };
   try {
     await updateDoc(doc(db,'products', currentEditProductId), payload);

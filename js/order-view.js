@@ -147,6 +147,10 @@ import { collection, doc, getDoc, getDocs, orderBy, query, updateDoc } from 'fir
       // Determine role
       const uSnap = await getDoc(doc(db,'users', user.uid));
       const role = uSnap.exists() && uSnap.data()?.role ? uSnap.data().role : 'user';
+      // Hide print for non-admins
+      if (role !== 'admin') {
+        printBtn.classList.add('hidden');
+      }
       // shipping settings
       const setSnap = await getDoc(doc(db,'settings','shipping'));
       if (setSnap.exists()) shippingCfg = setSnap.data();

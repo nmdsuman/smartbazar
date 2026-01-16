@@ -6,6 +6,19 @@ import { collection, onSnapshot, query, where } from 'firebase/firestore';
   initAuthHeader();
   const listEl = document.getElementById('orders-list');
   const emptyEl = document.getElementById('orders-empty');
+  // Success banner if redirected after checkout
+  const params = new URLSearchParams(window.location.search);
+  const placed = params.get('placed');
+  if (placed) {
+    const banner = document.createElement('div');
+    banner.className = 'mb-4 p-3 rounded bg-green-50 border border-green-200 text-green-800';
+    banner.textContent = 'Order placed successfully.';
+    listEl.parentElement.insertBefore(banner, listEl);
+    // Clean query param to avoid showing again on refresh
+    const url = new URL(window.location.href);
+    url.searchParams.delete('placed');
+    window.history.replaceState({}, '', url);
+  }
 
   auth.onAuthStateChanged((user) => {
     if (!user) {
