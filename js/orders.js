@@ -1,6 +1,6 @@
 import { auth, db } from './firebase-config.js';
 import { initAuthHeader } from './auth.js';
-import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 
 (function init() {
   initAuthHeader();
@@ -12,11 +12,7 @@ import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestor
       window.location.replace('login.html');
       return;
     }
-    const q = query(
-      collection(db, 'orders'),
-      where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc')
-    );
+    const q = query(collection(db, 'orders'), where('userId', '==', user.uid));
     onSnapshot(q, (snap) => {
       listEl.innerHTML = '';
       if (snap.empty) {
@@ -24,8 +20,11 @@ import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestor
         return;
       }
       emptyEl.classList.add('hidden');
+      const docs = [];
+      snap.forEach(d => docs.push(d));
+      docs.sort((a, b) => (b.data().createdAt?.toMillis?.() || 0) - (a.data().createdAt?.toMillis?.() || 0));
       const frag = document.createDocumentFragment();
-      snap.forEach(d => {
+      docs.forEach(d => {
         const o = d.data();
         const div = document.createElement('div');
         div.className = 'border rounded p-4';
