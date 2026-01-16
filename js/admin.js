@@ -370,7 +370,17 @@ modalSaveBtn?.addEventListener('click', async ()=>{
 
 modalPrintBtn?.addEventListener('click', ()=>{
   const w = window.open('', '_blank');
-  const rows = currentOrder.items.map(i=>`<tr><td>${i.title}${i.weight?` · ${i.weight}`:''}</td><td style='text-align:right'>${i.qty}</td><td style='text-align:right'>৳${Number(i.price).toFixed(2)}</td><td style='text-align:right'>৳${(i.qty*i.price).toFixed(2)}</td></tr>`).join('');
+  const rows = currentOrder.items.map(i=>`<tr>
+    <td>
+      <div style="display:flex;align-items:center;gap:8px">
+        <img src="${i.image||''}" alt="${i.title}" style="width:32px;height:32px;object-fit:cover;border:1px solid #ddd;border-radius:4px"/>
+        <span>${i.title}${i.weight?` · ${i.weight}`:''}</span>
+      </div>
+    </td>
+    <td style='text-align:right'>${i.qty}</td>
+    <td style='text-align:right'>৳${Number(i.price).toFixed(2)}</td>
+    <td style='text-align:right'>৳${(i.qty*i.price).toFixed(2)}</td>
+  </tr>`).join('');
   const subtotal = currentOrder.items.reduce((s,i)=> s + Number(i.price)*Number(i.qty), 0);
   const delivery = calcDeliveryForItems(currentOrder.items);
   const total = subtotal + delivery;
