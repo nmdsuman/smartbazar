@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bazar — Order View</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="data:,">
+  <script type="importmap">
+  {
+    "imports": {
+      "firebase/app": "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js",
+      "firebase/auth": "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js",
+      "firebase/firestore": "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js",
+      "firebase/analytics": "https://www.gstatic.com/firebasejs/10.13.1/firebase-analytics.js"
+    }
+  }
+  </script>
+</head>
+<body class="bg-gray-50">
+  <header class="bg-white border-b">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+      <a href="admin.html" class="text-xl font-bold">Bazar</a>
+      <nav class="flex items-center gap-4">
+        <a href="admin.html" class="hover:text-blue-600">Admin</a>
+        <a href="orders.html" class="hover:text-blue-600">Orders</a>
+        <a href="profile.html" class="hover:text-blue-600">Profile</a>
+        <button id="logout-btn" data-logout class="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200">Logout</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto px-4 py-8">
+    <h1 class="text-2xl font-semibold mb-6">Order Details</h1>
+
+    <div id="order-view" class="bg-white border rounded-lg p-6 space-y-4 hidden">
+      <div id="ov-meta" class="text-sm text-gray-700"></div>
+      <table class="w-full text-sm border">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="text-left p-2 border">Product</th>
+            <th class="text-right p-2 border">Price</th>
+            <th class="text-right p-2 border">Qty</th>
+            <th class="text-right p-2 border">Total</th>
+            <th class="p-2 border"></th>
+          </tr>
+        </thead>
+        <tbody id="ov-items"></tbody>
+      </table>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+        <div class="md:col-span-2">
+          <label class="block text-sm mb-1">Add product</label>
+          <select id="ov-add-select" class="w-full border rounded px-3 py-2"></select>
+        </div>
+        <div>
+          <label class="block text-sm mb-1">Qty</label>
+          <input id="ov-add-qty" type="number" min="1" value="1" class="w-full border rounded px-3 py-2"/>
+        </div>
+        <div>
+          <button id="ov-add-btn" class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Add</button>
+        </div>
+      </div>
+      <div class="text-right space-y-1">
+        <div>Subtotal: <span id="ov-subtotal" class="font-semibold">৳0.00</span></div>
+        <div>Delivery: <span id="ov-delivery" class="font-semibold">৳0.00</span></div>
+        <div class="text-lg">Total: <span id="ov-total" class="font-semibold">৳0.00</span></div>
+      </div>
+      <div class="flex items-center justify-end gap-2">
+        <button id="ov-print" class="px-4 py-2 rounded bg-gray-100 hover:bg-gray-200">Print</button>
+        <button id="ov-save" class="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700">Save Changes</button>
+      </div>
+    </div>
+    <div id="ov-empty" class="text-gray-500">Loading...</div>
+  </main>
+
+  <script type="module" src="js/firebase-config.js"></script>
+  <script type="module" src="js/auth.js"></script>
+  <script type="module" src="js/order-view.js"></script>
+</body>
+</html>
