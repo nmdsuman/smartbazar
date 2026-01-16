@@ -1,0 +1,12 @@
+{
+  "trailingSlash": false,
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/orders", "destination": "/orders.html" },
+    { "source": "/admin", "destination": "/admin.html" },
+    { "source": "/profile", "destination": "/profile.html" },
+    { "source": "/cart", "destination": "/cart.html" },
+    { "source": "/view", "destination": "/view.html" }
+  ]
+}
