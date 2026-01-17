@@ -6,6 +6,8 @@
       "**/.*",
       "**/node_modules/**"
     ],
+    "cleanUrls": true,
+    "trailingSlash": false,
     "headers": [
       {
         "source": "**/*.html",
@@ -20,11 +22,6 @@
         ]
       }
     ],
-    "rewrites": [
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ]
+    "rewrites": []
   }
 }
