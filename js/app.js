@@ -399,7 +399,7 @@ export async function renderCartPage() {
       <div class="text-right space-y-1">
         <div>Subtotal: <span class="font-semibold">৳${subtotal.toFixed(2)}</span></div>
         <div>Delivery: <span class="font-semibold">৳${delivery.toFixed(2)}</span></div>
-        <div class="text-lg">Total: <span class="font-semibold">৳${(subtotal+delivery).toFixed(2)}</span></div>
+        <div class="text-lg">Total: <span class="inline-block font-semibold bg-blue-600 text-white px-3 py-1 rounded-full">৳${(subtotal+delivery).toFixed(2)}</span></div>
       </div>
     `;
     // Show modal

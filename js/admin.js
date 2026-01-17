@@ -80,6 +80,53 @@ function setMessage(text, ok = true) {
   msg.className = `text-sm mt-4 ${ok ? 'text-green-700' : 'text-red-700'}`;
 }
 
+// Live preview for Add Product
+const prevImg = document.getElementById('add-preview-image');
+const prevTitle = document.getElementById('add-preview-title');
+const prevPrice = document.getElementById('add-preview-price');
+const prevExtra = document.getElementById('add-preview-extra');
+const prevDesc = document.getElementById('add-preview-desc');
+
+function updateAddPreview() {
+  if (!form || !prevTitle || !prevPrice || !prevExtra || !prevDesc) return;
+  const title = form.title ? String(form.title.value || '').trim() : '';
+  const price = form.price ? Number(form.price.value || 0) : 0;
+  const weight = form.weight ? String(form.weight.value || '').trim() : '';
+  const size = form.size ? String(form.size.value || '').trim() : '';
+  const desc = form.description ? String(form.description.value || '').trim() : '';
+
+  prevTitle.textContent = title || '—';
+  prevPrice.textContent = `৳${Number(price || 0).toFixed(2)}`;
+  const extra = [weight, size].filter(Boolean).join(' · ');
+  prevExtra.textContent = extra || '\u00A0';
+  prevDesc.textContent = desc || '\u00A0';
+}
+
+function updateAddPreviewImage() {
+  if (!form || !prevImg) return;
+  const file = form.image && form.image.files ? form.image.files[0] : null;
+  if (file) {
+    const url = URL.createObjectURL(file);
+    prevImg.src = url;
+    prevImg.classList.remove('hidden');
+  } else {
+    prevImg.src = '';
+    prevImg.classList.add('hidden');
+  }
+}
+
+// Wire preview listeners
+if (form) {
+  ['title','price','weight','size','description'].forEach(name => {
+    const el = form.querySelector(`[name="${name}"]`);
+    if (el) el.addEventListener('input', updateAddPreview);
+  });
+  const imgInput = form.querySelector('[name="image"]');
+  if (imgInput) imgInput.addEventListener('change', updateAddPreviewImage);
+  // initial state
+  updateAddPreview();
+}
+
 form?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const data = new FormData(form);
@@ -119,6 +166,9 @@ form?.addEventListener('submit', async (e) => {
       createdBy: auth.currentUser ? auth.currentUser.uid : null
     });
     form.reset();
+    // reset preview
+    updateAddPreview();
+    updateAddPreviewImage();
     setMessage('Product added successfully.');
     if (submitBtn) submitBtn.disabled = prevDisabled ?? false;
   } catch (err) {
