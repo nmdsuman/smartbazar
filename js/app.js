@@ -157,7 +157,7 @@ function drawProducts() {
       const stock = Number(d.stock || 0);
       const out = stock <= 0;
       card.innerHTML = `
-        <img src="${d.image}" alt="${d.title}" class="h-48 w-full object-cover">
+        <img src="${d.image}" alt="${d.title}" class="h-48 w-full object-contain bg-white">
         <div class="p-4 flex-1 flex flex-col">
           <h3 class="font-semibold text-lg mb-1">${d.title}</h3>
           <p class="text-sm text-gray-600 line-clamp-2 mb-3">${d.description || ''}</p>
@@ -338,7 +338,7 @@ export async function renderCartPage() {
       total += itemTotal;
       row.innerHTML = `
         <div class="flex items-center gap-3">
-          <img src="${item.image}" alt="${item.title}" class="w-16 h-16 object-cover rounded">
+          <img src="${item.image}" alt="${item.title}" class="w-16 h-16 object-contain bg-white rounded">
           <div>
             <div class="font-medium">${item.title}${item.weight ? ` · ${item.weight}` : ''}</div>
             <div class="text-sm text-gray-600">৳${item.price.toFixed(2)}</div>
@@ -384,7 +384,7 @@ export async function renderCartPage() {
     const rows = cart.map(i => `
       <tr>
         <td class="p-2 border">
-          <div class="flex items-center gap-2"><img src="${i.image}" alt="${i.title}" class="w-10 h-10 object-cover rounded border"/><span>${i.title}${i.weight?` · ${i.weight}`:''}</span></div>
+          <div class="flex items-center gap-2"><img src="${i.image}" alt="${i.title}" class="w-10 h-10 object-contain bg-white rounded border"/><span>${i.title}${i.weight?` · ${i.weight}`:''}</span></div>
         </td>
         <td class="p-2 border text-right">${i.qty}</td>
         <td class="p-2 border text-right">৳${Number(i.price).toFixed(2)}</td>
