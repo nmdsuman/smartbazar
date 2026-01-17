@@ -30,14 +30,18 @@ export function initAuthHeader() {
   const adminLink = document.querySelector('a[href="admin.html"]');
   const nav = document.querySelector('header nav');
 
-  // Ensure a compact user menu exists (3-dot button with dropdown)
+  // Ensure a compact user menu exists (My Account icon with dropdown)
   let menuHost = document.getElementById('user-menu');
   if (!menuHost && nav) {
     menuHost = document.createElement('div');
     menuHost.id = 'user-menu';
     menuHost.className = 'relative';
     menuHost.innerHTML = `
-      <button id="user-menu-btn" aria-haspopup="menu" aria-expanded="false" class="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center select-none">⋯</button>
+      <button id="user-menu-btn" aria-label="My account" aria-haspopup="menu" aria-expanded="false" class="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center select-none">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-gray-700">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.5 20.118a7.5 7.5 0 0 1 15 0A17.933 17.933 0 0 1 12 21.75c-2.69 0-5.251-.586-7.5-1.632Z" />
+        </svg>
+      </button>
       <div id="user-menu-panel" class="absolute right-0 mt-2 w-44 bg-white border rounded shadow-lg hidden">
         <a href="profile.html" class="block px-3 py-2 text-sm hover:bg-gray-50">Profile</a>
         <a href="orders.html" class="block px-3 py-2 text-sm hover:bg-gray-50">Orders</a>
@@ -59,7 +63,8 @@ export function initAuthHeader() {
 
   onAuthStateChanged(auth, (user) => {
     if (loginLink) loginLink.classList.toggle('hidden', !!user);
-    if (logoutBtn) logoutBtn.classList.toggle('hidden', !user);
+    // Always hide standalone logout when compact menu exists
+    if (logoutBtn) logoutBtn.classList.add('hidden');
     // Hide standalone Profile/Orders links when using the compact menu (for cleaner header)
     const profileLink = document.querySelector('a[href="profile.html"]');
     const ordersLink = document.querySelector('a[href="orders.html"]');
