@@ -153,18 +153,20 @@ function drawProducts() {
   list.forEach(({ id, data: d }) => {
       if (d.active === false) return; // hide inactive
       const card = document.createElement('div');
-      card.className = 'border rounded-lg bg-white overflow-hidden flex flex-col';
+      card.className = 'relative border rounded-lg bg-white overflow-hidden flex flex-col shadow-sm';
       const stock = Number(d.stock || 0);
       const out = stock <= 0;
       card.innerHTML = `
-        <img src="${d.image}" alt="${d.title}" class="h-48 w-full object-contain bg-white">
-        <div class="p-4 flex-1 flex flex-col">
-          <h3 class="font-semibold text-lg mb-1">${d.title}</h3>
-          <p class="text-sm text-gray-600 line-clamp-2 mb-3">${d.description || ''}</p>
-          <div class="text-sm text-gray-600 mb-2">Stock: ${out ? 'Out of stock' : stock}</div>
-          <div class="mt-auto flex items-center justify-between">
-            <span class="text-blue-700 font-semibold">৳${Number(d.price).toFixed(2)}${d.weight ? ` · ${d.weight}` : ''}</span>
-            <button class="add-to-cart ${out ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white px-3 py-1.5 rounded" ${out ? 'disabled' : ''}>${out ? 'Out of stock' : 'Add to Cart'}</button>
+        ${out ? '<span class="absolute top-2 left-2 text-[11px] px-2 py-0.5 rounded-full bg-red-600 text-white">Out of stock</span>' : ''}
+        <a href="productfullview.html?id=${encodeURIComponent(id)}" class="block">
+          <img src="${d.image}" alt="${d.title}" class="h-44 w-full object-contain bg-white">
+        </a>
+        <div class="p-3 flex-1 flex flex-col">
+          <h3 class="font-semibold text-base mb-1 line-clamp-1"><a href="productfullview.html?id=${encodeURIComponent(id)}" class="hover:text-blue-700">${d.title}</a></h3>
+          <p class="text-sm text-gray-600 line-clamp-2 mb-2">${d.description || ''}</p>
+          <div class="mt-auto flex items-center justify-between gap-2">
+            <span class="text-blue-700 font-semibold text-sm">৳${Number(d.price).toFixed(2)}${d.weight ? ` · ${d.weight}` : ''}</span>
+            <button class="add-to-cart ${out ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white px-3 py-1.5 rounded text-sm" ${out ? 'disabled' : ''}>${out ? 'Unavailable' : 'Add to Cart'}</button>
           </div>
         </div>
       `;
