@@ -45,6 +45,28 @@ let shippingCfg = null; // cached shipping settings for calc
 let currentOrder = { id: null, data: null, items: [] };
 let lastOrders = [];
 
+const IMGBB_API_KEY = '462884d7f63129dede1b67d612e66ee6';
+
+async function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function uploadToImgbb(file) {
+  const b64 = await fileToBase64(file);
+  const fd = new FormData();
+  fd.append('image', b64);
+  const res = await fetch(`https://api.imgbb.com/1/upload?expiration=0&key=${encodeURIComponent(IMGBB_API_KEY)}`, { method: 'POST', body: fd });
+  if (!res.ok) throw new Error('Image upload failed');
+  const json = await res.json();
+  if (!json?.success) throw new Error('Image upload failed');
+  return json.data?.url || json.data?.display_url || '';
+}
+
 // Product Edit modal
 const editModal = document.getElementById('edit-modal');
 const editClose = document.getElementById('edit-close');
@@ -63,19 +85,25 @@ form?.addEventListener('submit', async (e) => {
   const data = new FormData(form);
   const title = (data.get('title') || '').toString().trim();
   const price = Number(data.get('price'));
-  const image = (data.get('image') || '').toString().trim();
+  const imageFile = data.get('image');
   const description = (data.get('description') || '').toString().trim();
   const weight = (data.get('weight') || '').toString().trim();
   const size = (data.get('size') || '').toString().trim();
   const stock = Number(data.get('stock') || 0);
   const active = data.get('active') ? true : false;
 
-  if (!title || !image || Number.isNaN(price)) {
+  if (!title || !(imageFile instanceof File) || Number.isNaN(price)) {
     setMessage('Please fill all required fields correctly.', false);
     return;
   }
 
   try {
+    setMessage('Uploading image...', true);
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const prevDisabled = submitBtn?.disabled;
+    if (submitBtn) submitBtn.disabled = true;
+    const image = await uploadToImgbb(imageFile);
+    if (!image) throw new Error('Image upload returned empty URL');
     await addDoc(collection(db, 'products'), {
       title,
       price,
@@ -90,8 +118,12 @@ form?.addEventListener('submit', async (e) => {
     });
     form.reset();
     setMessage('Product added successfully.');
+    if (submitBtn) submitBtn.disabled = prevDisabled ?? false;
   } catch (err) {
     setMessage('Failed to add product: ' + err.message, false);
+  } finally {
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = false;
   }
 });
 
@@ -304,17 +336,23 @@ editForm?.addEventListener('submit', async (e)=>{
   e.preventDefault();
   if (!currentEditProductId) return;
   const data = new FormData(editForm);
+  const file = data.get('imageFile');
+  const nextImageUrl = (data.get('image')||'').toString().trim();
   const payload = {
     title: (data.get('title')||'').toString().trim(),
     price: Number(data.get('price')||0),
     weight: (data.get('weight')||'').toString().trim() || null,
     size: (data.get('size')||'').toString().trim() || null,
-    image: (data.get('image')||'').toString().trim(),
+    image: nextImageUrl,
     description: (data.get('description')||'').toString().trim() || '',
     stock: Number(data.get('stock')||0),
     active: data.get('active') ? true : false
   };
   try {
+    if (file instanceof File && file.size > 0) {
+      const uploaded = await uploadToImgbb(file);
+      payload.image = uploaded;
+    }
     await updateDoc(doc(db,'products', currentEditProductId), payload);
     editMsg.textContent = 'Product updated.';
     editMsg.className = 'text-sm text-green-700';
