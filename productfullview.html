@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bazar — Product</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="data:,">
+  <script type="importmap">
+  {
+    "imports": {
+      "firebase/app": "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js",
+      "firebase/auth": "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js",
+      "firebase/firestore": "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js",
+      "firebase/analytics": "https://www.gstatic.com/firebasejs/10.13.1/firebase-analytics.js"
+    }
+  }
+  </script>
+</head>
+<body class="bg-gray-50 text-gray-900">
+  <header class="bg-white border-b">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+      <a href="index.html" class="text-xl font-bold">Bazar</a>
+      <nav class="flex items-center gap-4">
+        <a href="index.html" class="hover:text-blue-600">Home</a>
+        <a href="admin.html" class="hover:text-blue-600">Admin</a>
+        <a href="profile.html" class="hover:text-blue-600">Profile</a>
+        <a href="orders.html" class="hover:text-blue-600">Orders</a>
+        <a href="cart.html" class="hover:text-blue-600">Cart
+          <span id="cart-count" class="ml-1 inline-flex items-center justify-center text-xs rounded-full bg-blue-600 text-white w-5 h-5">0</span>
+        </a>
+        <a href="login.html" id="login-link" class="hover:text-blue-600">Login</a>
+        <button id="logout-btn" data-logout class="hidden px-3 py-1 rounded bg-gray-100 hover:bg-gray-200">Logout</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-8 space-y-10">
+    <section id="product-section" class="bg-white border rounded-lg p-4 md:p-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+        <div>
+          <img id="pv-image" src="" alt="Product image" class="w-full h-80 object-contain bg-white rounded border">
+        </div>
+        <div>
+          <h1 id="pv-title" class="text-2xl font-semibold mb-2">Product</h1>
+          <div id="pv-meta" class="text-gray-600 mb-3 text-sm"></div>
+          <div class="text-2xl text-blue-700 font-semibold mb-4">৳<span id="pv-price">0.00</span></div>
+          <p id="pv-desc" class="text-gray-700 leading-7 mb-6"></p>
+          <button id="pv-add" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded">Add to Cart</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="related-section" class="bg-white border rounded-lg p-4 md:p-6">
+      <h2 class="text-lg font-semibold mb-4">Related products</h2>
+      <div id="related-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"></div>
+      <div id="related-empty" class="text-sm text-gray-500 hidden">No related products.</div>
+    </section>
+  </main>
+
+  <footer class="border-t bg-white">
+    <div class="max-w-6xl mx-auto px-4 py-6 text-sm text-gray-500">
+      © <span id="year"></span> Bazar. All rights reserved.
+    </div>
+  </footer>
+
+  <script type="module" src="js/firebase-config.js"></script>
+  <script type="module" src="js/auth.js"></script>
+  <script type="module" src="js/product-fullview.js"></script>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
