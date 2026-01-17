@@ -109,6 +109,7 @@
 
     <section id="add" class="bg-white border rounded-lg p-6 mb-8">
       <h2 class="text-lg font-semibold mb-4">Add Product</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
       <form id="add-product-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label class="block text-sm mb-1">Title</label>
@@ -150,21 +151,24 @@
           <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Add Product</button>
         </div>
       </form>
-      <div id="admin-message" class="text-sm mt-4"></div>
-      <div class="mt-6">
-        <h3 class="font-semibold mb-3">Live Preview</h3>
-        <div class="border rounded-lg bg-white overflow-hidden w-full max-w-sm">
-          <img id="add-preview-image" src="" alt="Preview" class="h-48 w-full object-cover hidden">
-          <div class="p-4">
-            <div class="flex items-center justify-between mb-2">
-              <h4 id="add-preview-title" class="font-semibold text-lg">—</h4>
-              <span id="add-preview-price" class="text-blue-700 font-semibold">৳0.00</span>
+      <div>
+        <div class="md:sticky md:top-20">
+          <h3 class="font-semibold mb-3">Live Preview</h3>
+          <div class="border rounded-lg bg-white overflow-hidden w-full max-w-sm">
+            <img id="add-preview-image" src="" alt="Preview" class="h-48 w-full object-contain bg-white hidden">
+            <div class="p-4">
+              <div class="flex items-center justify-between mb-2">
+                <h4 id="add-preview-title" class="font-semibold text-lg">—</h4>
+                <span id="add-preview-price" class="text-blue-700 font-semibold">৳0.00</span>
+              </div>
+              <div id="add-preview-extra" class="text-sm text-gray-600 mb-2">&nbsp;</div>
+              <p id="add-preview-desc" class="text-sm text-gray-600 line-clamp-2">&nbsp;</p>
             </div>
-            <div id="add-preview-extra" class="text-sm text-gray-600 mb-2">&nbsp;</div>
-            <p id="add-preview-desc" class="text-sm text-gray-600 line-clamp-2">&nbsp;</p>
           </div>
         </div>
       </div>
+      </div>
+      <div id="admin-message" class="text-sm mt-4"></div>
     </section>
 
     <section id="products" class="bg-white border rounded-lg p-6">
