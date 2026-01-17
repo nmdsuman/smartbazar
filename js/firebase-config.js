@@ -6,13 +6,13 @@ import { getAnalytics } from "firebase/analytics";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyAcj9y2jgxqatG3_IXkBjMT0yvBoardpJw",
-  authDomain: "bazar-201e6.firebaseapp.com",
-  projectId: "bazar-201e6",
-  storageBucket: "bazar-201e6.firebasestorage.app",
-  messagingSenderId: "465394666878",
-  appId: "1:465394666878:web:d11979e97a733527aef72f",
-  measurementId: "G-X3NVQEBFNM"
+  apiKey: "AIzaSyCbZUXA2jzfCscXzVY8_OuWUjiCDGN0QZk",
+  authDomain: "smartbazarbd.firebaseapp.com",
+  projectId: "smartbazarbd",
+  storageBucket: "smartbazarbd.firebasestorage.app",
+  messagingSenderId: "6260451319",
+  appId: "1:6260451319:web:6e5e210d7a8127b1d3f0f2",
+  measurementId: "G-RJ0JGF43G5"
 };
 
 // Initialize Firebase
