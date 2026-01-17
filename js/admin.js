@@ -87,6 +87,7 @@ form?.addEventListener('submit', async (e) => {
   const price = Number(data.get('price'));
   const imageFile = data.get('image');
   const description = (data.get('description') || '').toString().trim();
+  const category = (data.get('category') || '').toString().trim();
   const weight = (data.get('weight') || '').toString().trim();
   const size = (data.get('size') || '').toString().trim();
   const stock = Number(data.get('stock') || 0);
@@ -108,6 +109,7 @@ form?.addEventListener('submit', async (e) => {
       title,
       price,
       image,
+      category: category || null,
       description,
       weight: weight || null,
       size: size || null,
@@ -176,6 +178,7 @@ function renderProducts() {
         currentEditProductId = d.id;
         editForm.title.value = data.title || '';
         editForm.price.value = data.price || 0;
+        if (editForm.category) editForm.category.value = data.category || '';
         editForm.weight.value = data.weight || '';
         editForm.size.value = data.size || '';
         editForm.image.value = data.image || '';
@@ -341,6 +344,7 @@ editForm?.addEventListener('submit', async (e)=>{
   const payload = {
     title: (data.get('title')||'').toString().trim(),
     price: Number(data.get('price')||0),
+    category: (data.get('category')||'').toString().trim() || null,
     weight: (data.get('weight')||'').toString().trim() || null,
     size: (data.get('size')||'').toString().trim() || null,
     image: nextImageUrl,

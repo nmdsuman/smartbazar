@@ -17,6 +17,23 @@ import {
 const CART_KEY = 'bazar_cart';
 let shippingSettings = null; // { baseFee, extraPerBlock, blockGrams, fallbackFee }
 let cloudSaveTimer = null;
+let allProducts = [];
+let currentFilters = { q: '', category: '' };
+
+// Inject minimal CSS for cart animations once
+let cartAnimStylesInjected = false;
+function ensureCartAnimStyles() {
+  if (cartAnimStylesInjected) return;
+  const css = `
+  @keyframes cart-bump { 0%{transform:scale(1)} 30%{transform:scale(1.15)} 100%{transform:scale(1)} }
+  #cart-count.bump { animation: cart-bump 300ms ease; }
+  .fly-img { position: fixed; z-index: 9999; width: 64px; height: 64px; object-fit: cover; pointer-events: none; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.2); transition: transform 500ms cubic-bezier(.2,.7,.2,1), opacity 500ms; }
+  `;
+  const style = document.createElement('style');
+  style.textContent = css;
+  document.head.appendChild(style);
+  cartAnimStylesInjected = true;
+}
 
 function readCart() {
   try {
@@ -53,6 +70,36 @@ export function addToCart(item) {
   writeCart(cart);
 }
 
+function bumpCartBadge() {
+  const countEl = document.getElementById('cart-count');
+  if (!countEl) return;
+  countEl.classList.remove('bump');
+  // force reflow to restart animation
+  // eslint-disable-next-line no-unused-expressions
+  countEl.offsetHeight;
+  countEl.classList.add('bump');
+}
+
+function flyToCartFrom(imgEl) {
+  const cartEl = document.getElementById('cart-count');
+  if (!imgEl || !cartEl) return;
+  const rect = imgEl.getBoundingClientRect();
+  const target = cartEl.getBoundingClientRect();
+  const clone = document.createElement('img');
+  clone.src = imgEl.src;
+  clone.className = 'fly-img';
+  clone.style.left = `${rect.left + window.scrollX}px`;
+  clone.style.top = `${rect.top + window.scrollY}px`;
+  document.body.appendChild(clone);
+  const dx = target.left + target.width / 2 - (rect.left + rect.width / 2);
+  const dy = target.top + target.height / 2 - (rect.top + rect.height / 2) + window.scrollY;
+  requestAnimationFrame(() => {
+    clone.style.transform = `translate(${dx}px, ${dy}px) scale(0.2)`;
+    clone.style.opacity = '0.2';
+  });
+  setTimeout(() => { clone.remove(); }, 550);
+}
+
 export function removeFromCart(id) {
   let cart = readCart();
   cart = cart.filter(p => p.id !== id);
@@ -77,21 +124,33 @@ export function updateCartBadge() {
 }
 
 // Render products on index.html
-async function renderProducts() {
+function drawProducts() {
   const grid = document.getElementById('products-grid');
   const empty = document.getElementById('empty-state');
   if (!grid) return;
 
-  try {
-    const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
-    const snap = await getDocs(q);
-    if (snap.empty) {
-      empty?.classList.remove('hidden');
-      return;
-    }
-    const frag = document.createDocumentFragment();
-    snap.forEach(doc => {
-      const d = doc.data();
+  const list = allProducts
+    .filter(p => (p.data.active === false ? false : true))
+    .filter(p => {
+      if (!currentFilters.category) return true;
+      return (p.data.category || '').toLowerCase() === currentFilters.category.toLowerCase();
+    })
+    .filter(p => {
+      const q = currentFilters.q.trim().toLowerCase();
+      if (!q) return true;
+      const hay = `${p.data.title} ${p.data.description || ''} ${p.data.category || ''}`.toLowerCase();
+      return hay.includes(q);
+    });
+
+  const frag = document.createDocumentFragment();
+  if (list.length === 0) {
+    grid.innerHTML = '';
+    empty?.classList.remove('hidden');
+    return;
+  }
+  empty?.classList.add('hidden');
+  grid.innerHTML = '';
+  list.forEach(({ id, data: d }) => {
       if (d.active === false) return; // hide inactive
       const card = document.createElement('div');
       card.className = 'border rounded-lg bg-white overflow-hidden flex flex-col';
@@ -110,23 +169,73 @@ async function renderProducts() {
         </div>
       `;
       if (!out) {
-        card.querySelector('.add-to-cart').addEventListener('click', () => {
+        const btn = card.querySelector('.add-to-cart');
+        const imgEl = card.querySelector('img');
+        btn.addEventListener('click', () => {
           addToCart({
-            id: doc.id,
+            id: id,
             title: d.title,
             price: Number(d.price),
             image: d.image,
             weight: d.weight || ''
           });
+          bumpCartBadge();
+          flyToCartFrom(imgEl);
         });
       }
       frag.appendChild(card);
     });
-    grid.appendChild(frag);
+  grid.appendChild(frag);
+}
+
+async function loadProducts() {
+  const grid = document.getElementById('products-grid');
+  if (!grid) return;
+  try {
+    const qy = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
+    const snap = await getDocs(qy);
+    allProducts = snap.docs.map(d => ({ id: d.id, data: d.data() }));
+    populateCategories();
+    drawProducts();
   } catch (e) {
+    const empty = document.getElementById('empty-state');
     console.error('Failed to load products', e);
     empty?.classList.remove('hidden');
-    empty.textContent = 'Failed to load products.';
+    if (empty) empty.textContent = 'Failed to load products.';
+  }
+}
+
+function populateCategories() {
+  const select = document.getElementById('category-filter');
+  if (!select) return;
+  const cats = Array.from(new Set(allProducts.map(p => (p.data.category || '').trim()).filter(Boolean))).sort();
+  select.innerHTML = '<option value="">All Categories</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
+}
+
+function setupFilters() {
+  const search = document.getElementById('search-input');
+  const cat = document.getElementById('category-filter');
+  if (search) {
+    search.addEventListener('input', () => {
+      currentFilters.q = search.value || '';
+      drawProducts();
+    });
+  }
+  if (cat) {
+    cat.addEventListener('change', () => {
+      currentFilters.category = cat.value || '';
+      drawProducts();
+    });
+  }
+}
+
+function hideHomeLinkOnHome() {
+  const homeLink = document.querySelector('a[href="index.html"]');
+  if (!homeLink) return;
+  // If current page is index (either / or /index.html), hide the Home link
+  const path = window.location.pathname;
+  if (path.endsWith('/') || path.endsWith('/index.html')) {
+    homeLink.classList.add('hidden');
   }
 }
 
@@ -336,5 +445,8 @@ export async function renderCartPage() {
 (function init() {
   initAuthHeader();
   updateCartBadge();
-  renderProducts();
+  ensureCartAnimStyles();
+  setupFilters();
+  hideHomeLinkOnHome();
+  loadProducts();
 })();
