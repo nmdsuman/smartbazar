@@ -230,13 +230,20 @@ function setupFilters() {
 }
 
 function hideHomeLinkOnHome() {
-  const homeLink = document.querySelector('a[href="index.html"]');
-  if (!homeLink) return;
-  // If current page is index (either / or /index.html), hide the Home link
+  // If current page is index (either / or /index.html), hide any nav link that points to home
   const path = window.location.pathname;
-  if (path.endsWith('/') || path.endsWith('/index.html')) {
-    homeLink.classList.add('hidden');
-  }
+  const onHome = path === '/' || path.endsWith('/index.html');
+  if (!onHome) return;
+  const navLinks = document.querySelectorAll('header nav a');
+  navLinks.forEach(a => {
+    try {
+      const url = new URL(a.getAttribute('href'), window.location.origin);
+      const p = url.pathname;
+      if (p === '/' || p.endsWith('/index.html')) {
+        a.classList.add('hidden');
+      }
+    } catch {}
+  });
 }
 
 // Render cart page

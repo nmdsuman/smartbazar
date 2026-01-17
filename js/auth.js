@@ -28,10 +28,46 @@ export function initAuthHeader() {
   const loginLink = document.getElementById('login-link');
   const logoutBtn = document.getElementById('logout-btn');
   const adminLink = document.querySelector('a[href="admin.html"]');
+  const nav = document.querySelector('header nav');
+
+  // Ensure a compact user menu exists (3-dot button with dropdown)
+  let menuHost = document.getElementById('user-menu');
+  if (!menuHost && nav) {
+    menuHost = document.createElement('div');
+    menuHost.id = 'user-menu';
+    menuHost.className = 'relative';
+    menuHost.innerHTML = `
+      <button id="user-menu-btn" aria-haspopup="menu" aria-expanded="false" class="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center select-none">⋯</button>
+      <div id="user-menu-panel" class="absolute right-0 mt-2 w-44 bg-white border rounded shadow-lg hidden">
+        <a href="profile.html" class="block px-3 py-2 text-sm hover:bg-gray-50">Profile</a>
+        <a href="orders.html" class="block px-3 py-2 text-sm hover:bg-gray-50">Orders</a>
+        <button data-logout class="w-full text-left block px-3 py-2 text-sm hover:bg-gray-50">Logout</button>
+      </div>
+    `;
+    nav.appendChild(menuHost);
+
+    const btn = menuHost.querySelector('#user-menu-btn');
+    const panel = menuHost.querySelector('#user-menu-panel');
+    function closeMenu(){ if (panel) { panel.classList.add('hidden'); btn?.setAttribute('aria-expanded','false'); } }
+    function toggleMenu(){ if (panel) { panel.classList.toggle('hidden'); btn?.setAttribute('aria-expanded', panel.classList.contains('hidden') ? 'false' : 'true'); } }
+    btn?.addEventListener('click', (e)=>{ e.stopPropagation(); toggleMenu(); });
+    document.addEventListener('click', (e)=>{ if (!menuHost.contains(e.target)) closeMenu(); });
+    document.addEventListener('keydown', (e)=>{ if (e.key === 'Escape') closeMenu(); });
+    // Rewire logout for menu button too
+    wireGlobalLogout();
+  }
 
   onAuthStateChanged(auth, (user) => {
     if (loginLink) loginLink.classList.toggle('hidden', !!user);
     if (logoutBtn) logoutBtn.classList.toggle('hidden', !user);
+    // Hide standalone Profile/Orders links when using the compact menu (for cleaner header)
+    const profileLink = document.querySelector('a[href="profile.html"]');
+    const ordersLink = document.querySelector('a[href="orders.html"]');
+    const compactMenu = document.getElementById('user-menu');
+    const useCompact = !!compactMenu && !!user;
+    if (profileLink) profileLink.classList.toggle('hidden', useCompact);
+    if (ordersLink) ordersLink.classList.toggle('hidden', useCompact);
+    if (compactMenu) compactMenu.classList.toggle('hidden', !user);
     // Hide admin link for non-admins
     if (adminLink) {
       if (!user) {
