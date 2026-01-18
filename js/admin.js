@@ -196,7 +196,7 @@ function renderProducts() {
       const card = document.createElement('div');
       card.className = 'border rounded-lg bg-white overflow-hidden flex flex-col';
       card.innerHTML = `
-        <img src="${data.image}" alt="${data.title}" class="h-40 w-full object-cover">
+        <img src="${data.image}" alt="${data.title}" class="h-44 w-full object-contain bg-white">
         <div class="p-4 flex-1 flex flex-col">
           <h3 class="font-semibold text-lg mb-1">${data.title}</h3>
           <p class="text-sm text-gray-600 line-clamp-2 mb-3">${data.description || ''}</p>
