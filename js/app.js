@@ -28,7 +28,7 @@ function ensureCartAnimStyles() {
   const css = `
   @keyframes cart-bump { 0%{transform:scale(1)} 30%{transform:scale(1.15)} 100%{transform:scale(1)} }
   #cart-count.bump { animation: cart-bump 300ms ease; }
-  .fly-img { position: fixed; z-index: 9999; width: 64px; height: 64px; object-fit: cover; pointer-events: none; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.2); transition: transform 500ms cubic-bezier(.2,.7,.2,1), opacity 500ms; }
+  .fly-img { position: fixed; z-index: 9999; width: 64px; height: 64px; object-fit: cover; pointer-events: none; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,.2); transition: transform 800ms cubic-bezier(.2,.7,.2,1), opacity 800ms; }
   `;
   const style = document.createElement('style');
   style.textContent = css;
@@ -82,7 +82,11 @@ function bumpCartBadge() {
 }
 
 function flyToCartFrom(imgEl) {
-  const cartEl = document.getElementById('cart-count');
+  // Prefer bottom nav cart badge on mobile
+  const isSmall = window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
+  const bottomBadge = document.getElementById('cart-count-bottom');
+  const headerBadge = document.getElementById('cart-count');
+  const cartEl = (isSmall && bottomBadge) ? bottomBadge : headerBadge;
   if (!imgEl || !cartEl) return;
   const rect = imgEl.getBoundingClientRect();
   const target = cartEl.getBoundingClientRect();
@@ -98,7 +102,7 @@ function flyToCartFrom(imgEl) {
     clone.style.transform = `translate(${dx}px, ${dy}px) scale(0.2)`;
     clone.style.opacity = '0.2';
   });
-  setTimeout(() => { clone.remove(); }, 550);
+  setTimeout(() => { clone.remove(); }, 900);
 }
 
 export function removeFromCart(id) {
@@ -221,15 +225,30 @@ function populateCategories() {
 function setupFilters() {
   const search = document.getElementById('search-input');
   const cat = document.getElementById('category-filter');
+  const btn = document.getElementById('search-btn');
   if (search) {
     search.addEventListener('input', () => {
       currentFilters.q = search.value || '';
       drawProducts();
     });
+    // Pressing Enter will trigger Search button if present
+    search.addEventListener('keydown', (e)=>{
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (btn) btn.click(); else drawProducts();
+      }
+    });
   }
   if (cat) {
     cat.addEventListener('change', () => {
       currentFilters.category = cat.value || '';
+      drawProducts();
+    });
+  }
+  if (btn) {
+    btn.addEventListener('click', () => {
+      const v = search ? (search.value || '') : '';
+      currentFilters.q = v;
       drawProducts();
     });
   }

@@ -41,27 +41,30 @@
       if (bottom) bottom.textContent = String(total);
     } catch {}
 
-    // Determine active route
-    const map = {
-      home: ['/', '/index.html'],
-      cart: ['/cart.html'],
-      orders: ['/orders.html', '/view.html'],
-      account: ['/profile.html','/login.html','/signup.html']
-    };
+    // Determine active route (robust to subpaths, query params)
+    const href = location.href.toLowerCase();
     const path = location.pathname.toLowerCase();
-
-    function isActive(key){
-      return (map[key]||[]).some(s => path.endsWith(s));
+    function activeKey(){
+      if (href.includes('cart')) return 'cart';
+      if (href.includes('orders') || href.includes('view.html')) return 'orders';
+      if (href.includes('profile') || href.includes('login') || href.includes('signup')) return 'account';
+      // default home: index.html or root
+      if (path === '/' || path.endsWith('/index.html')) return 'home';
+      return 'home';
     }
+    const keyNow = activeKey();
 
+    // Reset and mark only one as active
     nav.querySelectorAll('a').forEach(a => {
-      const key = a.getAttribute('data-key');
-      if (isActive(key)) {
-        a.classList.add('text-rose-600', 'font-semibold');
-        a.querySelector('.icon')?.classList.add('scale-110');
-        a.querySelector('.icon')?.classList.add('transition');
-      }
+      a.classList.remove('text-rose-600','font-semibold');
+      a.querySelector('.icon')?.classList.remove('scale-110');
+      a.querySelector('.icon')?.classList.add('transition');
     });
+    const activeEl = nav.querySelector(`a[data-key="${keyNow}"]`);
+    if (activeEl) {
+      activeEl.classList.add('text-rose-600','font-semibold');
+      activeEl.querySelector('.icon')?.classList.add('scale-110');
+    }
 
     // Hide header Cart/My Account links on small screens (use bottom nav instead)
     try {

@@ -74,6 +74,9 @@ const editClose = document.getElementById('edit-close');
 const editForm = document.getElementById('edit-form');
 const editMsg = document.getElementById('edit-message');
 let currentEditProductId = null;
+// Edit preview elements
+const editPrevImg = document.getElementById('edit-preview-image');
+const editPrevThumbs = document.getElementById('edit-preview-thumbs');
 
 function setMessage(text, ok = true) {
   if (!msg) return;
@@ -87,6 +90,7 @@ const prevTitle = document.getElementById('add-preview-title');
 const prevPrice = document.getElementById('add-preview-price');
 const prevExtra = document.getElementById('add-preview-extra');
 const prevDesc = document.getElementById('add-preview-desc');
+const prevGallery = document.getElementById('add-preview-gallery');
 
 function updateAddPreview() {
   if (!form || !prevTitle || !prevPrice || !prevExtra || !prevDesc) return;
@@ -116,6 +120,24 @@ function updateAddPreviewImage() {
   }
 }
 
+function updateAddPreviewGallery() {
+  if (!form || !prevGallery) return;
+  const input = form.querySelector('[name="gallery"]');
+  const files = input && input.files ? input.files : [];
+  prevGallery.innerHTML = '';
+  const max = Math.min(5, files.length);
+  for (let i = 0; i < max; i++) {
+    const f = files[i];
+    if (!f) continue;
+    const url = URL.createObjectURL(f);
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = 'Preview';
+    img.className = 'w-full h-16 object-contain bg-white border rounded';
+    prevGallery.appendChild(img);
+  }
+}
+
 // Wire preview listeners
 if (form) {
   ['title','price','weight','size','description'].forEach(name => {
@@ -124,6 +146,8 @@ if (form) {
   });
   const imgInput = form.querySelector('[name="image"]');
   if (imgInput) imgInput.addEventListener('change', updateAddPreviewImage);
+  const galInput = form.querySelector('[name="gallery"]');
+  if (galInput) galInput.addEventListener('change', updateAddPreviewGallery);
   // initial state
   updateAddPreview();
 }
@@ -251,6 +275,43 @@ function renderProducts() {
         editForm.description.value = data.description || '';
         const imgsField = editForm.querySelector('[name="images"]');
         if (imgsField) imgsField.value = Array.isArray(data.images) ? data.images.join('\n') : '';
+        // Fill edit preview (main + thumbs)
+        if (editPrevImg) editPrevImg.src = data.image || '';
+        if (editPrevThumbs) {
+          editPrevThumbs.innerHTML = '';
+          const urls = Array.isArray(data.images) ? data.images : [];
+          urls.slice(0,5).forEach(u => {
+            const img = document.createElement('img');
+            img.src = u; img.alt = 'Gallery';
+            img.className = 'w-full h-16 object-contain bg-white border rounded';
+            editPrevThumbs.appendChild(img);
+          });
+        }
+        // Wire preview listeners for optional gallery files
+        const names = ['g1','g2','g3','g4','g5'];
+        names.forEach(n => {
+          const inp = editForm.querySelector(`[name="${n}"]`);
+          if (inp && !inp.__wired) {
+            inp.addEventListener('change', ()=>{
+              if (!editPrevThumbs) return;
+              // Build preview from selected files across all g* inputs
+              const files = names.flatMap(nn => {
+                const el = editForm.querySelector(`[name="${nn}"]`);
+                return el && el.files ? Array.from(el.files) : [];
+              }).filter(Boolean).slice(0,5);
+              editPrevThumbs.innerHTML = '';
+              if (files.length === 0) return;
+              files.forEach(f => {
+                const url = URL.createObjectURL(f);
+                const im = document.createElement('img');
+                im.src = url; im.alt = 'Preview';
+                im.className = 'w-full h-16 object-contain bg-white border rounded';
+                editPrevThumbs.appendChild(im);
+              });
+            });
+            inp.__wired = true;
+          }
+        });
         if (editForm.stock) editForm.stock.value = Number(data.stock || 0);
         if (editForm.active) editForm.active.checked = data.active === false ? false : true;
         editMsg.textContent = '';
@@ -438,7 +499,7 @@ editForm?.addEventListener('submit', async (e)=>{
   const file = data.get('imageFile');
   const nextImageUrl = (data.get('image')||'').toString().trim();
   const rawImages = (data.get('images')||'').toString();
-  const images = rawImages.split(/[\n,]/).map(s=>s.trim()).filter(Boolean).slice(0,5);
+  let images = rawImages.split(/[\n,]/).map(s=>s.trim()).filter(Boolean).slice(0,5);
   const payload = {
     title: (data.get('title')||'').toString().trim(),
     price: Number(data.get('price')||0),
@@ -456,6 +517,18 @@ editForm?.addEventListener('submit', async (e)=>{
       const uploaded = await uploadToImgbb(file);
       payload.image = uploaded;
     }
+    // Upload up to 5 optional gallery files (g1..g5) and append to images
+    try {
+      const optNames = ['g1','g2','g3','g4','g5'];
+      for (const nm of optNames) {
+        const f = editForm.querySelector(`[name="${nm}"]`)?.files?.[0];
+        if (f && f.size > 0) {
+          const url = await uploadToImgbb(f);
+          if (url) images.push(url);
+        }
+      }
+      payload.images = images.slice(0,5);
+    } catch {}
     await updateDoc(doc(db,'products', currentEditProductId), payload);
     editMsg.textContent = 'Product updated.';
     editMsg.className = 'text-sm text-green-700';

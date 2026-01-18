@@ -73,6 +73,25 @@ export function initAuthHeader() {
     if (profileLink) profileLink.classList.toggle('hidden', useCompact);
     if (ordersLink) ordersLink.classList.toggle('hidden', useCompact);
     if (compactMenu) compactMenu.classList.toggle('hidden', !user);
+    // If logged out, hide header links except Login
+    if (!user) {
+      try {
+        const navEl = document.querySelector('header nav');
+        if (navEl) {
+          const links = [
+            'a[href="orders.html"]',
+            'a[href="profile.html"]',
+            'a[href="cart.html"]',
+            'a[href="admin.html"]',
+            '#user-menu'
+          ];
+          links.forEach(sel => {
+            const el = navEl.querySelector(sel);
+            if (el) el.classList.add('hidden');
+          });
+        }
+      } catch {}
+    }
     // Hide admin link for non-admins
     if (adminLink) {
       if (!user) {
