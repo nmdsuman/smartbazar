@@ -11,7 +11,8 @@ import {
   orderBy,
   updateDoc,
   getDoc,
-  setDoc
+  setDoc,
+  runTransaction
 } from 'firebase/firestore';
 
 requireAdmin();
@@ -314,7 +315,35 @@ function drawOrders() {
       </div>
     `;
     div.querySelector('.admin-status').addEventListener('change', async (e)=>{
-      try { await updateDoc(doc(db,'orders',id), { status: e.target.value }); } catch(err) { alert('Failed to update: '+err.message); }
+      const nextStatus = e.target.value;
+      try {
+        await runTransaction(db, async (tx) => {
+          const orderRef = doc(db, 'orders', id);
+          const ordSnap = await tx.get(orderRef);
+          if (!ordSnap.exists()) throw new Error('Order not found');
+          const ord = ordSnap.data() || {};
+          const prevStatus = ord.status || 'Pending';
+          const alreadyRestocked = !!ord.restocked;
+          // If transitioning to Cancelled and not restocked before, add items back to stock
+          if (nextStatus === 'Cancelled' && prevStatus !== 'Cancelled' && !alreadyRestocked) {
+            const items = Array.isArray(ord.items) ? ord.items : [];
+            for (const it of items) {
+              const pid = it.id;
+              const qty = Number(it.qty || 0);
+              if (!pid || !Number.isFinite(qty) || qty <= 0) continue;
+              const prodRef = doc(db, 'products', pid);
+              const prodSnap = await tx.get(prodRef);
+              if (!prodSnap.exists()) continue;
+              const cur = Number(prodSnap.data().stock || 0);
+              tx.update(prodRef, { stock: cur + qty });
+            }
+            tx.update(orderRef, { status: nextStatus, restocked: true });
+          } else {
+            // Just update status (do not decrement again if moving out of Cancelled)
+            tx.update(orderRef, { status: nextStatus });
+          }
+        });
+      } catch(err) { alert('Failed to update: '+err.message); }
     });
     div.querySelector('.view').addEventListener('click', ()=> { window.location.href = `view.html?id=${id}`; });
     frag.appendChild(div);

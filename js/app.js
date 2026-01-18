@@ -10,7 +10,8 @@ import {
   serverTimestamp,
   doc,
   getDoc,
-  setDoc
+  setDoc,
+  runTransaction
 } from 'firebase/firestore';
 
 // CART utils (localStorage)
@@ -415,22 +416,41 @@ export async function renderCartPage() {
         if (auth.currentUser) {
           await setDoc(doc(db, 'users', auth.currentUser.uid), { name, phone, address }, { merge: true });
         }
-        const docRef = await addDoc(collection(db, 'orders'), {
-          items: cart,
-          subtotal,
-          delivery,
-          total: subtotal + delivery,
-          currency: 'BDT',
-          userId: auth.currentUser ? auth.currentUser.uid : null,
-          customer: { name, phone, address },
-          status: 'Pending',
-          createdAt: serverTimestamp()
+        // Place order atomically: validate and decrement stock, then create order
+        const ordersCol = collection(db, 'orders');
+        const newOrderRef = doc(ordersCol);
+        const newOrderId = newOrderRef.id;
+        await runTransaction(db, async (tx) => {
+          // Check and decrement stock for each item
+          for (const it of cart) {
+            const prodRef = doc(db, 'products', it.id);
+            const snap = await tx.get(prodRef);
+            if (!snap.exists()) throw new Error(`Product not found: ${it.title || it.id}`);
+            const data = snap.data() || {};
+            const currentStock = Number(data.stock || 0);
+            const need = Number(it.qty || 0);
+            if (!Number.isFinite(need) || need <= 0) throw new Error('Invalid quantity');
+            if (currentStock < need) throw new Error(`Insufficient stock for ${data.title || it.title || 'item'}`);
+            tx.update(prodRef, { stock: currentStock - need });
+          }
+          // Create order document
+          tx.set(newOrderRef, {
+            items: cart,
+            subtotal,
+            delivery,
+            total: subtotal + delivery,
+            currency: 'BDT',
+            userId: auth.currentUser ? auth.currentUser.uid : null,
+            customer: { name, phone, address },
+            status: 'Pending',
+            createdAt: serverTimestamp()
+          });
         });
         localStorage.removeItem(CART_KEY);
         updateCartBadge();
         invModal.classList.add('hidden'); invModal.classList.remove('flex');
         // Redirect to orders with success flag
-        window.location.href = `orders.html?placed=${encodeURIComponent(docRef.id)}`;
+        window.location.href = `orders.html?placed=${encodeURIComponent(newOrderId)}`;
       } catch (e) {
         alert('Failed to place order: ' + e.message);
       } finally {
