@@ -122,6 +122,9 @@ export function updateCartBadge() {
   const cart = readCart();
   const totalQty = cart.reduce((sum, p) => sum + p.qty, 0);
   countEl.textContent = String(totalQty);
+  // Sync bottom nav badge if present
+  const bottom = document.getElementById('cart-count-bottom');
+  if (bottom) bottom.textContent = String(totalQty);
 }
 
 // Render products on index.html
