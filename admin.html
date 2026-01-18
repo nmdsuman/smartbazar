@@ -66,12 +66,27 @@
           <input type="file" name="imageFile" accept="image/*" class="w-full border rounded px-3 py-2"/>
         </div>
         <div>
+          <label class="block text-sm mb-1">Optional Gallery Images (up to 5)</label>
+          <div class="grid grid-cols-1 gap-2">
+            <input type="file" name="g1" accept="image/*" class="w-full border rounded px-3 py-2"/>
+            <input type="file" name="g2" accept="image/*" class="w-full border rounded px-3 py-2"/>
+            <input type="file" name="g3" accept="image/*" class="w-full border rounded px-3 py-2"/>
+            <input type="file" name="g4" accept="image/*" class="w-full border rounded px-3 py-2"/>
+            <input type="file" name="g5" accept="image/*" class="w-full border rounded px-3 py-2"/>
+          </div>
+        </div>
+        <div>
           <label class="block text-sm mb-1">Description</label>
           <textarea name="description" rows="3" class="w-full border rounded px-3 py-2"></textarea>
         </div>
         <div>
           <label class="block text-sm mb-1">Gallery Image URLs (comma or newline separated)</label>
           <textarea name="images" rows="3" class="w-full border rounded px-3 py-2" placeholder="https://...\nhttps://..."></textarea>
+        </div>
+        <div>
+          <div class="text-sm text-gray-600 mb-1">Preview</div>
+          <img id="edit-preview-image" src="" alt="Preview" class="w-full h-48 object-contain bg-white border rounded">
+          <div id="edit-preview-thumbs" class="mt-2 grid grid-cols-5 gap-2"></div>
         </div>
         <div>
           <label class="block text-sm mb-1">Stock</label>
