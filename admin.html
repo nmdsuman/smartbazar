@@ -70,6 +70,10 @@
           <textarea name="description" rows="3" class="w-full border rounded px-3 py-2"></textarea>
         </div>
         <div>
+          <label class="block text-sm mb-1">Gallery Image URLs (comma or newline separated)</label>
+          <textarea name="images" rows="3" class="w-full border rounded px-3 py-2" placeholder="https://...\nhttps://..."></textarea>
+        </div>
+        <div>
           <label class="block text-sm mb-1">Stock</label>
           <input type="number" name="stock" min="0" step="1" class="w-full border rounded px-3 py-2"/>
         </div>
@@ -134,6 +138,11 @@
         <div class="md:col-span-2">
           <label class="block text-sm mb-1">Product Image</label>
           <input type="file" name="image" accept="image/*" required class="w-full border rounded px-3 py-2"/>
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm mb-1">Gallery Images (optional, up to 5)</label>
+          <input type="file" name="gallery" accept="image/*" multiple class="w-full border rounded px-3 py-2"/>
+          <p class="text-xs text-gray-500 mt-1">You can select multiple images. The first image above is used as the main image.</p>
         </div>
         <div class="md:col-span-2">
           <label class="block text-sm mb-1">Description</label>
