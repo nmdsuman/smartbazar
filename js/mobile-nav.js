@@ -62,5 +62,21 @@
         a.querySelector('.icon')?.classList.add('transition');
       }
     });
+
+    // Hide header Cart/My Account links on small screens (use bottom nav instead)
+    try {
+      const isSmall = window.matchMedia('(max-width: 767px)').matches;
+      if (isSmall) {
+        const header = document.querySelector('header nav');
+        if (header) {
+          const cartLink = header.querySelector('a[href="cart.html"]');
+          const profileLink = header.querySelector('a[href="profile.html"]');
+          const compactMenu = header.querySelector('#user-menu');
+          if (cartLink) cartLink.classList.add('hidden');
+          if (profileLink) profileLink.classList.add('hidden');
+          if (compactMenu) compactMenu.classList.add('hidden');
+        }
+      }
+    } catch {}
   } catch {}
 })();

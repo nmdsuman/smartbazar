@@ -134,6 +134,8 @@ form?.addEventListener('submit', async (e) => {
   const title = (data.get('title') || '').toString().trim();
   const price = Number(data.get('price'));
   const imageFile = data.get('image');
+  const galleryInput = form.querySelector('[name="gallery"]');
+  const galleryFiles = galleryInput && galleryInput.files ? galleryInput.files : [];
   const description = (data.get('description') || '').toString().trim();
   const category = (data.get('category') || '').toString().trim();
   const weight = (data.get('weight') || '').toString().trim();
@@ -152,6 +154,18 @@ form?.addEventListener('submit', async (e) => {
     const prevDisabled = submitBtn?.disabled;
     if (submitBtn) submitBtn.disabled = true;
     const image = await uploadToImgbb(imageFile);
+    // Optional gallery images (up to 5)
+    const images = [];
+    try {
+      const max = Math.min(5, galleryFiles.length);
+      for (let i = 0; i < max; i++) {
+        const f = galleryFiles[i];
+        if (f && f.size > 0) {
+          const url = await uploadToImgbb(f);
+          if (url) images.push(url);
+        }
+      }
+    } catch {}
     if (!image) throw new Error('Image upload returned empty URL');
     await addDoc(collection(db, 'products'), {
       title,
@@ -161,6 +175,7 @@ form?.addEventListener('submit', async (e) => {
       description,
       weight: weight || null,
       size: size || null,
+      images,
       stock: Number.isFinite(stock) ? stock : 0,
       active: !!active,
       createdAt: serverTimestamp(),
@@ -234,6 +249,8 @@ function renderProducts() {
         editForm.size.value = data.size || '';
         editForm.image.value = data.image || '';
         editForm.description.value = data.description || '';
+        const imgsField = editForm.querySelector('[name="images"]');
+        if (imgsField) imgsField.value = Array.isArray(data.images) ? data.images.join('\n') : '';
         if (editForm.stock) editForm.stock.value = Number(data.stock || 0);
         if (editForm.active) editForm.active.checked = data.active === false ? false : true;
         editMsg.textContent = '';
@@ -420,6 +437,8 @@ editForm?.addEventListener('submit', async (e)=>{
   const data = new FormData(editForm);
   const file = data.get('imageFile');
   const nextImageUrl = (data.get('image')||'').toString().trim();
+  const rawImages = (data.get('images')||'').toString();
+  const images = rawImages.split(/[\n,]/).map(s=>s.trim()).filter(Boolean).slice(0,5);
   const payload = {
     title: (data.get('title')||'').toString().trim(),
     price: Number(data.get('price')||0),
@@ -431,6 +450,7 @@ editForm?.addEventListener('submit', async (e)=>{
     stock: Number(data.get('stock')||0),
     active: data.get('active') ? true : false
   };
+  payload.images = images; // set even if empty to allow clearing
   try {
     if (file instanceof File && file.size > 0) {
       const uploaded = await uploadToImgbb(file);

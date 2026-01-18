@@ -67,9 +67,11 @@ async function main() {
     const { id: pid, data: p } = await loadProduct(id);
     // Populate main
     const img = document.getElementById('pv-image');
+    const thumbs = document.getElementById('pv-thumbs');
     const title = document.getElementById('pv-title');
     const meta = document.getElementById('pv-meta');
     const price = document.getElementById('pv-price');
+    const stockEl = document.getElementById('pv-stock');
     const desc = document.getElementById('pv-desc');
     const addBtn = document.getElementById('pv-add');
 
@@ -81,8 +83,34 @@ async function main() {
     if (p.size) metaBits.push(p.size);
     if (meta) meta.textContent = metaBits.join(' · ');
     if (price) price.textContent = Number(p.price || 0).toFixed(2);
+    const stock = Number(p.stock || 0);
+    if (stockEl) {
+      if (stock > 0) {
+        stockEl.textContent = `In stock: ${stock}`;
+        stockEl.className = 'text-sm mb-4 text-green-700';
+      } else {
+        stockEl.textContent = 'Out of stock';
+        stockEl.className = 'text-sm mb-4 text-red-600';
+      }
+    }
     if (desc) desc.textContent = p.description || '';
-    const out = Number(p.stock || 0) <= 0;
+
+    // Build thumbnails (main image + gallery images)
+    if (thumbs) {
+      thumbs.innerHTML = '';
+      const list = [p.image].concat(Array.isArray(p.images) ? p.images : []).filter(Boolean).slice(0,6);
+      const frag = document.createDocumentFragment();
+      list.forEach((url, idx) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'border rounded overflow-hidden focus:outline-none focus:ring hover:opacity-90';
+        b.innerHTML = `<img src="${url}" alt="thumb ${idx+1}" class="w-full h-14 object-contain bg-white">`;
+        b.addEventListener('click', ()=>{ if (img) img.src = url; });
+        frag.appendChild(b);
+      });
+      thumbs.appendChild(frag);
+    }
+    const out = stock <= 0;
     if (addBtn) {
       addBtn.disabled = out;
       addBtn.textContent = out ? 'Unavailable' : 'Add to Cart';
