@@ -85,6 +85,43 @@ export function initAuthHeader() {
         const el = document.getElementById('contact-phone');
         if (el) { el.textContent = s.phone; el.setAttribute('href', `tel:${s.phone.replace(/\s+/g,'')}`); el.classList.remove('hidden'); }
       }
+
+      // Announcement Marquee (below header)
+      try {
+        // remove existing if any
+        const old = document.getElementById('site-marquee'); if (old) old.remove();
+        const enable = !!s.marqueeEnabled && typeof s.marqueeText === 'string' && s.marqueeText.trim().length > 0;
+        if (enable) {
+          // inject keyframes once
+          if (!document.getElementById('site-marquee-style')) {
+            const style = document.createElement('style');
+            style.id = 'site-marquee-style';
+            style.textContent = `@keyframes sb_marquee { 0% { transform: translateX(100%);} 100%{ transform: translateX(-100%);} }`;
+            document.head.appendChild(style);
+          }
+          const bar = document.createElement('div');
+          bar.id = 'site-marquee';
+          bar.className = 'w-full bg-blue-600 text-white text-sm';
+          const inner = document.createElement('div');
+          inner.className = 'max-w-6xl mx-auto px-4';
+          // container for scrolling
+          const track = document.createElement('div');
+          track.className = 'overflow-hidden whitespace-nowrap';
+          const text = document.createElement('div');
+          text.className = 'inline-block py-2';
+          text.style.animation = 'sb_marquee 20s linear infinite';
+          text.textContent = s.marqueeText.trim();
+          track.appendChild(text);
+          inner.appendChild(track);
+          bar.appendChild(inner);
+          const headerEl = document.querySelector('header');
+          if (headerEl && headerEl.parentNode) {
+            headerEl.parentNode.insertBefore(bar, headerEl.nextSibling);
+          } else {
+            document.body.insertBefore(bar, document.body.firstChild);
+          }
+        }
+      } catch {}
     } catch {}
   })();
 

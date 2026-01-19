@@ -717,6 +717,8 @@ async function loadSiteSettings(){
     siteForm.favicon.value = s.favicon ?? '';
     siteForm.email.value = s.email ?? '';
     siteForm.phone.value = s.phone ?? '';
+    if ('marqueeEnabled' in siteForm) siteForm.marqueeEnabled.checked = !!s.marqueeEnabled;
+    if ('marqueeText' in siteForm) siteForm.marqueeText.value = s.marqueeText ?? '';
     // update previews if existing
     const lp = document.getElementById('site-logo-preview');
     const fp = document.getElementById('site-favicon-preview');
@@ -750,6 +752,8 @@ siteForm?.addEventListener('submit', async (e)=>{
       favicon: favUrl || null,
       email: (siteForm.email.value || '').toString().trim() || null,
       phone: (siteForm.phone.value || '').toString().trim() || null,
+      marqueeEnabled: siteForm.marqueeEnabled?.checked ? true : false,
+      marqueeText: (siteForm.marqueeText?.value || '').toString().trim() || null,
       updatedAt: serverTimestamp()
     };
     await setDoc(doc(db,'settings','site'), payload, { merge: true });
