@@ -624,7 +624,7 @@ async function selectChatSession(id){
     chatMessagesAdminEl.appendChild(frag);
     chatMessagesAdminEl.scrollTop = chatMessagesAdminEl.scrollHeight;
   });
-  // stream session meta for typing indicator from user
+  // stream session meta for typing indicator from user + live draft bubble
   try {
     const typingId = 'chat-typing-admin';
     let ind = document.getElementById(typingId);
@@ -639,6 +639,33 @@ async function selectChatSession(id){
       const data = snap.data() || {};
       if (data.userTyping) ind.classList.remove('hidden');
       else ind.classList.add('hidden');
+      // Live draft bubble (faint preview of what user is typing)
+      try {
+        const prevId = 'chat-draft-preview';
+        let prev = document.getElementById(prevId);
+        if (data.userDraft && String(data.userDraft).trim().length > 0) {
+          if (!prev) {
+            prev = document.createElement('div');
+            prev.id = prevId;
+            prev.className = 'mt-1';
+            // append after current messages
+            chatMessagesAdminEl.appendChild(prev);
+          }
+          // Render as faint incoming bubble
+          prev.innerHTML = '';
+          const row = document.createElement('div');
+          row.className = 'flex justify-start';
+          const bubble = document.createElement('div');
+          bubble.className = 'inline-block rounded-2xl px-3 py-2 text-sm max-w-[80%] whitespace-pre-wrap break-words bg-white border opacity-70';
+          bubble.textContent = String(data.userDraft).slice(0,500);
+          row.appendChild(bubble);
+          prev.appendChild(row);
+          // keep scroll at bottom when draft updates
+          chatMessagesAdminEl.scrollTop = chatMessagesAdminEl.scrollHeight;
+        } else if (prev) {
+          prev.remove();
+        }
+      } catch {}
     });
   } catch {}
   // mark as read for admin

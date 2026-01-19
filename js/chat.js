@@ -154,7 +154,10 @@ import { addDoc, setDoc, getDoc, doc, collection, serverTimestamp, onSnapshot, q
       lastMessage: msg.text,
       lastFrom: 'user',
       adminUnread: true,
-      adminUnreadCount: (window.__noop_inc || 0) // placeholder; server will compute increment on security rules if set
+      adminUnreadCount: (window.__noop_inc || 0),
+      // clear live draft when message is sent
+      userTyping: false,
+      userDraft: ''
     });
   }
 
@@ -177,10 +180,12 @@ import { addDoc, setDoc, getDoc, doc, collection, serverTimestamp, onSnapshot, q
     if (chatSendBtn) chatSendBtn.disabled = !has;
     // user typing indicator with debounce
     ensureSession().then((sid)=>{
-      updateDoc(doc(db,'chat_sessions', sid), { userTyping: true }).catch(()=>{});
+      const draft = String(chatInput.value||'').slice(0,500);
+      updateDoc(doc(db,'chat_sessions', sid), { userTyping: true, userDraft: draft }).catch(()=>{});
       if (typingTimer) clearTimeout(typingTimer);
       typingTimer = setTimeout(()=>{
-        updateDoc(doc(db,'chat_sessions', sid), { userTyping: false }).catch(()=>{});
+        const latest = String(chatInput.value||'');
+        updateDoc(doc(db,'chat_sessions', sid), { userTyping: false, userDraft: latest.trim() ? latest.slice(0,500) : '' }).catch(()=>{});
       }, 1200);
     });
   });
