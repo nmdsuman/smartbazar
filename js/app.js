@@ -443,7 +443,8 @@ export async function renderCartPage() {
         const newOrderRef = doc(ordersCol);
         const newOrderId = newOrderRef.id;
         await runTransaction(db, async (tx) => {
-          // Check and decrement stock for each item
+          // 1) Read all product docs first (no writes yet)
+          const writePlan = [];
           for (const it of cart) {
             const prodRef = doc(db, 'products', it.id);
             const snap = await tx.get(prodRef);
@@ -453,9 +454,13 @@ export async function renderCartPage() {
             const need = Number(it.qty || 0);
             if (!Number.isFinite(need) || need <= 0) throw new Error('Invalid quantity');
             if (currentStock < need) throw new Error(`Insufficient stock for ${data.title || it.title || 'item'}`);
-            tx.update(prodRef, { stock: currentStock - need });
+            writePlan.push({ ref: prodRef, newStock: currentStock - need });
           }
-          // Create order document
+          // 2) Perform all writes after all reads
+          writePlan.forEach(({ ref, newStock }) => {
+            tx.update(ref, { stock: newStock });
+          });
+          // 3) Create order document
           tx.set(newOrderRef, {
             items: cart,
             subtotal,

@@ -12,7 +12,10 @@ import {
   updateDoc,
   getDoc,
   setDoc,
-  runTransaction
+  runTransaction,
+  where,
+  getDocs,
+  limit
 } from 'firebase/firestore';
 
 requireAdmin();
@@ -30,6 +33,13 @@ const shippingMsg = document.getElementById('shipping-message');
 // Site settings elements
 const siteForm = document.getElementById('site-form');
 const siteMsg = document.getElementById('site-message');
+// Chat admin elements
+const chatSessionsEl = document.getElementById('chat-sessions');
+const chatCountEl = document.getElementById('chat-count');
+const chatMessagesAdminEl = document.getElementById('chat-messages-admin');
+const chatMetaEl = document.getElementById('chat-meta');
+const chatReplyInput = document.getElementById('chat-reply');
+const chatSendBtn = document.getElementById('chat-send');
 // Order modal elements
 const modal = document.getElementById('order-modal');
 const modalClose = document.getElementById('order-close');
@@ -404,7 +414,8 @@ const sectionMap = {
   products: document.getElementById('products'),
   'orders-section': document.getElementById('orders-section'),
   shipping: document.getElementById('shipping'),
-  site: document.getElementById('site')
+  site: document.getElementById('site'),
+  chat: document.getElementById('chat')
 };
 
 function showSection(id) {
@@ -491,6 +502,107 @@ function drawOrders() {
   });
   ordersListEl.appendChild(frag);
   updateOrdersBadge();
+}
+
+// ========== Live Chat (Admin) ==========
+let chatSessions = [];
+let selectedChatId = null;
+let unsubChatMessages = null;
+
+function renderChatSessions(){
+  if (!chatSessionsEl) return;
+  chatSessionsEl.innerHTML = '';
+  if (chatCountEl) chatCountEl.textContent = chatSessions.length > 0 ? `${chatSessions.length}` : '';
+  const frag = document.createDocumentFragment();
+  chatSessions.forEach(s => {
+    const div = document.createElement('div');
+    const isUser = !!s.data.userId;
+    const title = isUser ? (s.data.userEmail || s.data.userId) : `Guest ${s.id.slice(-6)}`;
+    const last = s.data.lastMessage || '';
+    const when = s.data.updatedAt?.toDate ? s.data.updatedAt.toDate().toLocaleString() : '';
+    div.className = `px-3 py-2 cursor-pointer ${selectedChatId===s.id?'bg-blue-50':''}`;
+    div.innerHTML = `
+      <div class="flex items-center justify-between">
+        <div class="font-medium">${title}</div>
+        <span class="text-xs ${isUser?'text-green-700':'text-gray-500'}">${isUser?'User':'Guest'}</span>
+      </div>
+      <div class="text-xs text-gray-600 line-clamp-1">${last}</div>
+      <div class="text-[11px] text-gray-400">${when}</div>
+    `;
+    div.addEventListener('click', ()=> selectChatSession(s.id));
+    frag.appendChild(div);
+  });
+  chatSessionsEl.appendChild(frag);
+}
+
+async function selectChatSession(id){
+  selectedChatId = id;
+  chatMessagesAdminEl.innerHTML = '';
+  if (unsubChatMessages) { unsubChatMessages(); unsubChatMessages = null; }
+  const cur = chatSessions.find(x=>x.id===id);
+  if (chatMetaEl) {
+    let meta = 'Select a session';
+    if (cur) {
+      const isUser = !!cur.data.userId;
+      meta = isUser ? `User: ${cur.data.userEmail || cur.data.userId}` : `Guest: ${id.slice(-6)}`;
+      // append profile + latest order if user
+      if (isUser) {
+        try {
+          const uSnap = await getDoc(doc(db,'users', cur.data.userId));
+          const role = uSnap.exists() ? (uSnap.data()?.role || 'user') : 'user';
+          const oq = query(collection(db,'orders'), where('userId','==', cur.data.userId), orderBy('createdAt','desc'), limit(1));
+          const oSnap = await getDocs(oq);
+          const lastOrder = oSnap.docs[0];
+          const ordInfo = lastOrder ? ` · Last order #${lastOrder.id.slice(-6)} (${(lastOrder.data().status)||'Pending'})` : '';
+          meta = `User: ${cur.data.userEmail || cur.data.userId} · Role: ${role}${ordInfo}`;
+        } catch {}
+      }
+    }
+    chatMetaEl.textContent = meta;
+  }
+  // stream messages
+  unsubChatMessages = onSnapshot(query(collection(db,'chat_sessions', id, 'messages'), orderBy('createdAt','asc')), (snap)=>{
+    chatMessagesAdminEl.innerHTML = '';
+    const frag = document.createDocumentFragment();
+    snap.forEach(d=>{
+      const m = d.data();
+      const mine = m.from === 'admin';
+      const el = document.createElement('div');
+      el.className = `max-w-[85%] ${mine?'ml-auto bg-gray-800 text-white':'mr-auto bg-white border'} rounded px-3 py-2 text-sm`;
+      el.textContent = m.text || '';
+      frag.appendChild(el);
+    });
+    chatMessagesAdminEl.appendChild(frag);
+    chatMessagesAdminEl.scrollTop = chatMessagesAdminEl.scrollHeight;
+  });
+}
+
+chatSendBtn?.addEventListener('click', async ()=>{
+  const text = (chatReplyInput?.value||'').toString().trim();
+  if (!selectedChatId || !text) return;
+  try {
+    await addDoc(collection(db,'chat_sessions', selectedChatId, 'messages'), {
+      text,
+      from: 'admin',
+      adminId: auth.currentUser ? auth.currentUser.uid : null,
+      createdAt: serverTimestamp()
+    });
+    await updateDoc(doc(db,'chat_sessions', selectedChatId), {
+      updatedAt: serverTimestamp(),
+      lastMessage: text,
+      lastFrom: 'admin'
+    });
+    if (chatReplyInput) chatReplyInput.value = '';
+  } catch (e) { alert('Send failed: ' + e.message); }
+});
+
+// Load chat sessions live
+if (chatSessionsEl) {
+  const cq = query(collection(db,'chat_sessions'), orderBy('updatedAt','desc'));
+  onSnapshot(cq, (snap)=>{
+    chatSessions = snap.docs.map(d=>({ id: d.id, data: d.data() }));
+    renderChatSessions();
+  }, (err)=> console.error('Chat load failed', err));
 }
 
 function renderOrders() {
