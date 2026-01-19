@@ -25,7 +25,10 @@ import { addDoc, setDoc, getDoc, doc, collection, serverTimestamp, onSnapshot, q
       <div class="flex items-center gap-2">
         <input id="chat-input" type="text" placeholder="Type your message" class="flex-1 border rounded px-3 py-2" />
         <button id="chat-send" aria-label="Send message" class="shrink-0 px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M2.25 12l18-9-4.5 9 4.5 9-18-9zm6.75 0h6"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+            <path d="M3 12h14.25"/>
+            <path d="M12 5.25 19.5 12 12 18.75"/>
+          </svg>
         </button>
       </div>
       <div class="mt-2 text-xs text-gray-500">You can chat as guest if not logged in.</div>
@@ -39,6 +42,12 @@ import { addDoc, setDoc, getDoc, doc, collection, serverTimestamp, onSnapshot, q
   const chatInput = panel.querySelector('#chat-input');
   const chatSendBtn = panel.querySelector('#chat-send');
   const chatBadge = btn.querySelector('#chat-fab-badge');
+  // typing indicator element
+  const typingEl = document.createElement('div');
+  typingEl.id = 'chat-typing';
+  typingEl.className = 'px-3 py-1 text-xs text-gray-500 hidden';
+  typingEl.textContent = 'Admin is typing…';
+  panel.insertBefore(typingEl, panel.querySelector('.p-2.border-t'));
 
   let sessionId = localStorage.getItem('chat_session_id') || null;
   let userCache = { uid: null, email: null };
@@ -70,6 +79,8 @@ import { addDoc, setDoc, getDoc, doc, collection, serverTimestamp, onSnapshot, q
   let initialLoaded = false;
   let unreadCount = 0;
   function setUnread(n){ unreadCount = Math.max(0, n|0); if (chatBadge){ if (unreadCount>0){ chatBadge.textContent=String(unreadCount); chatBadge.classList.remove('hidden'); } else { chatBadge.classList.add('hidden'); } } }
+  let unsubSession = null;
+  let typingTimer = null;
   async function openChat(){
     panel.classList.remove('hidden');
     panel.classList.add('block');
@@ -77,6 +88,13 @@ import { addDoc, setDoc, getDoc, doc, collection, serverTimestamp, onSnapshot, q
     // mark as read for user when opening
     try { await updateDoc(doc(db,'chat_sessions', sid), { userUnread: false, userUnreadCount: 0 }); } catch {}
     setUnread(0);
+    // stream session meta for typing indicator
+    if (unsubSession) { unsubSession(); unsubSession = null; }
+    unsubSession = onSnapshot(doc(db,'chat_sessions', sid), (snap)=>{
+      const data = snap.data() || {};
+      if (data.adminTyping) typingEl.classList.remove('hidden');
+      else typingEl.classList.add('hidden');
+    });
     // stream messages
     if (unsubMsgs) { unsubMsgs(); unsubMsgs = null; }
     const q = query(collection(db,'chat_sessions', sid, 'messages'), orderBy('createdAt','asc'));
@@ -88,10 +106,13 @@ import { addDoc, setDoc, getDoc, doc, collection, serverTimestamp, onSnapshot, q
       snap.forEach(d=>{
         const m = d.data();
         const mine = m.from === 'user' || m.from === userCache.uid; // user side
-        const div = document.createElement('div');
-        div.className = `max-w-[85%] ${mine?'ml-auto bg-blue-600 text-white':'mr-auto bg-white border'} rounded px-3 py-2 text-sm`;
-        div.textContent = m.text || '';
-        chatMessages.appendChild(div);
+        const row = document.createElement('div');
+        row.className = `flex ${mine ? 'justify-end' : 'justify-start'}`;
+        const bubble = document.createElement('div');
+        bubble.className = `${mine ? 'bg-blue-600 text-white' : 'bg-white border'} inline-block rounded-2xl px-3 py-2 text-sm max-w-[80%] whitespace-pre-wrap break-words`;
+        bubble.textContent = m.text || '';
+        row.appendChild(bubble);
+        chatMessages.appendChild(row);
       });
       // Notify on new admin messages if panel hidden
       if (initialLoaded) {
@@ -155,6 +176,14 @@ import { addDoc, setDoc, getDoc, doc, collection, serverTimestamp, onSnapshot, q
   chatInput.addEventListener('input', ()=>{
     const has = !!String(chatInput.value||'').trim();
     if (chatSendBtn) chatSendBtn.disabled = !has;
+    // user typing indicator with debounce
+    ensureSession().then((sid)=>{
+      updateDoc(doc(db,'chat_sessions', sid), { userTyping: true }).catch(()=>{});
+      if (typingTimer) clearTimeout(typingTimer);
+      typingTimer = setTimeout(()=>{
+        updateDoc(doc(db,'chat_sessions', sid), { userTyping: false }).catch(()=>{});
+      }, 1200);
+    });
   });
   // initialize disabled state
   if (chatSendBtn) chatSendBtn.disabled = true;

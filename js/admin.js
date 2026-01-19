@@ -511,6 +511,8 @@ function drawOrders() {
 let chatSessions = [];
 let selectedChatId = null;
 let unsubChatMessages = null;
+let unsubChatSessionMeta = null;
+let adminTypingTimer = null;
 
 function renderChatSessions(){
   if (!chatSessionsEl) return;
@@ -551,6 +553,7 @@ async function selectChatSession(id){
   selectedChatId = id;
   chatMessagesAdminEl.innerHTML = '';
   if (unsubChatMessages) { unsubChatMessages(); unsubChatMessages = null; }
+  if (unsubChatSessionMeta) { unsubChatSessionMeta(); unsubChatSessionMeta = null; }
   const cur = chatSessions.find(x=>x.id===id);
   if (chatMetaEl) {
     let meta = 'Select a session';
@@ -610,14 +613,34 @@ async function selectChatSession(id){
     snap.forEach(d=>{
       const m = d.data();
       const mine = m.from === 'admin';
-      const el = document.createElement('div');
-      el.className = `max-w-[85%] ${mine?'ml-auto bg-gray-800 text-white':'mr-auto bg-white border'} rounded px-3 py-2 text-sm`;
-      el.textContent = m.text || '';
-      frag.appendChild(el);
+      const row = document.createElement('div');
+      row.className = `flex ${mine ? 'justify-end' : 'justify-start'}`;
+      const bubble = document.createElement('div');
+      bubble.className = `${mine ? 'bg-gray-800 text-white' : 'bg-white border'} inline-block rounded-2xl px-3 py-2 text-sm max-w-[80%] whitespace-pre-wrap break-words`;
+      bubble.textContent = m.text || '';
+      row.appendChild(bubble);
+      frag.appendChild(row);
     });
     chatMessagesAdminEl.appendChild(frag);
     chatMessagesAdminEl.scrollTop = chatMessagesAdminEl.scrollHeight;
   });
+  // stream session meta for typing indicator from user
+  try {
+    const typingId = 'chat-typing-admin';
+    let ind = document.getElementById(typingId);
+    if (!ind) {
+      ind = document.createElement('div');
+      ind.id = typingId;
+      ind.className = 'px-3 py-1 text-xs text-gray-500 hidden';
+      ind.textContent = 'User is typing…';
+      chatMessagesAdminEl?.parentElement?.insertBefore(ind, chatMessagesAdminEl.nextSibling);
+    }
+    unsubChatSessionMeta = onSnapshot(doc(db,'chat_sessions', id), (snap)=>{
+      const data = snap.data() || {};
+      if (data.userTyping) ind.classList.remove('hidden');
+      else ind.classList.add('hidden');
+    });
+  } catch {}
   // mark as read for admin
   try {
     await updateDoc(doc(db,'chat_sessions', id), { adminUnread: false, adminUnreadCount: 0 });
@@ -663,6 +686,17 @@ function updateAdminSendState(){
 }
 chatReplyInput?.addEventListener('input', updateAdminSendState);
 updateAdminSendState();
+
+// Admin typing indicator (debounced)
+chatReplyInput?.addEventListener('input', ()=>{
+  const curId = selectedChatId;
+  if (!curId) return;
+  try { updateDoc(doc(db,'chat_sessions', curId), { adminTyping: true }); } catch {}
+  if (adminTypingTimer) clearTimeout(adminTypingTimer);
+  adminTypingTimer = setTimeout(()=>{
+    try { updateDoc(doc(db,'chat_sessions', curId), { adminTyping: false }); } catch {}
+  }, 1200);
+});
 
 // Load chat sessions live
 if (chatSessionsEl) {
