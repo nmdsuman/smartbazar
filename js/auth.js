@@ -42,7 +42,7 @@ export function initAuthHeader() {
       const brand = header ? header.querySelector('a[href="index.html"]') : null;
       if (brand) {
         if (s.logo) {
-          brand.innerHTML = `<img src="${s.logo}" alt="${s.title||'Site'}" class="h-8 object-contain">`;
+          brand.innerHTML = `<img src="${s.logo}" alt="${s.title||'Site'}" class="h-12 md:h-14 object-contain">`;
         } else if (s.title) {
           brand.textContent = s.title;
         }
