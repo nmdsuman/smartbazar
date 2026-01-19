@@ -64,7 +64,9 @@ export function addToCart(item) {
   const cart = readCart();
   const existing = cart.find(p => p.id === item.id);
   if (existing) {
-    existing.qty += 1;
+    // Do not increase count on repeated Add-to-Cart; keep one entry
+    // Quantity should be adjusted from the Cart page only
+    existing.qty = Math.max(1, existing.qty | 0);
   } else {
     cart.push({ ...item, qty: 1 });
   }
@@ -370,12 +372,24 @@ export async function renderCartPage() {
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <input type="number" min="1" value="${item.qty}" class="w-16 border rounded px-2 py-1 qty-input">
+          <div class="flex items-center gap-1">
+            <button class="qty-dec w-7 h-7 flex items-center justify-center rounded bg-gray-100 hover:bg-gray-200 text-sm">−</button>
+            <span class="min-w-[2rem] text-center text-sm">${item.qty}</span>
+            <button class="qty-inc w-7 h-7 flex items-center justify-center rounded bg-gray-100 hover:bg-gray-200 text-sm">+</button>
+          </div>
           <button class="remove px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700">Remove</button>
         </div>
       `;
-      row.querySelector('.qty-input').addEventListener('change', (e) => {
-        setQty(item.id, Number(e.target.value));
+      const decBtn = row.querySelector('.qty-dec');
+      const incBtn = row.querySelector('.qty-inc');
+      decBtn.addEventListener('click', () => {
+        const next = Math.max(1, (item.qty | 0) - 1);
+        setQty(item.id, next);
+        refresh();
+      });
+      incBtn.addEventListener('click', () => {
+        const next = (item.qty | 0) + 1;
+        setQty(item.id, next);
         refresh();
       });
       row.querySelector('.remove').addEventListener('click', () => {
