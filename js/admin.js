@@ -27,6 +27,9 @@ const ordersFilter = document.getElementById('orders-filter');
 const ordersBadge = document.getElementById('orders-badge');
 const shippingForm = document.getElementById('shipping-form');
 const shippingMsg = document.getElementById('shipping-message');
+// Site settings elements
+const siteForm = document.getElementById('site-form');
+const siteMsg = document.getElementById('site-message');
 // Order modal elements
 const modal = document.getElementById('order-modal');
 const modalClose = document.getElementById('order-close');
@@ -91,6 +94,11 @@ const prevPrice = document.getElementById('add-preview-price');
 const prevExtra = document.getElementById('add-preview-extra');
 const prevDesc = document.getElementById('add-preview-desc');
 const prevGallery = document.getElementById('add-preview-gallery');
+const addSectionTitle = document.getElementById('add-section-title');
+const addSubmitBtn = document.getElementById('add-submit-btn');
+const addCancelEditBtn = document.getElementById('add-cancel-edit');
+
+let editUsingAdd = { active: false, productId: null, original: null };
 
 function updateAddPreview() {
   if (!form || !prevTitle || !prevPrice || !prevExtra || !prevDesc) return;
@@ -115,8 +123,13 @@ function updateAddPreviewImage() {
     prevImg.src = url;
     prevImg.classList.remove('hidden');
   } else {
-    prevImg.src = '';
-    prevImg.classList.add('hidden');
+    if (editUsingAdd.active && editUsingAdd.original?.image) {
+      prevImg.src = editUsingAdd.original.image;
+      prevImg.classList.remove('hidden');
+    } else {
+      prevImg.src = '';
+      prevImg.classList.add('hidden');
+    }
   }
 }
 
@@ -126,15 +139,26 @@ function updateAddPreviewGallery() {
   const files = input && input.files ? input.files : [];
   prevGallery.innerHTML = '';
   const max = Math.min(5, files.length);
-  for (let i = 0; i < max; i++) {
-    const f = files[i];
-    if (!f) continue;
-    const url = URL.createObjectURL(f);
-    const img = document.createElement('img');
-    img.src = url;
-    img.alt = 'Preview';
-    img.className = 'w-full h-16 object-contain bg-white border rounded';
-    prevGallery.appendChild(img);
+  if (max > 0) {
+    for (let i = 0; i < max; i++) {
+      const f = files[i];
+      if (!f) continue;
+      const url = URL.createObjectURL(f);
+      const img = document.createElement('img');
+      img.src = url;
+      img.alt = 'Preview';
+      img.className = 'w-full h-16 object-contain bg-white border rounded';
+      prevGallery.appendChild(img);
+    }
+  } else if (editUsingAdd.active) {
+    const urls = Array.isArray(editUsingAdd.original?.images) ? editUsingAdd.original.images.slice(0,5) : [];
+    urls.forEach(u => {
+      const img = document.createElement('img');
+      img.src = u;
+      img.alt = 'Gallery';
+      img.className = 'w-full h-16 object-contain bg-white border rounded';
+      prevGallery.appendChild(img);
+    });
   }
 }
 
@@ -152,6 +176,20 @@ if (form) {
   updateAddPreview();
 }
 
+// Cancel edit using Add form
+addCancelEditBtn?.addEventListener('click', () => {
+  editUsingAdd = { active: false, productId: null, original: null };
+  if (addSectionTitle) addSectionTitle.textContent = 'Add Product';
+  if (addSubmitBtn) addSubmitBtn.textContent = 'Add Product';
+  addCancelEditBtn.classList.add('hidden');
+  if (form) {
+    form.reset();
+  }
+  updateAddPreview();
+  updateAddPreviewImage();
+  updateAddPreviewGallery();
+});
+
 form?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const data = new FormData(form);
@@ -167,50 +205,99 @@ form?.addEventListener('submit', async (e) => {
   const stock = Number(data.get('stock') || 0);
   const active = data.get('active') ? true : false;
 
-  if (!title || !(imageFile instanceof File) || Number.isNaN(price)) {
+  if (!title || Number.isNaN(price)) {
     setMessage('Please fill all required fields correctly.', false);
     return;
   }
 
   try {
-    setMessage('Uploading image...', true);
     const submitBtn = form.querySelector('button[type="submit"]');
     const prevDisabled = submitBtn?.disabled;
     if (submitBtn) submitBtn.disabled = true;
-    const image = await uploadToImgbb(imageFile);
-    // Optional gallery images (up to 5)
-    const images = [];
-    try {
-      const max = Math.min(5, galleryFiles.length);
-      for (let i = 0; i < max; i++) {
-        const f = galleryFiles[i];
-        if (f && f.size > 0) {
-          const url = await uploadToImgbb(f);
-          if (url) images.push(url);
-        }
+    if (!editUsingAdd.active) {
+      // Create new
+      if (!(imageFile instanceof File) || imageFile.size === 0) {
+        throw new Error('Please select a product image.');
       }
-    } catch {}
-    if (!image) throw new Error('Image upload returned empty URL');
-    await addDoc(collection(db, 'products'), {
-      title,
-      price,
-      image,
-      category: category || null,
-      description,
-      weight: weight || null,
-      size: size || null,
-      images,
-      stock: Number.isFinite(stock) ? stock : 0,
-      active: !!active,
-      createdAt: serverTimestamp(),
-      createdBy: auth.currentUser ? auth.currentUser.uid : null
-    });
-    form.reset();
-    // reset preview
-    updateAddPreview();
-    updateAddPreviewImage();
-    setMessage('Product added successfully.');
-    if (submitBtn) submitBtn.disabled = prevDisabled ?? false;
+      setMessage('Uploading image...', true);
+      const image = await uploadToImgbb(imageFile);
+      const images = [];
+      try {
+        const max = Math.min(5, galleryFiles.length);
+        for (let i = 0; i < max; i++) {
+          const f = galleryFiles[i];
+          if (f && f.size > 0) {
+            const url = await uploadToImgbb(f);
+            if (url) images.push(url);
+          }
+        }
+      } catch {}
+      if (!image) throw new Error('Image upload returned empty URL');
+      await addDoc(collection(db, 'products'), {
+        title,
+        price,
+        image,
+        category: category || null,
+        description,
+        weight: weight || null,
+        size: size || null,
+        images,
+        stock: Number.isFinite(stock) ? stock : 0,
+        active: !!active,
+        createdAt: serverTimestamp(),
+        createdBy: auth.currentUser ? auth.currentUser.uid : null
+      });
+      form.reset();
+      updateAddPreview();
+      updateAddPreviewImage();
+      updateAddPreviewGallery();
+      setMessage('Product added successfully.');
+      if (submitBtn) submitBtn.disabled = prevDisabled ?? false;
+    } else {
+      // Update existing
+      const payload = {
+        title,
+        price,
+        category: category || null,
+        description,
+        weight: weight || null,
+        size: size || null,
+        stock: Number.isFinite(stock) ? stock : 0,
+        active: !!active
+      };
+      if (imageFile instanceof File && imageFile.size > 0) {
+        setMessage('Uploading image...', true);
+        const uploaded = await uploadToImgbb(imageFile);
+        if (uploaded) payload.image = uploaded;
+      }
+      // Gallery: if new files selected, replace existing images with up to 5 uploads; else keep original
+      try {
+        const max = Math.min(5, galleryFiles.length);
+        if (max > 0) {
+          const imagesNew = [];
+          for (let i = 0; i < max; i++) {
+            const f = galleryFiles[i];
+            if (f && f.size > 0) {
+              const url = await uploadToImgbb(f);
+              if (url) imagesNew.push(url);
+            }
+          }
+          payload.images = imagesNew;
+        }
+      } catch {}
+      await updateDoc(doc(db,'products', editUsingAdd.productId), payload);
+      setMessage('Product updated.');
+      // Exit edit mode
+      editUsingAdd = { active: false, productId: null, original: null };
+      if (addSectionTitle) addSectionTitle.textContent = 'Add Product';
+      if (addSubmitBtn) addSubmitBtn.textContent = 'Add Product';
+      if (addCancelEditBtn) addCancelEditBtn.classList.add('hidden');
+      form.reset();
+      updateAddPreview();
+      updateAddPreviewImage();
+      updateAddPreviewGallery();
+      if (submitBtn) submitBtn.disabled = prevDisabled ?? false;
+    }
   } catch (err) {
     setMessage('Failed to add product: ' + err.message, false);
   } finally {
@@ -265,59 +352,34 @@ function renderProducts() {
         }
       });
       card.querySelector('.edit').addEventListener('click', () => {
-        currentEditProductId = d.id;
-        editForm.title.value = data.title || '';
-        editForm.price.value = data.price || 0;
-        if (editForm.category) editForm.category.value = data.category || '';
-        editForm.weight.value = data.weight || '';
-        editForm.size.value = data.size || '';
-        editForm.image.value = data.image || '';
-        editForm.description.value = data.description || '';
-        const imgsField = editForm.querySelector('[name="images"]');
-        if (imgsField) imgsField.value = Array.isArray(data.images) ? data.images.join('\n') : '';
-        // Fill edit preview (main + thumbs)
-        if (editPrevImg) editPrevImg.src = data.image || '';
-        if (editPrevThumbs) {
-          editPrevThumbs.innerHTML = '';
-          const urls = Array.isArray(data.images) ? data.images : [];
-          urls.slice(0,5).forEach(u => {
-            const img = document.createElement('img');
-            img.src = u; img.alt = 'Gallery';
-            img.className = 'w-full h-16 object-contain bg-white border rounded';
-            editPrevThumbs.appendChild(img);
-          });
+        // Use Add Product form for editing
+        editUsingAdd = { active: true, productId: d.id, original: { ...data } };
+        if (addSectionTitle) addSectionTitle.textContent = 'Edit Product';
+        if (addSubmitBtn) addSubmitBtn.textContent = 'Save Changes';
+        if (addCancelEditBtn) addCancelEditBtn.classList.remove('hidden');
+        // Fill form fields
+        if (form) {
+          if (form.title) form.title.value = data.title || '';
+          if (form.price) form.price.value = data.price || 0;
+          const cat = form.querySelector('[name="category"]'); if (cat) cat.value = data.category || '';
+          if (form.weight) form.weight.value = data.weight || '';
+          if (form.size) form.size.value = data.size || '';
+          if (form.description) form.description.value = data.description || '';
+          if (form.stock) form.stock.value = Number(data.stock || 0);
+          if (form.active) form.active.checked = data.active === false ? false : true;
+          // Reset file inputs
+          if (form.image) form.image.value = '';
+          const gal = form.querySelector('[name="gallery"]'); if (gal) gal.value = '';
         }
-        // Wire preview listeners for optional gallery files
-        const names = ['g1','g2','g3','g4','g5'];
-        names.forEach(n => {
-          const inp = editForm.querySelector(`[name="${n}"]`);
-          if (inp && !inp.__wired) {
-            inp.addEventListener('change', ()=>{
-              if (!editPrevThumbs) return;
-              // Build preview from selected files across all g* inputs
-              const files = names.flatMap(nn => {
-                const el = editForm.querySelector(`[name="${nn}"]`);
-                return el && el.files ? Array.from(el.files) : [];
-              }).filter(Boolean).slice(0,5);
-              editPrevThumbs.innerHTML = '';
-              if (files.length === 0) return;
-              files.forEach(f => {
-                const url = URL.createObjectURL(f);
-                const im = document.createElement('img');
-                im.src = url; im.alt = 'Preview';
-                im.className = 'w-full h-16 object-contain bg-white border rounded';
-                editPrevThumbs.appendChild(im);
-              });
-            });
-            inp.__wired = true;
-          }
-        });
-        if (editForm.stock) editForm.stock.value = Number(data.stock || 0);
-        if (editForm.active) editForm.active.checked = data.active === false ? false : true;
-        editMsg.textContent = '';
-        editMsg.className = 'text-sm';
-        editModal.classList.remove('hidden');
-        editModal.classList.add('flex');
+        // Update preview with existing images
+        updateAddPreview();
+        updateAddPreviewImage();
+        updateAddPreviewGallery();
+        // Scroll to Add section
+        const addSection = document.getElementById('add');
+        if (addSection) addSection.scrollIntoView({ behavior: 'smooth' });
+        // Switch visible section to Add
+        showSection('add');
       });
       card.querySelector('.toggle-active').addEventListener('click', async () => {
         try {
@@ -341,7 +403,8 @@ const sectionMap = {
   add: document.getElementById('add'),
   products: document.getElementById('products'),
   'orders-section': document.getElementById('orders-section'),
-  shipping: document.getElementById('shipping')
+  shipping: document.getElementById('shipping'),
+  site: document.getElementById('site')
 };
 
 function showSection(id) {
@@ -482,6 +545,42 @@ shippingForm?.addEventListener('submit', async (e) => {
 });
 
 loadShipping();
+// Site settings load/save
+async function loadSiteSettings(){
+  if (!siteForm) return;
+  try {
+    const ref = doc(db, 'settings', 'site');
+    const snap = await getDoc(ref);
+    const s = snap.exists() ? snap.data() : {};
+    siteForm.title.value = s.title ?? '';
+    siteForm.logo.value = s.logo ?? '';
+    siteForm.favicon.value = s.favicon ?? '';
+    siteForm.email.value = s.email ?? '';
+    siteForm.phone.value = s.phone ?? '';
+  } catch (e) {
+    if (siteMsg) { siteMsg.textContent = 'Failed to load site settings: ' + e.message; siteMsg.className = 'text-sm mt-3 text-red-700'; }
+  }
+}
+
+siteForm?.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  try {
+    const payload = {
+      title: (siteForm.title.value || '').toString().trim() || null,
+      logo: (siteForm.logo.value || '').toString().trim() || null,
+      favicon: (siteForm.favicon.value || '').toString().trim() || null,
+      email: (siteForm.email.value || '').toString().trim() || null,
+      phone: (siteForm.phone.value || '').toString().trim() || null,
+      updatedAt: serverTimestamp()
+    };
+    await setDoc(doc(db,'settings','site'), payload, { merge: true });
+    if (siteMsg) { siteMsg.textContent = 'Site settings saved.'; siteMsg.className = 'text-sm mt-3 text-green-700'; }
+  } catch (e) {
+    if (siteMsg) { siteMsg.textContent = 'Save failed: ' + e.message; siteMsg.className = 'text-sm mt-3 text-red-700'; }
+  }
+});
+
+loadSiteSettings();
 
 // Orders filter change
 ordersFilter?.addEventListener('change', drawOrders);

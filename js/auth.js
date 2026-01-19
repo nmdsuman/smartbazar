@@ -30,6 +30,46 @@ export function initAuthHeader() {
   const adminLink = document.querySelector('a[href="admin.html"]');
   const nav = document.querySelector('header nav');
 
+  // Apply Site Settings (title, logo, favicon) across pages
+  (async function applySiteSettings(){
+    try {
+      const ref = doc(db, 'settings', 'site');
+      const snap = await getDoc(ref);
+      if (!snap.exists()) return;
+      const s = snap.data() || {};
+      // Brand text or logo in header (replace the first brand anchor inside header)
+      const header = document.querySelector('header');
+      const brand = header ? header.querySelector('a[href="index.html"]') : null;
+      if (brand) {
+        if (s.logo) {
+          brand.innerHTML = `<img src="${s.logo}" alt="${s.title||'Site'}" class="h-8 object-contain">`;
+        } else if (s.title) {
+          brand.textContent = s.title;
+        }
+      }
+      // Document title: preserve page suffix after '—' if present
+      if (s.title) {
+        const orig = document.title || '';
+        const parts = orig.split('—');
+        if (parts.length > 1) {
+          document.title = `${s.title} — ${parts.slice(1).join('—').trim()}`;
+        } else {
+          document.title = s.title;
+        }
+      }
+      // Favicon
+      if (s.favicon) {
+        let link = document.querySelector('link[rel="icon"]');
+        if (!link) {
+          link = document.createElement('link');
+          link.rel = 'icon';
+          document.head.appendChild(link);
+        }
+        link.href = s.favicon;
+      }
+    } catch {}
+  })();
+
   // Ensure a compact user menu exists (My Account icon with dropdown)
   let menuHost = document.getElementById('user-menu');
   if (!menuHost && nav) {
