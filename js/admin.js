@@ -565,10 +565,24 @@ async function loadSiteSettings(){
 siteForm?.addEventListener('submit', async (e)=>{
   e.preventDefault();
   try {
+    if (siteMsg) { siteMsg.textContent = 'Saving...'; siteMsg.className = 'text-sm mt-3 text-gray-700'; }
+    // Upload files if provided
+    let logoUrl = (siteForm.logo.value || '').toString().trim();
+    let favUrl = (siteForm.favicon.value || '').toString().trim();
+    const logoFile = siteForm.querySelector('[name="logoFile"]').files?.[0];
+    const faviconFile = siteForm.querySelector('[name="faviconFile"]').files?.[0];
+    if (logoFile && logoFile.size > 0) {
+      const up = await uploadToImgbb(logoFile);
+      if (up) logoUrl = up;
+    }
+    if (faviconFile && faviconFile.size > 0) {
+      const up = await uploadToImgbb(faviconFile);
+      if (up) favUrl = up;
+    }
     const payload = {
       title: (siteForm.title.value || '').toString().trim() || null,
-      logo: (siteForm.logo.value || '').toString().trim() || null,
-      favicon: (siteForm.favicon.value || '').toString().trim() || null,
+      logo: logoUrl || null,
+      favicon: favUrl || null,
       email: (siteForm.email.value || '').toString().trim() || null,
       phone: (siteForm.phone.value || '').toString().trim() || null,
       updatedAt: serverTimestamp()

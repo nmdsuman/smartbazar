@@ -67,6 +67,15 @@ export function initAuthHeader() {
         }
         link.href = s.favicon;
       }
+      // Contact details in footer (if present on this page)
+      if (s.email) {
+        const el = document.getElementById('contact-email');
+        if (el) { el.textContent = s.email; el.setAttribute('href', `mailto:${s.email}`); }
+      }
+      if (s.phone) {
+        const el = document.getElementById('contact-phone');
+        if (el) { el.textContent = s.phone; el.setAttribute('href', `tel:${s.phone.replace(/\s+/g,'')}`); }
+      }
     } catch {}
   })();
 
