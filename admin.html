@@ -123,6 +123,9 @@
       <a href="#site" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
         <span>Site Settings</span>
       </a>
+      <a href="#chat" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
+        <span>Live Chat</span>
+      </a>
     </nav>
   </aside>
 
@@ -291,6 +294,27 @@
         </div>
       </form>
       <div id="site-message" class="text-sm mt-3"></div>
+    </section>
+
+    <section id="chat" class="bg-white border rounded-lg p-6 mt-8 hidden">
+      <h2 class="text-lg font-semibold mb-4">Live Chat</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="md:col-span-1 border rounded">
+          <div class="px-3 py-2 border-b flex items-center justify-between">
+            <div class="font-medium">Sessions</div>
+            <span id="chat-count" class="text-xs text-gray-500"></span>
+          </div>
+          <div id="chat-sessions" class="max-h-[60vh] overflow-y-auto divide-y"></div>
+        </div>
+        <div class="md:col-span-2 border rounded flex flex-col">
+          <div class="px-3 py-2 border-b text-sm text-gray-700" id="chat-meta">Select a session</div>
+          <div id="chat-messages-admin" class="flex-1 p-3 overflow-y-auto bg-gray-50 space-y-2"></div>
+          <div class="p-3 border-t flex items-center gap-2">
+            <input id="chat-reply" type="text" placeholder="Type a reply" class="flex-1 border rounded px-3 py-2" />
+            <button id="chat-send" class="px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">Send</button>
+          </div>
+        </div>
+      </div>
     </section>
   </main>
 
