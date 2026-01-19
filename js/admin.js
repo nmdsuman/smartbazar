@@ -624,7 +624,7 @@ async function selectChatSession(id){
   } catch {}
 }
 
-chatSendBtn?.addEventListener('click', async ()=>{
+async function sendAdminReply(){
   const text = (chatReplyInput?.value||'').toString().trim();
   if (!selectedChatId || !text) return;
   try {
@@ -640,9 +640,29 @@ chatSendBtn?.addEventListener('click', async ()=>{
       lastFrom: 'admin',
       userUnread: true
     });
-    if (chatReplyInput) chatReplyInput.value = '';
+    if (chatReplyInput) { chatReplyInput.value = ''; chatSendBtn?.setAttribute('disabled',''); }
   } catch (e) { alert('Send failed: ' + e.message); }
+}
+
+chatSendBtn?.addEventListener('click', async ()=>{
+  await sendAdminReply();
 });
+
+// Enable Enter to send (Shift+Enter for newline)
+chatReplyInput?.addEventListener('keydown', (e)=>{
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendAdminReply();
+  }
+});
+
+// Disable send button if empty
+function updateAdminSendState(){
+  const has = !!String(chatReplyInput?.value||'').trim();
+  if (chatSendBtn) chatSendBtn.disabled = !has;
+}
+chatReplyInput?.addEventListener('input', updateAdminSendState);
+updateAdminSendState();
 
 // Load chat sessions live
 if (chatSessionsEl) {
