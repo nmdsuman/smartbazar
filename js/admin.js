@@ -513,37 +513,63 @@ let selectedChatId = null;
 let unsubChatMessages = null;
 let unsubChatSessionMeta = null;
 let adminTypingTimer = null;
+let selectedGroupKey = null;
+
+function getGroupKey(s){
+  const d = s.data || {};
+  return d.userId ? `user:${d.userId}` : (d.userEmail ? `email:${d.userEmail}` : `guest:${s.id}`);
+}
 
 function renderChatSessions(){
   if (!chatSessionsEl) return;
   chatSessionsEl.innerHTML = '';
-  if (chatCountEl) chatCountEl.textContent = chatSessions.length > 0 ? `${chatSessions.length}` : '';
-  // Update unread badge in sidebar
+  // Build groups by user (guests remain separate)
+  const groupsMap = new Map();
+  chatSessions.forEach(s=>{
+    const key = getGroupKey(s);
+    let g = groupsMap.get(key);
+    const ts = s.data.updatedAt?.toDate ? s.data.updatedAt.toDate().getTime() : 0;
+    if (!g) {
+      g = {
+        key,
+        isUser: !!s.data.userId,
+        title: s.data.userId ? (s.data.userEmail || s.data.userId) : (s.data.userEmail || `Guest ${s.id.slice(-6)}`),
+        lastMessage: s.data.lastMessage || '',
+        updatedAtMs: ts,
+        anyUnread: !!s.data.adminUnread,
+        latestSessionId: s.id
+      };
+      groupsMap.set(key, g);
+    } else {
+      if (ts > g.updatedAtMs) { g.updatedAtMs = ts; g.lastMessage = s.data.lastMessage || ''; g.latestSessionId = s.id; }
+      if (s.data.adminUnread) g.anyUnread = true;
+    }
+  });
+  const groups = Array.from(groupsMap.values()).sort((a,b)=> b.updatedAtMs - a.updatedAtMs);
+  if (chatCountEl) chatCountEl.textContent = groups.length > 0 ? `${groups.length}` : '';
+  // Update unread badge in sidebar (unique users)
   try {
-    const unread = chatSessions.filter(s => !!s.data.adminUnread).length;
+    const unread = groups.filter(g => g.anyUnread).length;
     if (chatBadge) {
       if (unread > 0) { chatBadge.textContent = String(unread); chatBadge.classList.remove('hidden'); }
       else { chatBadge.classList.add('hidden'); }
     }
   } catch {}
   const frag = document.createDocumentFragment();
-  chatSessions.forEach(s => {
+  groups.forEach(g => {
     const div = document.createElement('div');
-    const isUser = !!s.data.userId;
-    const title = isUser ? (s.data.userEmail || s.data.userId) : `Guest ${s.id.slice(-6)}`;
-    const last = s.data.lastMessage || '';
-    const when = s.data.updatedAt?.toDate ? s.data.updatedAt.toDate().toLocaleString() : '';
-    const unreadDot = s.data.adminUnread ? '<span class="ml-2 inline-block w-2 h-2 rounded-full bg-blue-600 align-middle"></span>' : '';
-    div.className = `px-3 py-2 cursor-pointer ${selectedChatId===s.id?'bg-blue-50':''}`;
+    const unreadDot = g.anyUnread ? '<span class="ml-2 inline-block w-2 h-2 rounded-full bg-blue-600 align-middle"></span>' : '';
+    div.className = `px-3 py-2 cursor-pointer ${selectedGroupKey===g.key?'bg-blue-50':''}`;
+    const when = g.updatedAtMs ? new Date(g.updatedAtMs).toLocaleString() : '';
     div.innerHTML = `
       <div class="flex items-center justify-between">
-        <div class="font-medium flex items-center">${title}${unreadDot}</div>
-        <span class="text-xs ${isUser?'text-green-700':'text-gray-500'}">${isUser?'User':'Guest'}</span>
+        <div class="font-medium flex items-center">${g.title}${unreadDot}</div>
+        <span class="text-xs ${g.isUser?'text-green-700':'text-gray-500'}">${g.isUser?'User':'Guest'}</span>
       </div>
-      <div class="text-xs text-gray-600 line-clamp-1">${last}</div>
+      <div class="text-xs text-gray-600 line-clamp-1">${g.lastMessage || ''}</div>
       <div class="text-[11px] text-gray-400">${when}</div>
     `;
-    div.addEventListener('click', ()=> selectChatSession(s.id));
+    div.addEventListener('click', ()=> selectChatGroup(g));
     frag.appendChild(div);
   });
   chatSessionsEl.appendChild(frag);
@@ -671,6 +697,21 @@ async function selectChatSession(id){
   // mark as read for admin
   try {
     await updateDoc(doc(db,'chat_sessions', id), { adminUnread: false, adminUnreadCount: 0 });
+  } catch {}
+}
+
+async function selectChatGroup(group){
+  selectedGroupKey = group.key;
+  // Always open latest session in the group
+  await selectChatSession(group.latestSessionId);
+  // If this is a user group, clear unread across all sessions for this user
+  try {
+    if (group.isUser) {
+      const uid = (group.key || '').replace(/^user:/,'');
+      const qy = query(collection(db,'chat_sessions'), where('userId','==', uid));
+      const snap = await getDocs(qy);
+      await Promise.all(snap.docs.map(d=> updateDoc(doc(db,'chat_sessions', d.id), { adminUnread: false, adminUnreadCount: 0 }).catch(()=>{})));
+    }
   } catch {}
 }
 
