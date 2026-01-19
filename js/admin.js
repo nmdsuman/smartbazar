@@ -557,6 +557,11 @@ async function loadSiteSettings(){
     siteForm.favicon.value = s.favicon ?? '';
     siteForm.email.value = s.email ?? '';
     siteForm.phone.value = s.phone ?? '';
+    // update previews if existing
+    const lp = document.getElementById('site-logo-preview');
+    const fp = document.getElementById('site-favicon-preview');
+    if (lp) { if (s.logo) { lp.src = s.logo; lp.classList.remove('hidden'); } else { lp.src=''; lp.classList.add('hidden'); } }
+    if (fp) { if (s.favicon) { fp.src = s.favicon; fp.classList.remove('hidden'); } else { fp.src=''; fp.classList.add('hidden'); } }
   } catch (e) {
     if (siteMsg) { siteMsg.textContent = 'Failed to load site settings: ' + e.message; siteMsg.className = 'text-sm mt-3 text-red-700'; }
   }
@@ -589,12 +594,32 @@ siteForm?.addEventListener('submit', async (e)=>{
     };
     await setDoc(doc(db,'settings','site'), payload, { merge: true });
     if (siteMsg) { siteMsg.textContent = 'Site settings saved.'; siteMsg.className = 'text-sm mt-3 text-green-700'; }
+    // refresh previews
+    const lp = document.getElementById('site-logo-preview');
+    const fp = document.getElementById('site-favicon-preview');
+    if (lp) { if (payload.logo) { lp.src = payload.logo; lp.classList.remove('hidden'); } else { lp.src=''; lp.classList.add('hidden'); } }
+    if (fp) { if (payload.favicon) { fp.src = payload.favicon; fp.classList.remove('hidden'); } else { fp.src=''; fp.classList.add('hidden'); } }
   } catch (e) {
     if (siteMsg) { siteMsg.textContent = 'Save failed: ' + e.message; siteMsg.className = 'text-sm mt-3 text-red-700'; }
   }
 });
 
 loadSiteSettings();
+
+// Live preview handlers for logo and favicon (URL and file)
+if (siteForm) {
+  const logoUrl = siteForm.querySelector('[name="logo"]');
+  const favUrl = siteForm.querySelector('[name="favicon"]');
+  const logoFile = siteForm.querySelector('[name="logoFile"]');
+  const favFile = siteForm.querySelector('[name="faviconFile"]');
+  const lp = document.getElementById('site-logo-preview');
+  const fp = document.getElementById('site-favicon-preview');
+  const show = (imgEl, url)=>{ if (!imgEl) return; if (url) { imgEl.src=url; imgEl.classList.remove('hidden'); } else { imgEl.src=''; imgEl.classList.add('hidden'); } };
+  logoUrl?.addEventListener('input', ()=> show(lp, logoUrl.value.trim()));
+  favUrl?.addEventListener('input', ()=> show(fp, favUrl.value.trim()));
+  logoFile?.addEventListener('change', ()=>{ const f=logoFile.files?.[0]; if (f) show(lp, URL.createObjectURL(f)); });
+  favFile?.addEventListener('change', ()=>{ const f=favFile.files?.[0]; if (f) show(fp, URL.createObjectURL(f)); });
+}
 
 // Orders filter change
 ordersFilter?.addEventListener('change', drawOrders);
