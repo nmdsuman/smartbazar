@@ -25,9 +25,8 @@ import { addDoc, setDoc, getDoc, doc, collection, serverTimestamp, onSnapshot, q
       <div class="flex items-center gap-2">
         <input id="chat-input" type="text" placeholder="Type your message" class="flex-1 border rounded px-3 py-2" />
         <button id="chat-send" aria-label="Send message" class="shrink-0 px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
-            <path d="M3 12h14.25"/>
-            <path d="M12 5.25 19.5 12 12 18.75"/>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+            <path d="M8 5l11 7-11 7V5z"/>
           </svg>
         </button>
       </div>
