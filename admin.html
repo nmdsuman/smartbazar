@@ -319,8 +319,8 @@
           <div class="px-3 py-2 border-b text-sm text-gray-700" id="chat-meta">Select a session</div>
           <div id="chat-messages-admin" class="flex-1 p-3 overflow-y-auto bg-gray-50 space-y-2"></div>
           <div class="p-3 border-t flex items-center gap-2">
-            <input id="chat-reply" type="text" placeholder="Type a reply" class="flex-1 border rounded px-3 py-2" />
-            <button id="chat-send" class="px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">Send</button>
+            <textarea id="chat-reply" placeholder="Type a reply" class="flex-1 border rounded px-3 py-2" rows="2"></textarea>
+            <button id="chat-send" class="px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">Send</button>
           </div>
         </div>
       </div>
