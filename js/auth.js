@@ -33,12 +33,20 @@ export function initAuthHeader() {
   // Apply Site Settings (title, logo, favicon) across pages
   (async function applySiteSettings(){
     try {
+      // Pre-clear brand/contact to avoid demo flash before settings load
+      const header = document.querySelector('header');
+      const brandPre = header ? header.querySelector('a[href="index.html"]') : null;
+      if (brandPre) { brandPre.textContent = ''; brandPre.classList.add('invisible'); }
+      const ce = document.getElementById('contact-email');
+      const cp = document.getElementById('contact-phone');
+      if (ce) { ce.textContent = ''; ce.removeAttribute('href'); ce.classList.add('hidden'); }
+      if (cp) { cp.textContent = ''; cp.removeAttribute('href'); cp.classList.add('hidden'); }
+
       const ref = doc(db, 'settings', 'site');
       const snap = await getDoc(ref);
       if (!snap.exists()) return;
       const s = snap.data() || {};
       // Brand text or logo in header (replace the first brand anchor inside header)
-      const header = document.querySelector('header');
       const brand = header ? header.querySelector('a[href="index.html"]') : null;
       if (brand) {
         if (s.logo) {
@@ -46,6 +54,7 @@ export function initAuthHeader() {
         } else if (s.title) {
           brand.textContent = s.title;
         }
+        brand.classList.remove('invisible');
       }
       // Document title: preserve page suffix after '—' if present
       if (s.title) {
@@ -70,11 +79,11 @@ export function initAuthHeader() {
       // Contact details in footer (if present on this page)
       if (s.email) {
         const el = document.getElementById('contact-email');
-        if (el) { el.textContent = s.email; el.setAttribute('href', `mailto:${s.email}`); }
+        if (el) { el.textContent = s.email; el.setAttribute('href', `mailto:${s.email}`); el.classList.remove('hidden'); }
       }
       if (s.phone) {
         const el = document.getElementById('contact-phone');
-        if (el) { el.textContent = s.phone; el.setAttribute('href', `tel:${s.phone.replace(/\s+/g,'')}`); }
+        if (el) { el.textContent = s.phone; el.setAttribute('href', `tel:${s.phone.replace(/\s+/g,'')}`); el.classList.remove('hidden'); }
       }
     } catch {}
   })();
