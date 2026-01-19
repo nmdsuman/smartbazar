@@ -120,6 +120,9 @@
       <a href="#shipping" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
         <span>Delivery Settings</span>
       </a>
+      <a href="#site" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
+        <span>Site Settings</span>
+      </a>
     </nav>
   </aside>
 
@@ -127,7 +130,7 @@
     <h1 class="text-2xl font-semibold mb-6">Admin Dashboard</h1>
 
     <section id="add" class="bg-white border rounded-lg p-6 mb-8">
-      <h2 class="text-lg font-semibold mb-4">Add Product</h2>
+      <h2 class="text-lg font-semibold mb-4" id="add-section-title">Add Product</h2>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
       <form id="add-product-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
@@ -152,7 +155,7 @@
         </div>
         <div class="md:col-span-2">
           <label class="block text-sm mb-1">Product Image</label>
-          <input type="file" name="image" accept="image/*" required class="w-full border rounded px-3 py-2"/>
+          <input type="file" name="image" accept="image/*" class="w-full border rounded px-3 py-2"/>
         </div>
         <div class="md:col-span-2">
           <label class="block text-sm mb-1">Gallery Images (optional, up to 5)</label>
@@ -171,8 +174,9 @@
           <input id="add-active" type="checkbox" name="active" checked class="border rounded"/>
           <label for="add-active" class="text-sm">Active (visible in shop)</label>
         </div>
-        <div class="md:col-span-2">
-          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Add Product</button>
+        <div class="md:col-span-2 flex items-center gap-2">
+          <button type="submit" id="add-submit-btn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Add Product</button>
+          <button type="button" id="add-cancel-edit" class="hidden bg-gray-100 text-gray-800 px-4 py-2 rounded hover:bg-gray-200">Cancel Edit</button>
         </div>
       </form>
       <div>
@@ -188,6 +192,7 @@
               <div id="add-preview-extra" class="text-sm text-gray-600 mb-2">&nbsp;</div>
               <p id="add-preview-desc" class="text-sm text-gray-600 line-clamp-2">&nbsp;</p>
             </div>
+            <div id="add-preview-gallery" class="px-4 pb-4 grid grid-cols-5 gap-2"></div>
           </div>
         </div>
       </div>
@@ -244,6 +249,36 @@
         </div>
       </form>
       <div id="shipping-message" class="text-sm mt-3"></div>
+    </section>
+
+    <section id="site" class="bg-white border rounded-lg p-6 mt-8 hidden">
+      <h2 class="text-lg font-semibold mb-4">Site Settings</h2>
+      <form id="site-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm mb-1">Site Title</label>
+          <input type="text" name="title" class="w-full border rounded px-3 py-2" placeholder="e.g., Smart Bazar"/>
+        </div>
+        <div>
+          <label class="block text-sm mb-1">Logo URL</label>
+          <input type="url" name="logo" class="w-full border rounded px-3 py-2" placeholder="https://..."/>
+        </div>
+        <div>
+          <label class="block text-sm mb-1">Favicon URL</label>
+          <input type="url" name="favicon" class="w-full border rounded px-3 py-2" placeholder="https://.../favicon.ico"/>
+        </div>
+        <div>
+          <label class="block text-sm mb-1">Contact Email</label>
+          <input type="email" name="email" class="w-full border rounded px-3 py-2" placeholder="admin@example.com"/>
+        </div>
+        <div>
+          <label class="block text-sm mb-1">Contact Phone</label>
+          <input type="text" name="phone" class="w-full border rounded px-3 py-2" placeholder="01XXXXXXXXX"/>
+        </div>
+        <div class="md:col-span-2">
+          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Save Site Settings</button>
+        </div>
+      </form>
+      <div id="site-message" class="text-sm mt-3"></div>
     </section>
   </main>
 
