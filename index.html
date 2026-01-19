@@ -37,12 +37,14 @@
   </header>
 
   <main class="max-w-6xl mx-auto px-4 py-8">
-    <div class="mb-4 grid grid-cols-1 sm:grid-cols-3 gap-3 items-stretch">
-      <input id="search-input" type="search" placeholder="Search products..." class="border rounded px-3 py-2" />
+    <div class="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3 items-stretch">
+      <div class="flex">
+        <input id="search-input" type="search" placeholder="Search products..." class="border border-r-0 rounded-l px-3 py-2 flex-1" />
+        <button id="search-btn" class="border rounded-r px-3 py-2 bg-blue-600 text-white hover:bg-blue-700">Search</button>
+      </div>
       <select id="category-filter" class="border rounded px-3 py-2">
         <option value="">All Categories</option>
       </select>
-      <button id="search-btn" class="border rounded px-3 py-2 bg-blue-600 text-white hover:bg-blue-700">Search</button>
     </div>
     <div id="products-grid" class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-6"></div>
     <div id="empty-state" class="hidden text-gray-500">No products available.</div>
