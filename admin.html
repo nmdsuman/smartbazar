@@ -291,6 +291,14 @@
           <input type="text" name="phone" class="w-full border rounded px-3 py-2" placeholder="01XXXXXXXXX"/>
         </div>
         <div class="md:col-span-2">
+          <label class="inline-flex items-center gap-2 text-sm font-medium">
+            <input type="checkbox" name="marqueeEnabled" class="rounded border-gray-300"/>
+            Enable Announcement Marquee
+          </label>
+          <textarea name="marqueeText" class="mt-2 w-full border rounded px-3 py-2" rows="2" placeholder="Big New Year Sale • 50% OFF on selected items • Free delivery over ৳1000"></textarea>
+          <p class="text-xs text-gray-500 mt-1">Shown as a scrolling announcement bar across the site when enabled.</p>
+        </div>
+        <div class="md:col-span-2">
           <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Save Site Settings</button>
         </div>
       </form>
