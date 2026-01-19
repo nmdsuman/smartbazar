@@ -7,14 +7,14 @@ import { addDoc, setDoc, getDoc, doc, collection, serverTimestamp, onSnapshot, q
   // Build floating button
   const btn = document.createElement('button');
   btn.id = 'chat-fab';
-  btn.className = 'fixed bottom-4 right-4 z-50 bg-blue-600 text-white rounded-full shadow-lg w-12 h-12 flex items-center justify-center hover:bg-blue-700';
-  btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6"><path d="M7.5 8.25h9m-9 3h6.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-3.75 0a5.25 5.25 0 11-10.5 0 5.25 5.25 0 0110.5 0z"/></svg>';
+  btn.className = 'fixed right-4 z-40 bg-blue-600 text-white rounded-full shadow-lg flex items-center gap-2 hover:bg-blue-700 px-4 h-12 sm:bottom-4 bottom-[calc(1rem+env(safe-area-inset-bottom))]';
+  btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M2.25 12c0-4.556 4.144-8.25 9.25-8.25s9.25 3.694 9.25 8.25-4.144 8.25-9.25 8.25c-1.18 0-2.305-.206-3.337-.584-.508-.186-1.064-.176-1.544.054L3 20.25l1.327-2.394c.24-.434.23-.966-.025-1.391A8.182 8.182 0 0 1 2.25 12z"/></svg><span class="hidden sm:inline text-sm font-medium">Chat</span><span id="chat-fab-badge" class="ml-2 hidden inline-flex items-center justify-center text-[10px] rounded-full bg-red-600 text-white min-w-[18px] h-[18px] px-1">0</span>';
   document.body.appendChild(btn);
 
   // Panel
   const panel = document.createElement('div');
   panel.id = 'chat-panel';
-  panel.className = 'fixed bottom-20 right-4 z-50 w-80 max-w-[90vw] bg-white border rounded-xl shadow-xl hidden';
+  panel.className = 'fixed right-4 z-50 w-80 max-w-[90vw] bg-white border rounded-xl shadow-xl hidden sm:bottom-20 bottom-[calc(5.5rem+env(safe-area-inset-bottom))]';
   panel.innerHTML = `
     <div class="flex items-center justify-between px-3 py-2 border-b">
       <div class="font-semibold">Live Chat</div>
@@ -32,6 +32,7 @@ import { addDoc, setDoc, getDoc, doc, collection, serverTimestamp, onSnapshot, q
   const chatClose = panel.querySelector('#chat-close');
   const chatMessages = panel.querySelector('#chat-messages');
   const chatInput = panel.querySelector('#chat-input');
+  const chatBadge = btn.querySelector('#chat-fab-badge');
 
   let sessionId = localStorage.getItem('chat_session_id') || null;
   let userCache = { uid: null, email: null };
@@ -60,15 +61,24 @@ import { addDoc, setDoc, getDoc, doc, collection, serverTimestamp, onSnapshot, q
   }
 
   let unsubMsgs = null;
+  let initialLoaded = false;
+  let unreadCount = 0;
+  function setUnread(n){ unreadCount = Math.max(0, n|0); if (chatBadge){ if (unreadCount>0){ chatBadge.textContent=String(unreadCount); chatBadge.classList.remove('hidden'); } else { chatBadge.classList.add('hidden'); } } }
   async function openChat(){
     panel.classList.remove('hidden');
     panel.classList.add('block');
     const sid = await ensureSession();
+    // mark as read for user when opening
+    try { await updateDoc(doc(db,'chat_sessions', sid), { userUnread: false, userUnreadCount: 0 }); } catch {}
+    setUnread(0);
     // stream messages
     if (unsubMsgs) { unsubMsgs(); unsubMsgs = null; }
     const q = query(collection(db,'chat_sessions', sid, 'messages'), orderBy('createdAt','asc'));
+    initialLoaded = false;
     unsubMsgs = onSnapshot(q, (snap)=>{
+      const panelHidden = panel.classList.contains('hidden');
       chatMessages.innerHTML = '';
+      const changes = snap.docChanges();
       snap.forEach(d=>{
         const m = d.data();
         const mine = m.from === 'user' || m.from === userCache.uid; // user side
@@ -77,6 +87,20 @@ import { addDoc, setDoc, getDoc, doc, collection, serverTimestamp, onSnapshot, q
         div.textContent = m.text || '';
         chatMessages.appendChild(div);
       });
+      // Notify on new admin messages if panel hidden
+      if (initialLoaded) {
+        changes.forEach(ch=>{
+          if (ch.type === 'added') {
+            const m = ch.doc.data();
+            if (m.from === 'admin' && panelHidden) {
+              showToast('New reply from Support. Tap to open.');
+              setUnread(unreadCount+1);
+            }
+          }
+        });
+      } else {
+        initialLoaded = true;
+      }
       chatMessages.scrollTop = chatMessages.scrollHeight;
     });
   }
@@ -102,7 +126,9 @@ import { addDoc, setDoc, getDoc, doc, collection, serverTimestamp, onSnapshot, q
     await updateDoc(doc(db,'chat_sessions', sid), {
       updatedAt: serverTimestamp(),
       lastMessage: msg.text,
-      lastFrom: 'user'
+      lastFrom: 'user',
+      adminUnread: true,
+      adminUnreadCount: (window.__noop_inc || 0) // placeholder; server will compute increment on security rules if set
     });
   }
 
@@ -117,4 +143,20 @@ import { addDoc, setDoc, getDoc, doc, collection, serverTimestamp, onSnapshot, q
     userCache.uid = user?.uid || null;
     userCache.email = user?.email || null;
   });
+
+  // Simple toast for notifications
+  function showToast(text){
+    let t = document.getElementById('chat-toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'chat-toast';
+      t.className = 'fixed left-1/2 -translate-x-1/2 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-[60] bg-gray-900 text-white text-sm px-4 py-2 rounded shadow-lg';
+      document.body.appendChild(t);
+    }
+    t.textContent = text;
+    t.classList.remove('hidden');
+    clearTimeout(window.__chat_toast_timer);
+    window.__chat_toast_timer = setTimeout(()=> t.classList.add('hidden'), 3000);
+    t.onclick = ()=>{ t.classList.add('hidden'); openChat(); };
+  }
 })();

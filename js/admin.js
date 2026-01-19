@@ -28,6 +28,7 @@ const ordersListEl = document.getElementById('orders-list');
 const ordersEmptyEl = document.getElementById('orders-empty');
 const ordersFilter = document.getElementById('orders-filter');
 const ordersBadge = document.getElementById('orders-badge');
+const chatBadge = document.getElementById('chat-badge');
 const shippingForm = document.getElementById('shipping-form');
 const shippingMsg = document.getElementById('shipping-message');
 // Site settings elements
@@ -58,6 +59,7 @@ let productsCache = [];
 let shippingCfg = null; // cached shipping settings for calc
 let currentOrder = { id: null, data: null, items: [] };
 let lastOrders = [];
+let ordersUserFilter = null; // when set, show orders only for this userId
 
 const IMGBB_API_KEY = '462884d7f63129dede1b67d612e66ee6';
 
@@ -436,7 +438,8 @@ function drawOrders() {
   if (!ordersListEl) return;
   ordersListEl.innerHTML = '';
   const filterVal = ordersFilter?.value || 'All';
-  const subset = lastOrders.filter(o => filterVal === 'All' || o.data.status === filterVal);
+  let subset = lastOrders.filter(o => filterVal === 'All' || o.data.status === filterVal);
+  if (ordersUserFilter) subset = subset.filter(o => (o.data.userId || null) === ordersUserFilter);
   if (subset.length === 0) {
     ordersEmptyEl?.classList.remove('hidden');
     updateOrdersBadge();
@@ -513,6 +516,14 @@ function renderChatSessions(){
   if (!chatSessionsEl) return;
   chatSessionsEl.innerHTML = '';
   if (chatCountEl) chatCountEl.textContent = chatSessions.length > 0 ? `${chatSessions.length}` : '';
+  // Update unread badge in sidebar
+  try {
+    const unread = chatSessions.filter(s => !!s.data.adminUnread).length;
+    if (chatBadge) {
+      if (unread > 0) { chatBadge.textContent = String(unread); chatBadge.classList.remove('hidden'); }
+      else { chatBadge.classList.add('hidden'); }
+    }
+  } catch {}
   const frag = document.createDocumentFragment();
   chatSessions.forEach(s => {
     const div = document.createElement('div');
@@ -520,10 +531,11 @@ function renderChatSessions(){
     const title = isUser ? (s.data.userEmail || s.data.userId) : `Guest ${s.id.slice(-6)}`;
     const last = s.data.lastMessage || '';
     const when = s.data.updatedAt?.toDate ? s.data.updatedAt.toDate().toLocaleString() : '';
+    const unreadDot = s.data.adminUnread ? '<span class="ml-2 inline-block w-2 h-2 rounded-full bg-blue-600 align-middle"></span>' : '';
     div.className = `px-3 py-2 cursor-pointer ${selectedChatId===s.id?'bg-blue-50':''}`;
     div.innerHTML = `
       <div class="flex items-center justify-between">
-        <div class="font-medium">${title}</div>
+        <div class="font-medium flex items-center">${title}${unreadDot}</div>
         <span class="text-xs ${isUser?'text-green-700':'text-gray-500'}">${isUser?'User':'Guest'}</span>
       </div>
       <div class="text-xs text-gray-600 line-clamp-1">${last}</div>
@@ -544,7 +556,13 @@ async function selectChatSession(id){
     let meta = 'Select a session';
     if (cur) {
       const isUser = !!cur.data.userId;
-      meta = isUser ? `User: ${cur.data.userEmail || cur.data.userId}` : `Guest: ${id.slice(-6)}`;
+      const label = isUser ? (cur.data.userEmail || cur.data.userId) : `Guest ${id.slice(-6)}`;
+      // Links: view orders filtered and profile (for users)
+      if (isUser) {
+        meta = `User: <a href="#" id="chat-user-link" class="text-blue-700 hover:underline">${label}</a>`;
+      } else {
+        meta = `Guest: ${label}`;
+      }
       // append profile + latest order if user
       if (isUser) {
         try {
@@ -554,11 +572,36 @@ async function selectChatSession(id){
           const oSnap = await getDocs(oq);
           const lastOrder = oSnap.docs[0];
           const ordInfo = lastOrder ? ` · Last order #${lastOrder.id.slice(-6)} (${(lastOrder.data().status)||'Pending'})` : '';
-          meta = `User: ${cur.data.userEmail || cur.data.userId} · Role: ${role}${ordInfo}`;
+          meta += ` · Role: ${role}${ordInfo} · <a href="orders.html#orders-section" id="chat-view-orders" class="text-blue-700 hover:underline">View orders</a>`;
         } catch {}
       }
     }
-    chatMetaEl.textContent = meta;
+    chatMetaEl.innerHTML = meta;
+    // Wire links
+    try {
+      const cur2 = cur;
+      const link = document.getElementById('chat-user-link');
+      if (link && cur2?.data?.userId) {
+        link.addEventListener('click', (e)=>{
+          e.preventDefault();
+          // jump to orders section filtered by this user
+          window.location.hash = '#orders-section';
+          showSection('orders-section');
+          window.setOrdersUserFilter(cur2.data.userId);
+          drawOrders();
+        });
+      }
+      const viewOrders = document.getElementById('chat-view-orders');
+      if (viewOrders && cur2?.data?.userId) {
+        viewOrders.addEventListener('click', (e)=>{
+          e.preventDefault();
+          window.location.hash = '#orders-section';
+          showSection('orders-section');
+          window.setOrdersUserFilter(cur2.data.userId);
+          drawOrders();
+        });
+      }
+    } catch {}
   }
   // stream messages
   unsubChatMessages = onSnapshot(query(collection(db,'chat_sessions', id, 'messages'), orderBy('createdAt','asc')), (snap)=>{
@@ -575,6 +618,10 @@ async function selectChatSession(id){
     chatMessagesAdminEl.appendChild(frag);
     chatMessagesAdminEl.scrollTop = chatMessagesAdminEl.scrollHeight;
   });
+  // mark as read for admin
+  try {
+    await updateDoc(doc(db,'chat_sessions', id), { adminUnread: false, adminUnreadCount: 0 });
+  } catch {}
 }
 
 chatSendBtn?.addEventListener('click', async ()=>{
@@ -590,7 +637,8 @@ chatSendBtn?.addEventListener('click', async ()=>{
     await updateDoc(doc(db,'chat_sessions', selectedChatId), {
       updatedAt: serverTimestamp(),
       lastMessage: text,
-      lastFrom: 'admin'
+      lastFrom: 'admin',
+      userUnread: true
     });
     if (chatReplyInput) chatReplyInput.value = '';
   } catch (e) { alert('Send failed: ' + e.message); }
@@ -925,4 +973,34 @@ function updateOrdersBadge(){
   } else {
     ordersBadge.classList.add('hidden');
   }
+}
+
+// Expose a helper to filter orders by user from elsewhere (e.g., chat)
+window.setOrdersUserFilter = function(userId){
+  ordersUserFilter = userId || null;
+  // Show a small chip next to the filter if element exists
+  try {
+    let host = document.getElementById('orders-section');
+    if (host) {
+      let chip = host.querySelector('#orders-user-chip');
+      if (!chip) {
+        const bar = host.querySelector('div.flex.items-center.justify-between');
+        if (bar) {
+          chip = document.createElement('span');
+          chip.id = 'orders-user-chip';
+          chip.className = 'ml-2 inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-700 border';
+          bar.appendChild(chip);
+        }
+      }
+      if (chip) {
+        if (ordersUserFilter) {
+          chip.innerHTML = `User filter: ${ordersUserFilter.slice(-6)} <button id="orders-user-chip-clear" class="ml-1 px-1 rounded bg-blue-600 text-white">×</button>`;
+          chip.classList.remove('hidden');
+          chip.querySelector('#orders-user-chip-clear')?.addEventListener('click', ()=>{ window.setOrdersUserFilter(null); drawOrders(); });
+        } else {
+          chip.classList.add('hidden');
+        }
+      }
+    }
+  } catch {}
 }
