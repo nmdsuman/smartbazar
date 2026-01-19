@@ -162,6 +162,10 @@ import { collection, doc, getDoc, getDocs, orderBy, query, updateDoc } from 'fir
       const ordSnap = await getDoc(doc(db,'orders', orderId));
       if (!ordSnap.exists()) { empty.textContent = 'Order not found.'; return; }
       orderData = ordSnap.data();
+      if (role === 'admin' && (orderData.status || 'Pending') === 'Pending') {
+        await updateDoc(doc(db,'orders', orderId), { status: 'Processing' });
+        orderData.status = 'Processing';
+      }
       // Permission: admin can edit always; user can edit only if owns and status Pending
       const isOwner = orderData.userId && (orderData.userId === user.uid);
       canEdit = role === 'admin' || (isOwner && (orderData.status === 'Pending'));
