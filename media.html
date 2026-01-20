@@ -30,7 +30,33 @@
     </div>
   </header>
 
-  <main class="max-w-6xl mx-auto px-4 py-8">
+  <aside class="hidden md:block fixed left-4 top-24 z-40 w-56 h-[calc(100vh-7rem)] overflow-y-auto">
+    <nav class="bg-white border rounded-lg shadow-sm p-3 space-y-1 admin-nav">
+      <a href="admin.html#add" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
+        <span>Add Product</span>
+      </a>
+      <a href="admin.html#products" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
+        <span>All Products</span>
+      </a>
+      <a href="admin.html#orders-section" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
+        <span>Orders</span>
+      </a>
+      <a href="admin.html#shipping" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
+        <span>Delivery Settings</span>
+      </a>
+      <a href="admin.html#site" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
+        <span>Site Settings</span>
+      </a>
+      <a href="admin.html#chat" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
+        <span>Live Chat</span>
+      </a>
+      <a href="media.html" class="flex items-center justify-between px-3 py-2 rounded bg-gray-100">
+        <span>Image Library</span>
+      </a>
+    </nav>
+  </aside>
+
+  <main class="max-w-6xl mx-auto px-4 py-8 md:ml-64">
     <h1 class="text-2xl font-semibold mb-6">Image Library</h1>
 
     <section class="bg-white border rounded-lg p-6 mb-6">
