@@ -214,9 +214,22 @@ function hideMediaModal(){
 
 async function loadMediaItems(){
   try {
-    const qy = query(collection(db,'media'), orderBy('createdAt','desc'));
-    const snap = await getDocs(qy);
-    mediaItems = snap.docs.map(d=>({ id: d.id, url: d.data().url }));
+    let snap;
+    try {
+      const qy = query(collection(db,'media'), orderBy('createdAt','desc'));
+      snap = await getDocs(qy);
+    } catch (err) {
+      // Fallback: read without ordering if index/field is missing
+      snap = await getDocs(collection(db,'media'));
+      if (mediaMsg) { mediaMsg.textContent = 'Loaded library without ordering'; mediaMsg.className = 'text-sm text-gray-700'; }
+    }
+    mediaItems = snap.docs.map(d=>({ id: d.id, url: d.data().url, createdAt: d.data().createdAt }));
+    // Client-side sort by createdAt if available
+    mediaItems.sort((a,b)=>{
+      const ta = a.createdAt?.seconds || 0;
+      const tb = b.createdAt?.seconds || 0;
+      return tb - ta;
+    });
     renderMediaGrid();
   } catch (e) {
     if (mediaMsg) { mediaMsg.textContent = 'Failed to load library.'; mediaMsg.className = 'text-sm text-red-700'; }
@@ -347,6 +360,12 @@ function updateAddPreview() {
 
 function updateAddPreviewImage() {
   if (!form || !prevImg) return;
+  // If a main image was chosen from the media library, prefer showing that
+  if (selectedMainUrl) {
+    prevImg.src = selectedMainUrl;
+    prevImg.classList.remove('hidden');
+    return;
+  }
   const file = form.image && form.image.files ? form.image.files[0] : null;
   if (file) {
     const url = URL.createObjectURL(file);
