@@ -375,11 +375,11 @@ export async function renderCartPage() {
             <div class="text-sm text-gray-600">৳${item.price.toFixed(2)}</div>
           </div>
         </div>
-        <div class="flex items-center gap-2">
-          <div class="flex items-center gap-1">
-            <button class="qty-dec w-7 h-7 flex items-center justify-center rounded bg-gray-100 hover:bg-gray-200 text-sm">−</button>
-            <span class="min-w-[2rem] text-center text-sm">${item.qty}</span>
-            <button class="qty-inc w-7 h-7 flex items-center justify-center rounded bg-gray-100 hover:bg-gray-200 text-sm">+</button>
+        <div class="flex items-center gap-3">
+          <div class="inline-flex items-center rounded-full border border-gray-200 overflow-hidden shadow-sm">
+            <button aria-label="Decrease quantity" class="qty-dec w-9 h-9 flex items-center justify-center bg-gray-50 hover:bg-gray-100 active:bg-gray-200 text-base">−</button>
+            <span class="w-10 text-center text-sm select-none">${item.qty}</span>
+            <button aria-label="Increase quantity" class="qty-inc w-9 h-9 flex items-center justify-center bg-gray-50 hover:bg-gray-100 active:bg-gray-200 text-base">+</button>
           </div>
           <button class="remove w-9 h-9 flex items-center justify-center rounded-full bg-red-600 text-white hover:bg-red-700" aria-label="Remove item" title="Remove">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

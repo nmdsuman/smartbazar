@@ -27,8 +27,10 @@ import { collection, doc, getDoc, getDocs, orderBy, query, updateDoc } from 'fir
 
   function parseWeightToGrams(w){
     if (!w) return 0; const s=String(w).trim().toLowerCase();
-    const m=s.match(/([0-9]*\.?[0-9]+)\s*(kg|g)?/); if(!m) return 0;
-    const v=parseFloat(m[1]); const u=m[2]||'g'; return u==='kg'?Math.round(v*1000):Math.round(v);
+    const m=s.match(/([0-9]*\.?[0-9]+)\s*(kg|g|l|liter|ltr)?/); if(!m) return 0;
+    const v=parseFloat(m[1]); const u=m[2]||'g';
+    if (u==='kg' || u==='l' || u==='liter' || u==='ltr') return Math.round(v*1000);
+    return Math.round(v);
   }
   function calcDelivery(){
     const cfg = shippingCfg || { fixedFee:60, fixedUpToGrams:1000, extraPerKg:30, fallbackFee:80 };
