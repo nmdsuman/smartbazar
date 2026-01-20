@@ -175,7 +175,7 @@ function drawProducts() {
           <h3 class="font-semibold text-[15px] mb-1 leading-snug line-clamp-2"><a href="productfullview.html?id=${encodeURIComponent(id)}" class="hover:text-blue-700">${d.title}</a></h3>
           <div class="flex items-center justify-between mt-1">
             <div class="text-orange-600 font-bold text-sm">৳${Number(d.price).toFixed(2)}</div>
-            ${d.weight ? `<span class=\"bg-gray-100 text-gray-700 text-[11px] px-2 py-0.5 rounded\">${d.weight}</span>` : ''}
+            <span></span>
           </div>
         </div>
         <button class="add-to-cart ${out ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white w-10 h-10 rounded-full shadow-md flex items-center justify-center absolute bottom-2 right-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 active:scale-[0.98] transition" ${out ? 'disabled' : ''} aria-label="Add to cart">
