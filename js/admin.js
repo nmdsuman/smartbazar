@@ -175,6 +175,123 @@ cropperApplyBtn?.addEventListener('click', ()=>{
   } catch { closeCropper(); }
 });
 
+// ===== Media Library (inbuilt) =====
+const mediaModal = document.getElementById('media-modal');
+const mediaClose = document.getElementById('media-close');
+const mediaUpload = document.getElementById('media-upload');
+const mediaUploadBtn = document.getElementById('media-upload-btn');
+const mediaGrid = document.getElementById('media-grid');
+const mediaUseMain = document.getElementById('media-use-main');
+const mediaUseGallery = document.getElementById('media-use-gallery');
+const mediaMsg = document.getElementById('media-message');
+const btnImageLibrary = document.getElementById('btn-image-library');
+const btnGalleryLibrary = document.getElementById('btn-gallery-library');
+
+let mediaItems = [];
+let mediaSelected = new Set();
+let mediaMode = 'main'; // 'main' or 'gallery'
+let selectedMainUrl = '';
+let selectedGalleryUrls = [];
+
+function showMediaModal(mode){
+  mediaMode = mode === 'gallery' ? 'gallery' : 'main';
+  try {
+    mediaSelected.clear();
+    renderMediaGrid();
+  } catch {}
+  mediaModal?.classList.remove('hidden');
+  mediaModal?.classList.add('flex');
+  loadMediaItems();
+}
+
+function hideMediaModal(){
+  mediaModal?.classList.add('hidden');
+  mediaModal?.classList.remove('flex');
+}
+
+async function loadMediaItems(){
+  try {
+    const qy = query(collection(db,'media'), orderBy('createdAt','desc'));
+    const snap = await getDocs(qy);
+    mediaItems = snap.docs.map(d=>({ id: d.id, url: d.data().url }));
+    renderMediaGrid();
+  } catch (e) {
+    if (mediaMsg) { mediaMsg.textContent = 'Failed to load library.'; mediaMsg.className = 'text-sm text-red-700'; }
+  }
+}
+
+function renderMediaGrid(){
+  if (!mediaGrid) return;
+  mediaGrid.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  mediaItems.forEach(it => {
+    const w = document.createElement('button');
+    w.type = 'button';
+    w.className = 'relative border rounded overflow-hidden bg-white hover:ring-2 hover:ring-blue-500 focus:outline-none';
+    w.innerHTML = `<img src="${it.url}" alt="" class="w-full h-24 object-cover"><span class="absolute top-1 right-1 inline-block w-2.5 h-2.5 rounded-full ${mediaSelected.has(it.id)?'bg-blue-600':'bg-white border'}"></span>`;
+    w.addEventListener('click', ()=>{
+      if (mediaMode==='main') { mediaSelected.clear(); mediaSelected.add(it.id); } else {
+        if (mediaSelected.has(it.id)) mediaSelected.delete(it.id); else mediaSelected.add(it.id);
+      }
+      renderMediaGrid();
+    });
+    frag.appendChild(w);
+  });
+  mediaGrid.appendChild(frag);
+}
+
+mediaClose?.addEventListener('click', hideMediaModal);
+
+mediaUploadBtn?.addEventListener('click', async ()=>{
+  try {
+    if (!mediaUpload || !mediaUpload.files || mediaUpload.files.length === 0) return;
+    mediaUploadBtn.setAttribute('disabled','');
+    if (mediaMsg) { mediaMsg.textContent = 'Uploading...'; mediaMsg.className = 'text-sm text-gray-700'; }
+    for (const f of mediaUpload.files) {
+      if (!f || f.size===0) continue;
+      const url = await uploadToImgbb(f);
+      if (url) {
+        await addDoc(collection(db,'media'), { url, createdAt: serverTimestamp(), by: auth.currentUser?auth.currentUser.uid:null });
+      }
+    }
+    mediaUpload.value = '';
+    if (mediaMsg) { mediaMsg.textContent = 'Uploaded.'; mediaMsg.className = 'text-sm text-green-700'; }
+    await loadMediaItems();
+  } catch (e) {
+    if (mediaMsg) { mediaMsg.textContent = 'Upload failed.'; mediaMsg.className = 'text-sm text-red-700'; }
+  } finally {
+    mediaUploadBtn?.removeAttribute('disabled');
+  }
+});
+
+mediaUseMain?.addEventListener('click', ()=>{
+  const first = mediaItems.find(x=> mediaSelected.has(x.id));
+  if (!first) return;
+  selectedMainUrl = first.url;
+  croppedMainImageFile = null; // prefer URL
+  if (prevImg) { prevImg.src = selectedMainUrl; prevImg.classList.remove('hidden'); }
+  hideMediaModal();
+});
+
+mediaUseGallery?.addEventListener('click', ()=>{
+  const urls = mediaItems.filter(x=> mediaSelected.has(x.id)).map(x=>x.url);
+  if (urls.length === 0) return;
+  const left = Math.max(0, 5 - selectedGalleryUrls.length);
+  selectedGalleryUrls = selectedGalleryUrls.concat(urls.slice(0,left));
+  if (prevGallery) {
+    prevGallery.innerHTML = '';
+    selectedGalleryUrls.forEach(u=>{
+      const img = document.createElement('img');
+      img.src = u; img.alt='Gallery'; img.className = 'w-full h-16 object-contain bg-white border rounded';
+      prevGallery.appendChild(img);
+    });
+  }
+  hideMediaModal();
+});
+
+btnImageLibrary?.addEventListener('click', ()=> showMediaModal('main'));
+btnGalleryLibrary?.addEventListener('click', ()=> showMediaModal('gallery'));
+
 function updateAddPreview() {
   if (!form || !prevTitle || !prevPrice || !prevExtra || !prevDesc) return;
   const title = form.title ? String(form.title.value || '').trim() : '';
@@ -305,16 +422,23 @@ form?.addEventListener('submit', async (e) => {
     if (submitBtn) submitBtn.disabled = true;
     if (!editUsingAdd.active) {
       // Create new
-      // Prefer cropped image if present
-      const mainFile = (croppedMainImageFile instanceof File) ? croppedMainImageFile : imageFile;
-      if (!(mainFile instanceof File) || mainFile.size === 0) {
-        throw new Error('Please select a product image.');
+      // If a library image was chosen, use it; else prefer cropped file; else raw file upload
+      let image = '';
+      if (selectedMainUrl) {
+        image = selectedMainUrl;
+      } else {
+        const mainFile = (croppedMainImageFile instanceof File) ? croppedMainImageFile : imageFile;
+        if (!(mainFile instanceof File) || mainFile.size === 0) {
+          throw new Error('Please select a product image.');
+        }
+        setMessage('Uploading image...', true);
+        image = await uploadToImgbb(mainFile);
       }
-      setMessage('Uploading image...', true);
-      const image = await uploadToImgbb(mainFile);
-      const images = [];
+      // Build gallery images: start from selected gallery URLs, then append uploads up to 5
+      const images = Array.isArray(selectedGalleryUrls) ? selectedGalleryUrls.slice(0,5) : [];
       try {
-        const max = Math.min(5, galleryFiles.length);
+        const left = Math.max(0, 5 - images.length);
+        const max = Math.min(left, galleryFiles.length);
         for (let i = 0; i < max; i++) {
           const f = galleryFiles[i];
           if (f && f.size > 0) {
@@ -344,7 +468,7 @@ form?.addEventListener('submit', async (e) => {
       updateAddPreviewGallery();
       setMessage('Product added successfully.');
       if (submitBtn) submitBtn.disabled = prevDisabled ?? false;
-      croppedMainImageFile = null;
+      croppedMainImageFile = null; selectedMainUrl = ''; selectedGalleryUrls = [];
     } else {
       // Update existing
       const payload = {
@@ -357,17 +481,23 @@ form?.addEventListener('submit', async (e) => {
         stock: Number.isFinite(stock) ? stock : 0,
         active: !!active
       };
-      const mainFileUpd = (croppedMainImageFile instanceof File) ? croppedMainImageFile : (imageFile instanceof File ? imageFile : null);
-      if (mainFileUpd instanceof File && mainFileUpd.size > 0) {
-        setMessage('Uploading image...', true);
-        const uploaded = await uploadToImgbb(mainFileUpd);
-        if (uploaded) payload.image = uploaded;
+      if (selectedMainUrl) {
+        payload.image = selectedMainUrl;
+      } else {
+        const mainFileUpd = (croppedMainImageFile instanceof File) ? croppedMainImageFile : (imageFile instanceof File ? imageFile : null);
+        if (mainFileUpd instanceof File && mainFileUpd.size > 0) {
+          setMessage('Uploading image...', true);
+          const uploaded = await uploadToImgbb(mainFileUpd);
+          if (uploaded) payload.image = uploaded;
+        }
       }
       // Gallery: if new files selected, replace existing images with up to 5 uploads; else keep original
       try {
-        const max = Math.min(5, galleryFiles.length);
-        if (max > 0) {
-          const imagesNew = [];
+        const selectedCount = Array.isArray(selectedGalleryUrls) ? selectedGalleryUrls.length : 0;
+        const leftSlots = Math.max(0, 5 - selectedCount);
+        const max = Math.min(leftSlots, galleryFiles.length);
+        if (max > 0 || selectedCount > 0) {
+          const imagesNew = Array.isArray(selectedGalleryUrls) ? selectedGalleryUrls.slice(0,5) : [];
           for (let i = 0; i < max; i++) {
             const f = galleryFiles[i];
             if (f && f.size > 0) {
@@ -392,7 +522,7 @@ form?.addEventListener('submit', async (e) => {
       // After successful edit, go to All Products tab
       try { location.hash = '#products'; showSection('products'); } catch {}
       if (submitBtn) submitBtn.disabled = prevDisabled ?? false;
-      croppedMainImageFile = null;
+      croppedMainImageFile = null; selectedMainUrl = ''; selectedGalleryUrls = [];
     }
   } catch (err) {
     setMessage('Failed to add product: ' + err.message, false);
