@@ -311,6 +311,8 @@ mediaCropMain?.addEventListener('click', async ()=>{
     const file = new File([blob], 'library.jpg', { type: blob.type || 'image/jpeg' });
     // Clear any library main URL so cropped file is used
     selectedMainUrl = '';
+    // Close media modal before opening cropper
+    hideMediaModal();
     openCropper(file);
   } catch (e) {
     if (mediaMsg) { mediaMsg.textContent = 'Failed to open cropper for this image.'; mediaMsg.className = 'text-sm text-red-700'; }
