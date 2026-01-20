@@ -163,20 +163,27 @@ function drawProducts() {
   list.forEach(({ id, data: d }) => {
       if (d.active === false) return; // hide inactive
       const card = document.createElement('div');
-      card.className = 'relative border rounded-lg bg-white overflow-hidden flex flex-col shadow-sm';
+      card.className = 'relative border border-gray-200 rounded-xl bg-white overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-shadow';
       const stock = Number(d.stock || 0);
       const out = stock <= 0;
       card.innerHTML = `
         ${out ? '<span class="absolute top-2 left-2 text-[11px] px-2 py-0.5 rounded-full bg-red-600 text-white">Out of stock</span>' : ''}
-        <a href="productfullview.html?id=${encodeURIComponent(id)}" class="block">
-          <img src="${d.image}" alt="${d.title}" class="h-44 w-full object-contain bg-white">
+        <a href="productfullview.html?id=${encodeURIComponent(id)}" class="block bg-gray-50">
+          <img src="${d.image}" alt="${d.title}" class="h-40 w-full object-contain p-2">
         </a>
         <div class="p-3 flex-1 flex flex-col">
-          <h3 class="font-semibold text-base mb-1 line-clamp-1"><a href="productfullview.html?id=${encodeURIComponent(id)}" class="hover:text-blue-700">${d.title}</a></h3>
-          <p class="text-sm text-gray-600 line-clamp-2 mb-2">${d.description || ''}</p>
-          <div class="mt-auto flex items-center justify-between gap-2">
-            <span class="text-blue-700 font-semibold text-sm">৳${Number(d.price).toFixed(2)}${d.weight ? ` · ${d.weight}` : ''}</span>
-            <button class="add-to-cart ${out ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white px-3 py-1.5 rounded text-sm" ${out ? 'disabled' : ''}>${out ? 'Unavailable' : 'Add to Cart'}</button>
+          <h3 class="font-semibold text-base mb-1 line-clamp-2"><a href="productfullview.html?id=${encodeURIComponent(id)}" class="hover:text-blue-700">${d.title}</a></h3>
+          <div class="mt-1">
+            <div class="text-blue-700 font-semibold text-sm">৳${Number(d.price).toFixed(2)}</div>
+            ${d.weight ? `<div class=\"text-blue-700 text-xs mt-0.5\">${d.weight}</div>` : ''}
+          </div>
+          <div class="mt-auto pt-2 flex items-center justify-end">
+            <button class="add-to-cart ${out ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white px-3 py-2 rounded-md text-sm shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 active:scale-[0.99] transition ${out ? '' : ''}" ${out ? 'disabled' : ''}>
+              <span class="inline-flex items-center gap-1">
+                <svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-4 h-4\"><circle cx=\"9\" cy=\"21\" r=\"1\"/><circle cx=\"20\" cy=\"21\" r=\"1\"/><path d=\"M1 1h4l2.68 12.39a2 2 0 0 0 2 1.61h7.72a2 2 0 0 0 2-1.61L23 6H6\"/></svg>
+                ${out ? 'Unavailable' : 'Add to Cart'}
+              </span>
+            </button>
           </div>
         </div>
       `;
@@ -299,7 +306,7 @@ export async function renderCartPage() {
   function parseWeightToGrams(w) {
     if (!w) return 0;
     const s = String(w).trim().toLowerCase();
-    const m = s.match(/([0-9]*\.?[0-9]+)\s*(kg|g|l|liter|ltr)?/);
+    const m = s.match(/([0-9]*\.?[0-9]+)\s*(kg|g|l|liter|ltr|ml)?/);
     if (!m) return 0;
     const val = parseFloat(m[1]);
     const unit = m[2] || 'g';
@@ -364,32 +371,32 @@ export async function renderCartPage() {
     let total = 0;
     cart.forEach(item => {
       const row = document.createElement('div');
-      row.className = 'flex items-center justify-between border rounded p-3';
+      row.className = 'relative border rounded p-2';
       const itemTotal = item.price * item.qty;
       total += itemTotal;
       row.innerHTML = `
-        <div class="flex items-center gap-3">
+        <button class="remove w-9 h-9 flex items-center justify-center rounded-full bg-red-600 text-white hover:bg-red-700 absolute top-2 right-2" aria-label="Remove item" title="Remove">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+            <path d="M10 11v6"/>
+            <path d="M14 11v6"/>
+            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+          </svg>
+        </button>
+        <div class="flex items-start gap-3 pr-12">
           <img src="${item.image}" alt="${item.title}" class="w-16 h-16 object-contain bg-white rounded">
-          <div>
-            <div class="font-medium">${item.title}${item.weight ? ` · ${item.weight}` : ''}</div>
+          <div class="flex-1">
+            <div class="font-medium leading-tight">${item.title}${item.weight ? ` · ${item.weight}` : ''}</div>
             <div class="text-sm text-gray-600">৳${item.price.toFixed(2)}</div>
+            <div class="mt-2 flex items-center justify-end">
+              <div class="inline-flex items-center rounded-full border border-gray-200 overflow-hidden shadow-sm">
+                <button aria-label="Decrease quantity" class="qty-dec w-9 h-9 flex items-center justify-center bg-gray-50 hover:bg-gray-100 active:bg-gray-200 text-base">−</button>
+                <span class="w-10 text-center text-sm select-none">${item.qty}</span>
+                <button aria-label="Increase quantity" class="qty-inc w-9 h-9 flex items-center justify-center bg-gray-50 hover:bg-gray-100 active:bg-gray-200 text-base">+</button>
+              </div>
+            </div>
           </div>
-        </div>
-        <div class="flex items-center gap-3">
-          <div class="inline-flex items-center rounded-full border border-gray-200 overflow-hidden shadow-sm">
-            <button aria-label="Decrease quantity" class="qty-dec w-9 h-9 flex items-center justify-center bg-gray-50 hover:bg-gray-100 active:bg-gray-200 text-base">−</button>
-            <span class="w-10 text-center text-sm select-none">${item.qty}</span>
-            <button aria-label="Increase quantity" class="qty-inc w-9 h-9 flex items-center justify-center bg-gray-50 hover:bg-gray-100 active:bg-gray-200 text-base">+</button>
-          </div>
-          <button class="remove w-9 h-9 flex items-center justify-center rounded-full bg-red-600 text-white hover:bg-red-700" aria-label="Remove item" title="Remove">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="3 6 5 6 21 6"/>
-              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-              <path d="M10 11v6"/>
-              <path d="M14 11v6"/>
-              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-            </svg>
-          </button>
         </div>
       `;
       const decBtn = row.querySelector('.qty-dec');
