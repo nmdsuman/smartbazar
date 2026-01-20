@@ -174,11 +174,17 @@
         </div>
         <div class="md:col-span-2">
           <label class="block text-sm mb-1">Product Image</label>
-          <input type="file" name="image" accept="image/*" class="w-full border rounded px-3 py-2"/>
+          <div class="flex items-center gap-2">
+            <input type="file" name="image" accept="image/*" class="flex-1 border rounded px-3 py-2"/>
+            <button type="button" id="btn-image-library" class="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200">From Library</button>
+          </div>
         </div>
         <div class="md:col-span-2">
           <label class="block text-sm mb-1">Gallery Images (optional, up to 5)</label>
-          <input type="file" name="gallery" accept="image/*" multiple class="w-full border rounded px-3 py-2"/>
+          <div class="flex items-center gap-2">
+            <input type="file" name="gallery" accept="image/*" multiple class="flex-1 border rounded px-3 py-2"/>
+            <button type="button" id="btn-gallery-library" class="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200">From Library</button>
+          </div>
           <p class="text-xs text-gray-500 mt-1">You can select multiple images. The first image above is used as the main image.</p>
         </div>
         <div class="md:col-span-2">
@@ -357,6 +363,28 @@
           <button id="cropper-cancel" class="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200">Cancel</button>
           <button id="cropper-apply" class="px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">Apply Crop</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Media Library Modal -->
+  <div id="media-modal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50">
+    <div class="bg-white w-full max-w-4xl rounded shadow-lg overflow-hidden m-4">
+      <div class="px-4 py-3 border-b flex items-center justify-between">
+        <h3 class="font-semibold">Media Library</h3>
+        <button id="media-close" class="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200">Close</button>
+      </div>
+      <div class="p-4 space-y-3">
+        <div class="flex items-center gap-2">
+          <input id="media-upload" type="file" accept="image/*" multiple class="border rounded px-3 py-2"/>
+          <button id="media-upload-btn" class="px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">Upload</button>
+        </div>
+        <div id="media-grid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 max-h-[60vh] overflow-y-auto"></div>
+        <div class="flex items-center justify-end gap-2">
+          <button id="media-use-main" class="px-3 py-2 rounded bg-green-600 text-white hover:bg-green-700">Use as Main</button>
+          <button id="media-use-gallery" class="px-3 py-2 rounded bg-gray-800 text-white hover:bg-black">Add to Gallery</button>
+        </div>
+        <div id="media-message" class="text-sm"></div>
       </div>
     </div>
   </div>
