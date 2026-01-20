@@ -89,37 +89,59 @@ function draw(){
   list.forEach(m => {
     const card = document.createElement('div');
     card.className = 'border rounded bg-white overflow-hidden flex flex-col';
+    const catLabel = (m.category || '').trim() ? m.category : 'Uncategorized';
     card.innerHTML = `
       <img src="${m.url}" alt="" class="h-40 w-full object-cover bg-white">
       <div class="p-3 space-y-2">
         <div class="text-xs text-gray-600 break-all">${m.url}</div>
-        <div class="flex items-center gap-2">
-          <input type="text" class="flex-1 border rounded px-2 py-1 text-sm" value="${m.category||''}" placeholder="Category"/>
-          <button class="save px-2 py-1 rounded bg-blue-600 text-white text-sm">Save</button>
-          <button class="del px-2 py-1 rounded bg-red-600 text-white text-sm">Delete</button>
+        <div class="flex items-center justify-between">
+          <div class="text-sm"><span class="text-gray-500">Category:</span> <span class="cat-text font-medium">${catLabel}</span></div>
+          <div class="flex items-center gap-2">
+            <button class="edit px-2 py-1 rounded bg-gray-100 text-gray-800 text-sm hover:bg-gray-200">Edit</button>
+            <button class="del px-2 py-1 rounded bg-red-600 text-white text-sm">Delete</button>
+          </div>
         </div>
       </div>
     `;
-    const input = card.querySelector('input');
-    const btn = card.querySelector('.save');
     const del = card.querySelector('.del');
-    btn.addEventListener('click', async ()=>{
-      try {
-        btn.setAttribute('disabled','');
-        await updateDoc(doc(db,'media', m.id), { category: input.value.trim() || null });
-        setMsg('Category updated');
-        m.category = input.value.trim() || null;
-        renderFilterOptions();
-      } catch(e){ setMsg('Update failed', false); }
-      finally { btn.removeAttribute('disabled'); }
-    });
+    const editBtn = card.querySelector('.edit');
+    const catText = card.querySelector('.cat-text');
+
+    function openInlineEditor(){
+      const wrap = document.createElement('div');
+      wrap.className = 'flex items-center gap-2 mt-2';
+      wrap.innerHTML = `
+        <input type="text" class="flex-1 border rounded px-2 py-1 text-sm" value="${m.category||''}" placeholder="Category"/>
+        <button class="save px-2 py-1 rounded bg-blue-600 text-white text-sm">Save</button>
+        <button class="cancel px-2 py-1 rounded bg-gray-100 text-sm">Cancel</button>
+      `;
+      const body = card.querySelector('.p-3');
+      body.appendChild(wrap);
+      const input = wrap.querySelector('input');
+      const save = wrap.querySelector('.save');
+      const cancel = wrap.querySelector('.cancel');
+      cancel.addEventListener('click', ()=> wrap.remove());
+      save.addEventListener('click', async ()=>{
+        try{
+          save.setAttribute('disabled','');
+          await updateDoc(doc(db,'media', m.id), { category: input.value.trim() || null });
+          m.category = input.value.trim() || null;
+          catText.textContent = (m.category||'').trim()? m.category : 'Uncategorized';
+          setMsg('Category updated');
+          renderFilterOptions();
+        } catch(e){ setMsg('Update failed', false); }
+        finally { save.removeAttribute('disabled'); wrap.remove(); }
+      });
+    }
+
+    editBtn.addEventListener('click', openInlineEditor);
+
     del.addEventListener('click', async ()=>{
       try {
         if (!confirm('Delete this image from library?')) return;
         del.setAttribute('disabled','');
         await deleteDoc(doc(db,'media', m.id));
         setMsg('Image deleted');
-        // remove from local and re-render
         allMedia = allMedia.filter(x=> x.id !== m.id);
         renderFilterOptions();
         draw();
