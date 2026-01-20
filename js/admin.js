@@ -109,6 +109,8 @@ const prevGallery = document.getElementById('add-preview-gallery');
 const addSectionTitle = document.getElementById('add-section-title');
 const addSubmitBtn = document.getElementById('add-submit-btn');
 const addCancelEditBtn = document.getElementById('add-cancel-edit');
+const btnImageClear = document.getElementById('btn-image-clear');
+const btnGalleryClear = document.getElementById('btn-gallery-clear');
 
 let editUsingAdd = { active: false, productId: null, original: null };
 
@@ -182,6 +184,7 @@ const mediaUpload = document.getElementById('media-upload');
 const mediaUploadBtn = document.getElementById('media-upload-btn');
 const mediaGrid = document.getElementById('media-grid');
 const mediaUseMain = document.getElementById('media-use-main');
+const mediaCropMain = document.getElementById('media-crop-main');
 const mediaUseGallery = document.getElementById('media-use-gallery');
 const mediaMsg = document.getElementById('media-message');
 const btnImageLibrary = document.getElementById('btn-image-library');
@@ -278,19 +281,51 @@ mediaUseGallery?.addEventListener('click', ()=>{
   if (urls.length === 0) return;
   const left = Math.max(0, 5 - selectedGalleryUrls.length);
   selectedGalleryUrls = selectedGalleryUrls.concat(urls.slice(0,left));
-  if (prevGallery) {
-    prevGallery.innerHTML = '';
-    selectedGalleryUrls.forEach(u=>{
-      const img = document.createElement('img');
-      img.src = u; img.alt='Gallery'; img.className = 'w-full h-16 object-contain bg-white border rounded';
-      prevGallery.appendChild(img);
-    });
-  }
+  renderSelectedGalleryPreview();
   hideMediaModal();
 });
 
 btnImageLibrary?.addEventListener('click', ()=> showMediaModal('main'));
 btnGalleryLibrary?.addEventListener('click', ()=> showMediaModal('gallery'));
+
+mediaCropMain?.addEventListener('click', async ()=>{
+  try {
+    const first = mediaItems.find(x=> mediaSelected.has(x.id));
+    if (!first) return;
+    // Fetch the image and open cropper
+    const res = await fetch(first.url);
+    const blob = await res.blob();
+    const file = new File([blob], 'library.jpg', { type: blob.type || 'image/jpeg' });
+    // Clear any library main URL so cropped file is used
+    selectedMainUrl = '';
+    openCropper(file);
+  } catch (e) {
+    if (mediaMsg) { mediaMsg.textContent = 'Failed to open cropper for this image.'; mediaMsg.className = 'text-sm text-red-700'; }
+  }
+});
+
+function renderSelectedGalleryPreview(){
+  if (!prevGallery) return;
+  prevGallery.innerHTML = '';
+  selectedGalleryUrls.forEach((u, idx)=>{
+    const wrap = document.createElement('div');
+    wrap.className = 'relative group';
+    const img = document.createElement('img');
+    img.src = u; img.alt='Gallery'; img.className = 'w-full h-16 object-contain bg-white border rounded';
+    const rm = document.createElement('button');
+    rm.type = 'button';
+    rm.className = 'hidden group-hover:flex items-center justify-center absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-600 text-white shadow';
+    rm.innerHTML = '×';
+    rm.addEventListener('click', (e)=>{
+      e.preventDefault();
+      selectedGalleryUrls = selectedGalleryUrls.filter((x, i)=> i!==idx);
+      renderSelectedGalleryPreview();
+    });
+    wrap.appendChild(img);
+    wrap.appendChild(rm);
+    prevGallery.appendChild(wrap);
+  });
+}
 
 function updateAddPreview() {
   if (!form || !prevTitle || !prevPrice || !prevExtra || !prevDesc) return;
@@ -339,13 +374,18 @@ function updateAddPreviewGallery() {
       const f = files[i];
       if (!f) continue;
       const url = URL.createObjectURL(f);
+      const div = document.createElement('div');
+      div.className = 'relative';
       const img = document.createElement('img');
-      img.src = url;
-      img.alt = 'Preview';
-      img.className = 'w-full h-16 object-contain bg-white border rounded';
-      prevGallery.appendChild(img);
+      img.src = url; img.alt = 'Preview'; img.className = 'w-full h-16 object-contain bg-white border rounded opacity-90';
+      div.appendChild(img);
+      prevGallery.appendChild(div);
     }
-  } else if (editUsingAdd.active) {
+  }
+  // Also render any library-selected gallery images with removal buttons
+  if (selectedGalleryUrls.length > 0) {
+    renderSelectedGalleryPreview();
+  } else if (max === 0 && editUsingAdd.active) {
     const urls = Array.isArray(editUsingAdd.original?.images) ? editUsingAdd.original.images.slice(0,5) : [];
     urls.forEach(u => {
       const img = document.createElement('img');
@@ -391,6 +431,26 @@ addCancelEditBtn?.addEventListener('click', () => {
   updateAddPreview();
   updateAddPreviewImage();
   updateAddPreviewGallery();
+});
+
+// Clear buttons
+btnImageClear?.addEventListener('click', ()=>{
+  try {
+    const imgInput = form?.querySelector('[name="image"]');
+    if (imgInput) imgInput.value = '';
+    selectedMainUrl = '';
+    croppedMainImageFile = null;
+    if (prevImg) { prevImg.src=''; prevImg.classList.add('hidden'); }
+  } catch {}
+});
+
+btnGalleryClear?.addEventListener('click', ()=>{
+  try {
+    const galInput = form?.querySelector('[name="gallery"]');
+    if (galInput) galInput.value = '';
+    selectedGalleryUrls = [];
+    renderSelectedGalleryPreview();
+  } catch {}
 });
 
 form?.addEventListener('submit', async (e) => {
