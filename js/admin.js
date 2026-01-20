@@ -116,7 +116,9 @@ function updateAddPreview() {
   if (!form || !prevTitle || !prevPrice || !prevExtra || !prevDesc) return;
   const title = form.title ? String(form.title.value || '').trim() : '';
   const price = form.price ? Number(form.price.value || 0) : 0;
-  const weight = form.weight ? String(form.weight.value || '').trim() : '';
+  const weightVal = form.weightValue ? String(form.weightValue.value || '').trim() : '';
+  const weightUnit = form.weightUnit ? String(form.weightUnit.value || '').trim() : '';
+  const weight = weightVal ? `${weightVal}${weightUnit === 'l' ? 'L' : 'kg'}` : '';
   const size = form.size ? String(form.size.value || '').trim() : '';
   const desc = form.description ? String(form.description.value || '').trim() : '';
 
@@ -176,7 +178,7 @@ function updateAddPreviewGallery() {
 
 // Wire preview listeners
 if (form) {
-  ['title','price','weight','size','description'].forEach(name => {
+  ['title','price','weightValue','weightUnit','size','description'].forEach(name => {
     const el = form.querySelector(`[name="${name}"]`);
     if (el) el.addEventListener('input', updateAddPreview);
   });
@@ -212,7 +214,9 @@ form?.addEventListener('submit', async (e) => {
   const galleryFiles = galleryInput && galleryInput.files ? galleryInput.files : [];
   const description = (data.get('description') || '').toString().trim();
   const category = (data.get('category') || '').toString().trim();
-  const weight = (data.get('weight') || '').toString().trim();
+  const wv = (data.get('weightValue') || '').toString().trim();
+  const wu = (data.get('weightUnit') || '').toString().trim();
+  const weight = wv ? `${wv}${(wu||'kg') === 'l' ? 'L' : 'kg'}` : '';
   const size = (data.get('size') || '').toString().trim();
   const stock = Number(data.get('stock') || 0);
   const active = data.get('active') ? true : false;
@@ -374,7 +378,25 @@ function renderProducts() {
           if (form.title) form.title.value = data.title || '';
           if (form.price) form.price.value = data.price || 0;
           const cat = form.querySelector('[name="category"]'); if (cat) cat.value = data.category || '';
-          if (form.weight) form.weight.value = data.weight || '';
+          // Parse existing weight like '1kg', '500g', '1L'
+          try {
+            const s = String(data.weight || '').trim().toLowerCase();
+            const m = s.match(/([0-9]*\.?[0-9]+)\s*(kg|g|l|liter|ltr)?/);
+            if (m) {
+              const v = parseFloat(m[1]);
+              const u = m[2] || 'g';
+              if (form.weightValue && form.weightUnit) {
+                if (u === 'kg') { form.weightValue.value = String(v); form.weightUnit.value = 'kg'; }
+                else if (u === 'l' || u === 'liter' || u === 'ltr') { form.weightValue.value = String(v); form.weightUnit.value = 'l'; }
+                else { // grams -> convert to kg
+                  form.weightValue.value = String((v/1000));
+                  form.weightUnit.value = 'kg';
+                }
+              }
+            } else {
+              if (form.weightValue) form.weightValue.value = '';
+            }
+          } catch { if (form.weightValue) form.weightValue.value = ''; }
           if (form.size) form.size.value = data.size || '';
           if (form.description) form.description.value = data.description || '';
           if (form.stock) form.stock.value = Number(data.stock || 0);
