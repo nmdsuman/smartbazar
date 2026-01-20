@@ -94,7 +94,7 @@ function draw(){
       <img src="${m.url}" alt="" class="h-40 w-full object-cover bg-white">
       <div class="p-3 space-y-2">
         <div class="text-xs text-gray-600 break-all">${m.url}</div>
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between cat-row">
           <div class="text-sm"><span class="text-gray-500">Category:</span> <span class="cat-text font-medium">${catLabel}</span></div>
           <div class="flex items-center gap-2">
             <button class="edit px-2 py-1 rounded bg-gray-100 text-gray-800 text-sm hover:bg-gray-200">Edit</button>
@@ -108,29 +108,59 @@ function draw(){
     const catText = card.querySelector('.cat-text');
 
     function openInlineEditor(){
-      const wrap = document.createElement('div');
-      wrap.className = 'flex items-center gap-2 mt-2';
-      wrap.innerHTML = `
-        <input type="text" class="flex-1 border rounded px-2 py-1 text-sm" value="${m.category||''}" placeholder="Category"/>
-        <button class="save px-2 py-1 rounded bg-blue-600 text-white text-sm">Save</button>
-        <button class="cancel px-2 py-1 rounded bg-gray-100 text-sm">Cancel</button>
+      const row = card.querySelector('.cat-row');
+      if (!row) return;
+      row.innerHTML = `
+        <div class="flex-1">
+          <input type="text" class="w-full border rounded px-2 py-1 text-sm" value="${m.category||''}" placeholder="Category"/>
+        </div>
+        <div class="flex items-center gap-2 pl-2">
+          <button class="save px-2 py-1 rounded bg-blue-600 text-white text-sm">Save</button>
+          <button class="cancel px-2 py-1 rounded bg-gray-100 text-sm">Cancel</button>
+        </div>
       `;
-      const body = card.querySelector('.p-3');
-      body.appendChild(wrap);
-      const input = wrap.querySelector('input');
-      const save = wrap.querySelector('.save');
-      const cancel = wrap.querySelector('.cancel');
-      cancel.addEventListener('click', ()=> wrap.remove());
-      save.addEventListener('click', async ()=>{
+      const input = row.querySelector('input');
+      const save = row.querySelector('.save');
+      const cancel = row.querySelector('.cancel');
+      input?.focus();
+      input?.select();
+      const doSave = async ()=>{
         try{
           save.setAttribute('disabled','');
           await updateDoc(doc(db,'media', m.id), { category: input.value.trim() || null });
           m.category = input.value.trim() || null;
-          catText.textContent = (m.category||'').trim()? m.category : 'Uncategorized';
+          const newLabel = (m.category||'').trim()? m.category : 'Uncategorized';
+          row.innerHTML = `
+            <div class="text-sm"><span class="text-gray-500">Category:</span> <span class="cat-text font-medium">${newLabel}</span></div>
+            <div class="flex items-center gap-2">
+              <button class="edit px-2 py-1 rounded bg-gray-100 text-gray-800 text-sm hover:bg-gray-200">Edit</button>
+              <button class="del px-2 py-1 rounded bg-red-600 text-white text-sm">Delete</button>
+            </div>`;
+          // rebind buttons
+          row.querySelector('.edit')?.addEventListener('click', openInlineEditor);
+          row.querySelector('.del')?.addEventListener('click', del.onclick);
           setMsg('Category updated');
           renderFilterOptions();
         } catch(e){ setMsg('Update failed', false); }
-        finally { save.removeAttribute('disabled'); wrap.remove(); }
+        finally { save.removeAttribute('disabled'); }
+      };
+      save.addEventListener('click', doSave);
+      input?.addEventListener('keydown', (e)=>{
+        if (e.key === 'Enter') { e.preventDefault(); doSave(); }
+        if (e.key === 'Escape') { e.preventDefault(); row.innerHTML = '';
+          row.innerHTML = `<div class="text-sm"><span class="text-gray-500">Category:</span> <span class="cat-text font-medium">${(m.category||'').trim()? m.category : 'Uncategorized'}</span></div>
+            <div class=\"flex items-center gap-2\"><button class=\"edit px-2 py-1 rounded bg-gray-100 text-gray-800 text-sm hover:bg-gray-200\">Edit</button>
+            <button class=\"del px-2 py-1 rounded bg-red-600 text-white text-sm\">Delete</button></div>`;
+          row.querySelector('.edit')?.addEventListener('click', openInlineEditor);
+          row.querySelector('.del')?.addEventListener('click', del.onclick);
+        }
+      });
+      cancel.addEventListener('click', ()=>{
+        row.innerHTML = `<div class="text-sm"><span class="text-gray-500">Category:</span> <span class="cat-text font-medium">${(m.category||'').trim()? m.category : 'Uncategorized'}</span></div>
+          <div class="flex items-center gap-2"><button class="edit px-2 py-1 rounded bg-gray-100 text-gray-800 text-sm hover:bg-gray-200">Edit</button>
+          <button class="del px-2 py-1 rounded bg-red-600 text-white text-sm">Delete</button></div>`;
+        row.querySelector('.edit')?.addEventListener('click', openInlineEditor);
+        row.querySelector('.del')?.addEventListener('click', del.onclick);
       });
     }
 
