@@ -171,21 +171,16 @@ function drawProducts() {
         <a href="productfullview.html?id=${encodeURIComponent(id)}" class="block bg-gray-50">
           <img src="${d.image}" alt="${d.title}" class="h-40 w-full object-contain p-2">
         </a>
-        <div class="p-3 flex-1 flex flex-col">
-          <h3 class="font-semibold text-base mb-1 line-clamp-2"><a href="productfullview.html?id=${encodeURIComponent(id)}" class="hover:text-blue-700">${d.title}</a></h3>
-          <div class="mt-1">
-            <div class="text-blue-700 font-semibold text-sm">৳${Number(d.price).toFixed(2)}</div>
-            ${d.weight ? `<div class=\"text-blue-700 text-xs mt-0.5\">${d.weight}</div>` : ''}
-          </div>
-          <div class="mt-auto pt-2 flex items-center justify-end">
-            <button class="add-to-cart ${out ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white px-3 py-2 rounded-md text-sm shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 active:scale-[0.99] transition ${out ? '' : ''}" ${out ? 'disabled' : ''}>
-              <span class="inline-flex items-center gap-1">
-                <svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-4 h-4\"><circle cx=\"9\" cy=\"21\" r=\"1\"/><circle cx=\"20\" cy=\"21\" r=\"1\"/><path d=\"M1 1h4l2.68 12.39a2 2 0 0 0 2 1.61h7.72a2 2 0 0 0 2-1.61L23 6H6\"/></svg>
-                ${out ? 'Unavailable' : 'Add to Cart'}
-              </span>
-            </button>
+        <div class="p-3 pb-4 flex-1 flex flex-col">
+          <h3 class="font-semibold text-[15px] mb-1 leading-snug line-clamp-2"><a href="productfullview.html?id=${encodeURIComponent(id)}" class="hover:text-blue-700">${d.title}</a></h3>
+          <div class="flex items-center justify-between mt-1">
+            <div class="text-orange-600 font-bold text-sm">৳${Number(d.price).toFixed(2)}</div>
+            ${d.weight ? `<span class=\"bg-gray-100 text-gray-700 text-[11px] px-2 py-0.5 rounded\">${d.weight}</span>` : ''}
           </div>
         </div>
+        <button class="add-to-cart ${out ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white w-10 h-10 rounded-full shadow-md flex items-center justify-center absolute bottom-2 right-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 active:scale-[0.98] transition" ${out ? 'disabled' : ''} aria-label="Add to cart">
+          <svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-5 h-5\"><circle cx=\"9\" cy=\"21\" r=\"1\"/><circle cx=\"20\" cy=\"21\" r=\"1\"/><path d=\"M1 1h4l2.68 12.39a2 2 0 0 0 2 1.61h7.72a2 2 0 0 0 2-1.61L23 6H6\"/></svg>
+        </button>
       `;
       if (!out) {
         const btn = card.querySelector('.add-to-cart');
