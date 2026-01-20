@@ -4,6 +4,7 @@ import {
   collection,
   addDoc,
   updateDoc,
+  deleteDoc,
   doc,
   serverTimestamp,
   getDocs,
@@ -95,11 +96,13 @@ function draw(){
         <div class="flex items-center gap-2">
           <input type="text" class="flex-1 border rounded px-2 py-1 text-sm" value="${m.category||''}" placeholder="Category"/>
           <button class="save px-2 py-1 rounded bg-blue-600 text-white text-sm">Save</button>
+          <button class="del px-2 py-1 rounded bg-red-600 text-white text-sm">Delete</button>
         </div>
       </div>
     `;
     const input = card.querySelector('input');
     const btn = card.querySelector('.save');
+    const del = card.querySelector('.del');
     btn.addEventListener('click', async ()=>{
       try {
         btn.setAttribute('disabled','');
@@ -109,6 +112,19 @@ function draw(){
         renderFilterOptions();
       } catch(e){ setMsg('Update failed', false); }
       finally { btn.removeAttribute('disabled'); }
+    });
+    del.addEventListener('click', async ()=>{
+      try {
+        if (!confirm('Delete this image from library?')) return;
+        del.setAttribute('disabled','');
+        await deleteDoc(doc(db,'media', m.id));
+        setMsg('Image deleted');
+        // remove from local and re-render
+        allMedia = allMedia.filter(x=> x.id !== m.id);
+        renderFilterOptions();
+        draw();
+      } catch(e){ setMsg('Delete failed', false); }
+      finally { del.removeAttribute('disabled'); }
     });
     frag.appendChild(card);
   });
