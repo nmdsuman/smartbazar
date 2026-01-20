@@ -226,8 +226,21 @@ upLinkBtn?.addEventListener('click', async ()=>{
     const cat = (upCat?.value||'').trim();
     upLinkBtn.setAttribute('disabled','');
     setMsg('Uploading link...');
-    const url = await uploadUrlToImgbb(link);
-    await addDoc(collection(db,'media'), { url, category: cat || null, createdAt: serverTimestamp(), by: auth.currentUser?auth.currentUser.uid:null });
+    let finalUrl = '';
+    const isImgbbLike = /(^https?:\/\/i\.ibb\.co\/)|(^https?:\/\/.*imgbb\.com\//i).test(link);
+    try{
+      if (isImgbbLike){
+        // Already hosted on imgbb; no need to re-upload
+        finalUrl = link;
+      } else {
+        finalUrl = await uploadUrlToImgbb(link);
+      }
+    } catch(e){
+      // Fallback: store the original URL directly
+      finalUrl = link;
+      setMsg('imgbb rejected link; saving external URL directly...', false);
+    }
+    await addDoc(collection(db,'media'), { url: finalUrl, category: cat || null, createdAt: serverTimestamp(), by: auth.currentUser?auth.currentUser.uid:null });
     setMsg('Link added');
     upLinkInput.value = '';
     await loadMedia();
