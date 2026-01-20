@@ -36,9 +36,21 @@ async function uploadToImgbb(file) {
   return json.data?.url || json.data?.display_url || '';
 }
 
+async function uploadUrlToImgbb(imageUrl){
+  const fd = new FormData();
+  fd.append('image', imageUrl);
+  const res = await fetch(`https://api.imgbb.com/1/upload?expiration=0&key=${encodeURIComponent(IMGBB_API_KEY)}`, { method: 'POST', body: fd });
+  if (!res.ok) throw new Error('Upload failed');
+  const json = await res.json();
+  if (!json?.success) throw new Error('Upload failed');
+  return json.data?.url || json.data?.display_url || '';
+}
+
 const upInput = document.getElementById('lib-upload');
 const upCat = document.getElementById('lib-upload-cat');
 const upBtn = document.getElementById('lib-upload-btn');
+const upLinkInput = document.getElementById('lib-upload-link');
+const upLinkBtn = document.getElementById('lib-upload-link-btn');
 const msgEl = document.getElementById('lib-msg');
 const grid = document.getElementById('lib-grid');
 const empty = document.getElementById('lib-empty');
@@ -204,6 +216,23 @@ upBtn?.addEventListener('click', async ()=>{
     await loadMedia();
   }catch(e){ setMsg('Upload failed', false); }
   finally{ upBtn.removeAttribute('disabled'); }
+});
+
+upLinkBtn?.addEventListener('click', async ()=>{
+  try{
+    const link = (upLinkInput?.value || '').trim();
+    if (!link){ setMsg('Please paste an image link', false); return; }
+    try { new URL(link); } catch { setMsg('Invalid URL', false); return; }
+    const cat = (upCat?.value||'').trim();
+    upLinkBtn.setAttribute('disabled','');
+    setMsg('Uploading link...');
+    const url = await uploadUrlToImgbb(link);
+    await addDoc(collection(db,'media'), { url, category: cat || null, createdAt: serverTimestamp(), by: auth.currentUser?auth.currentUser.uid:null });
+    setMsg('Link added');
+    upLinkInput.value = '';
+    await loadMedia();
+  }catch(e){ setMsg('Upload by link failed', false); }
+  finally{ upLinkBtn.removeAttribute('disabled'); }
 });
 
 clearBtn?.addEventListener('click', ()=> { searchInput.value=''; currentQ=''; draw(); });
