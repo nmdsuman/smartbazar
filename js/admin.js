@@ -118,7 +118,8 @@ function updateAddPreview() {
   const price = form.price ? Number(form.price.value || 0) : 0;
   const weightVal = form.weightValue ? String(form.weightValue.value || '').trim() : '';
   const weightUnit = form.weightUnit ? String(form.weightUnit.value || '').trim() : '';
-  const weight = weightVal ? `${weightVal}${weightUnit === 'l' ? 'L' : 'kg'}` : '';
+  const unitLabel = weightUnit === 'l' ? 'L' : (weightUnit === 'ml' ? 'ml' : (weightUnit === 'kg' ? 'kg' : 'g'));
+  const weight = weightVal ? `${weightVal}${unitLabel}` : '';
   const size = form.size ? String(form.size.value || '').trim() : '';
   const desc = form.description ? String(form.description.value || '').trim() : '';
 
@@ -216,7 +217,8 @@ form?.addEventListener('submit', async (e) => {
   const category = (data.get('category') || '').toString().trim();
   const wv = (data.get('weightValue') || '').toString().trim();
   const wu = (data.get('weightUnit') || '').toString().trim();
-  const weight = wv ? `${wv}${(wu||'kg') === 'l' ? 'L' : 'kg'}` : '';
+  const unitOut = wu === 'l' ? 'L' : (wu === 'ml' ? 'ml' : (wu === 'kg' ? 'kg' : 'g'));
+  const weight = wv ? `${wv}${unitOut}` : '';
   const size = (data.get('size') || '').toString().trim();
   const stock = Number(data.get('stock') || 0);
   const active = data.get('active') ? true : false;
@@ -312,6 +314,8 @@ form?.addEventListener('submit', async (e) => {
       updateAddPreview();
       updateAddPreviewImage();
       updateAddPreviewGallery();
+      // After successful edit, go to All Products tab
+      try { location.hash = '#products'; showSection('products'); } catch {}
       if (submitBtn) submitBtn.disabled = prevDisabled ?? false;
     }
   } catch (err) {
