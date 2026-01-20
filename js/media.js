@@ -1,4 +1,5 @@
 import { auth, db } from './firebase-config.js';
+import { onAuthStateChanged } from 'firebase/auth';
 import { requireAdmin } from './auth.js';
 import {
   collection,
@@ -30,9 +31,12 @@ async function uploadToImgbb(file) {
   const fd = new FormData();
   fd.append('image', b64);
   const res = await fetch(`https://api.imgbb.com/1/upload?expiration=0&key=${encodeURIComponent(IMGBB_API_KEY)}`, { method: 'POST', body: fd });
-  if (!res.ok) throw new Error('Upload failed');
+  if (!res.ok) {
+    const text = await res.text().catch(()=> '');
+    throw new Error(`Upload failed (${res.status}): ${text?.slice(0,120)}`);
+  }
   const json = await res.json();
-  if (!json?.success) throw new Error('Upload failed');
+  if (!json?.success) throw new Error(`Upload failed: ${JSON.stringify(json).slice(0,120)}`);
   return json.data?.url || json.data?.display_url || '';
 }
 
@@ -92,7 +96,7 @@ async function loadMedia(){
     draw();
   } catch(e){
     console.error('loadMedia error', e);
-    setMsg('Failed to load media', false);
+    setMsg(`Failed to load media: ${e?.message||e}`, false);
     allMedia = [];
     renderFilterOptions();
     draw();
@@ -247,26 +251,13 @@ upLinkBtn?.addEventListener('click', async ()=>{
     try { new URL(link); } catch { setMsg('Invalid URL', false); return; }
     const cat = (upCat?.value||'').trim();
     upLinkBtn.setAttribute('disabled','');
-    setMsg('Uploading link...');
-    let finalUrl = '';
-    const isImgbbLike = /(^https?:\/\/i\.ibb\.co\/)|(^https?:\/\/.*imgbb\.com\//i).test(link);
-    try{
-      if (isImgbbLike){
-        // Already hosted on imgbb; no need to re-upload
-        finalUrl = link;
-      } else {
-        finalUrl = await uploadUrlToImgbb(link);
-      }
-    } catch(e){
-      // Fallback: store the original URL directly
-      finalUrl = link;
-      setMsg('imgbb rejected link; saving external URL directly...', false);
-    }
-    await addDoc(collection(db,'media'), { url: finalUrl, category: cat || null, createdAt: serverTimestamp(), by: auth.currentUser?auth.currentUser.uid:null });
+    // Simplify: save the external URL directly to the library
+    setMsg('Saving link...');
+    await addDoc(collection(db,'media'), { url: link, category: cat || null, createdAt: serverTimestamp(), by: auth.currentUser?auth.currentUser.uid:null });
     setMsg('Link added');
     upLinkInput.value = '';
     await loadMedia();
-  }catch(e){ setMsg('Upload by link failed', false); }
+  }catch(e){ setMsg(`Upload by link failed: ${e?.message||e}`, false); }
   finally{ upLinkBtn.removeAttribute('disabled'); }
 });
 
@@ -275,5 +266,10 @@ searchInput?.addEventListener('input', ()=> { currentQ = searchInput.value||''; 
 filterSel?.addEventListener('change', ()=> { currentCat = filterSel.value||''; draw(); });
 refreshBtn?.addEventListener('click', loadMedia);
 
-// initial
-loadMedia().catch(()=> setMsg('Failed to load media', false));
+// initial: trigger load immediately, and refresh again when auth state resolves
+loadMedia().catch((err)=> setMsg(`Failed to load media: ${err?.message||err}`, false));
+try{
+  onAuthStateChanged(auth, ()=>{
+    loadMedia().catch((e)=> setMsg(`Failed to load media: ${e?.message||e}`, false));
+  });
+} catch(e) {}
