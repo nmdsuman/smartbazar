@@ -134,6 +134,9 @@
         <span>Live Chat</span>
         <span id="chat-badge" class="hidden ml-2 inline-flex items-center justify-center text-xs rounded-full bg-blue-600 text-white min-w-5 h-5 px-1">0</span>
       </a>
+      <a href="media.html" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
+        <span>Image Library</span>
+      </a>
     </nav>
   </aside>
 
@@ -177,6 +180,7 @@
           <div class="flex items-center gap-2">
             <input type="file" name="image" accept="image/*" class="flex-1 border rounded px-3 py-2"/>
             <button type="button" id="btn-image-library" class="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200">From Library</button>
+            <button type="button" id="btn-image-clear" class="px-3 py-2 rounded bg-red-50 text-red-700 hover:bg-red-100">Remove</button>
           </div>
         </div>
         <div class="md:col-span-2">
@@ -184,6 +188,7 @@
           <div class="flex items-center gap-2">
             <input type="file" name="gallery" accept="image/*" multiple class="flex-1 border rounded px-3 py-2"/>
             <button type="button" id="btn-gallery-library" class="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200">From Library</button>
+            <button type="button" id="btn-gallery-clear" class="px-3 py-2 rounded bg-red-50 text-red-700 hover:bg-red-100">Clear Gallery</button>
           </div>
           <p class="text-xs text-gray-500 mt-1">You can select multiple images. The first image above is used as the main image.</p>
         </div>
@@ -381,6 +386,7 @@
         </div>
         <div id="media-grid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 max-h-[60vh] overflow-y-auto"></div>
         <div class="flex items-center justify-end gap-2">
+          <button id="media-crop-main" class="px-3 py-2 rounded bg-amber-500 text-white hover:bg-amber-600">Crop & Use as Main</button>
           <button id="media-use-main" class="px-3 py-2 rounded bg-green-600 text-white hover:bg-green-700">Use as Main</button>
           <button id="media-use-gallery" class="px-3 py-2 rounded bg-gray-800 text-white hover:bg-black">Add to Gallery</button>
         </div>
