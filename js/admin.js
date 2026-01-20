@@ -112,6 +112,69 @@ const addCancelEditBtn = document.getElementById('add-cancel-edit');
 
 let editUsingAdd = { active: false, productId: null, original: null };
 
+// Image cropper state (for main product image in Add/Edit form)
+let croppedMainImageFile = null;
+let cropper = null;
+const cropperModal = document.getElementById('cropper-modal');
+const cropperImgEl = document.getElementById('cropper-image');
+const cropperCloseBtn = document.getElementById('cropper-close');
+const cropperCancelBtn = document.getElementById('cropper-cancel');
+const cropperApplyBtn = document.getElementById('cropper-apply');
+
+function openCropper(file){
+  try {
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    if (cropper) { try { cropper.destroy(); } catch {}
+      cropper = null;
+    }
+    if (cropperImgEl) {
+      cropperImgEl.src = url;
+      // Show modal
+      cropperModal?.classList.remove('hidden');
+      cropperModal?.classList.add('flex');
+      // Init after image loads
+      cropperImgEl.onload = () => {
+        try {
+          // 1:1 square by default, good for thumbnails
+          cropper = new window.Cropper(cropperImgEl, { aspectRatio: NaN, viewMode: 1, autoCropArea: 0.9 });
+        } catch {}
+      };
+    }
+  } catch {}
+}
+
+function closeCropper(){
+  try {
+    cropperModal?.classList.add('hidden');
+    cropperModal?.classList.remove('flex');
+    if (cropper) { cropper.destroy(); cropper = null; }
+    if (cropperImgEl) { cropperImgEl.src = ''; }
+  } catch {}
+}
+
+cropperCloseBtn?.addEventListener('click', closeCropper);
+cropperCancelBtn?.addEventListener('click', ()=>{ croppedMainImageFile = null; closeCropper(); });
+cropperApplyBtn?.addEventListener('click', ()=>{
+  try {
+    if (!cropper) { closeCropper(); return; }
+    const canvas = cropper.getCroppedCanvas({ maxWidth: 1600, maxHeight: 1600 });
+    if (!canvas) { closeCropper(); return; }
+    canvas.toBlob((blob)=>{
+      if (!blob) { closeCropper(); return; }
+      const file = new File([blob], 'product.jpg', { type: blob.type || 'image/jpeg' });
+      croppedMainImageFile = file;
+      // Update live preview with cropped image
+      if (prevImg) {
+        const u = URL.createObjectURL(file);
+        prevImg.src = u;
+        prevImg.classList.remove('hidden');
+      }
+      closeCropper();
+    }, 'image/jpeg', 0.9);
+  } catch { closeCropper(); }
+});
+
 function updateAddPreview() {
   if (!form || !prevTitle || !prevPrice || !prevExtra || !prevDesc) return;
   const title = form.title ? String(form.title.value || '').trim() : '';
@@ -184,7 +247,15 @@ if (form) {
     if (el) el.addEventListener('input', updateAddPreview);
   });
   const imgInput = form.querySelector('[name="image"]');
-  if (imgInput) imgInput.addEventListener('change', updateAddPreviewImage);
+  if (imgInput) imgInput.addEventListener('change', (e)=>{
+    const f = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+    if (f) {
+      // Start cropper workflow
+      openCropper(f);
+    }
+    // Also refresh preview (will be overridden after crop apply)
+    updateAddPreviewImage();
+  });
   const galInput = form.querySelector('[name="gallery"]');
   if (galInput) galInput.addEventListener('change', updateAddPreviewGallery);
   // initial state
@@ -210,7 +281,7 @@ form?.addEventListener('submit', async (e) => {
   const data = new FormData(form);
   const title = (data.get('title') || '').toString().trim();
   const price = Number(data.get('price'));
-  const imageFile = data.get('image');
+  let imageFile = data.get('image');
   const galleryInput = form.querySelector('[name="gallery"]');
   const galleryFiles = galleryInput && galleryInput.files ? galleryInput.files : [];
   const description = (data.get('description') || '').toString().trim();
@@ -234,11 +305,13 @@ form?.addEventListener('submit', async (e) => {
     if (submitBtn) submitBtn.disabled = true;
     if (!editUsingAdd.active) {
       // Create new
-      if (!(imageFile instanceof File) || imageFile.size === 0) {
+      // Prefer cropped image if present
+      const mainFile = (croppedMainImageFile instanceof File) ? croppedMainImageFile : imageFile;
+      if (!(mainFile instanceof File) || mainFile.size === 0) {
         throw new Error('Please select a product image.');
       }
       setMessage('Uploading image...', true);
-      const image = await uploadToImgbb(imageFile);
+      const image = await uploadToImgbb(mainFile);
       const images = [];
       try {
         const max = Math.min(5, galleryFiles.length);
@@ -271,6 +344,7 @@ form?.addEventListener('submit', async (e) => {
       updateAddPreviewGallery();
       setMessage('Product added successfully.');
       if (submitBtn) submitBtn.disabled = prevDisabled ?? false;
+      croppedMainImageFile = null;
     } else {
       // Update existing
       const payload = {
@@ -283,9 +357,10 @@ form?.addEventListener('submit', async (e) => {
         stock: Number.isFinite(stock) ? stock : 0,
         active: !!active
       };
-      if (imageFile instanceof File && imageFile.size > 0) {
+      const mainFileUpd = (croppedMainImageFile instanceof File) ? croppedMainImageFile : (imageFile instanceof File ? imageFile : null);
+      if (mainFileUpd instanceof File && mainFileUpd.size > 0) {
         setMessage('Uploading image...', true);
-        const uploaded = await uploadToImgbb(imageFile);
+        const uploaded = await uploadToImgbb(mainFileUpd);
         if (uploaded) payload.image = uploaded;
       }
       // Gallery: if new files selected, replace existing images with up to 5 uploads; else keep original
@@ -317,6 +392,7 @@ form?.addEventListener('submit', async (e) => {
       // After successful edit, go to All Products tab
       try { location.hash = '#products'; showSection('products'); } catch {}
       if (submitBtn) submitBtn.disabled = prevDisabled ?? false;
+      croppedMainImageFile = null;
     }
   } catch (err) {
     setMessage('Failed to add product: ' + err.message, false);
