@@ -163,16 +163,16 @@ function drawProducts() {
   list.forEach(({ id, data: d }) => {
       if (d.active === false) return; // hide inactive
       const card = document.createElement('div');
-      card.className = 'relative border border-gray-200 rounded-xl bg-white overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-shadow';
+      card.className = 'relative border border-gray-200 rounded-lg bg-white overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-shadow';
       const stock = Number(d.stock || 0);
       const out = stock <= 0;
       card.innerHTML = `
         ${out ? '<span class="absolute top-2 left-2 text-[11px] px-2 py-0.5 rounded-full bg-red-600 text-white">Out of stock</span>' : ''}
-        <a href="productfullview.html?id=${encodeURIComponent(id)}" class="block bg-gray-50">
-          <img src="${d.image}" alt="${d.title}" class="h-40 w-full object-contain p-2">
+        <a href="productfullview.html?id=${encodeURIComponent(id)}" class="block bg-white">
+          <img src="${d.image}" alt="${d.title}" class="h-56 w-full object-contain">
         </a>
-        <div class="p-3 pb-4 flex-1 flex flex-col">
-          <h3 class="font-semibold text-[15px] mb-1 leading-snug line-clamp-2"><a href="productfullview.html?id=${encodeURIComponent(id)}" class="hover:text-blue-700">${d.title}</a></h3>
+        <div class="p-2 pb-3 flex-1 flex flex-col">
+          <h3 class="font-semibold text-[15px] mb-0.5 leading-snug line-clamp-2"><a href="productfullview.html?id=${encodeURIComponent(id)}" class="hover:text-blue-700">${d.title}</a></h3>
           <div class="flex items-center justify-between mt-1">
             <div class="text-orange-600 font-bold text-sm">৳${Number(d.price).toFixed(2)}</div>
             <span></span>
