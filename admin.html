@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Bazar — Admin</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css"/>
   <link rel="icon" href="data:,">
   <script type="importmap">
   {
@@ -341,6 +342,25 @@
     </section>
   </main>
 
+  <!-- Image Cropper Modal -->
+  <div id="cropper-modal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50">
+    <div class="bg-white w-full max-w-2xl rounded shadow-lg overflow-hidden m-4">
+      <div class="px-4 py-3 border-b flex items-center justify-between">
+        <h3 class="font-semibold">Crop Image</h3>
+        <button id="cropper-close" class="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200">Close</button>
+      </div>
+      <div class="p-4">
+        <div class="w-full max-h-[70vh] overflow-auto">
+          <img id="cropper-image" src="" alt="Crop" class="max-w-full">
+        </div>
+        <div class="mt-4 flex items-center justify-end gap-2">
+          <button id="cropper-cancel" class="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200">Cancel</button>
+          <button id="cropper-apply" class="px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">Apply Crop</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="order-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
     <div class="bg-white w-full max-w-3xl rounded shadow-lg overflow-hidden m-4">
       <div class="px-4 py-3 border-b flex items-center justify-between">
@@ -393,6 +413,7 @@
 
   <script type="module" src="js/firebase-config.js"></script>
   <script type="module" src="js/auth.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
   <script type="module" src="js/admin.js"></script>
 </body>
 </html>
