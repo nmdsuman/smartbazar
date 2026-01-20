@@ -70,11 +70,33 @@ function setMsg(text, ok=true){
 }
 
 async function loadMedia(){
-  const qy = query(collection(db,'media'), orderBy('createdAt','desc'));
-  const snap = await getDocs(qy);
-  allMedia = snap.docs.map(d=> ({ id:d.id, ...d.data() }));
-  renderFilterOptions();
-  draw();
+  try{
+    let snap;
+    try {
+      const qy = query(collection(db,'media'), orderBy('createdAt','desc'));
+      snap = await getDocs(qy);
+    } catch(err){
+      // Fallback: no index or field issues — read without ordering
+      snap = await getDocs(collection(db,'media'));
+      setMsg('Loaded without ordering (missing index or createdAt on some items)', false);
+    }
+    allMedia = snap.docs.map(d=> ({ id:d.id, ...d.data() }));
+    // If no ordering, sort by createdAt if available
+    allMedia.sort((a,b)=> {
+      const ta = (a.createdAt?.seconds||0);
+      const tb = (b.createdAt?.seconds||0);
+      return tb - ta;
+    });
+    renderFilterOptions();
+    setMsg(`Loaded ${allMedia.length} images`);
+    draw();
+  } catch(e){
+    console.error('loadMedia error', e);
+    setMsg('Failed to load media', false);
+    allMedia = [];
+    renderFilterOptions();
+    draw();
+  }
 }
 
 function renderFilterOptions(){
