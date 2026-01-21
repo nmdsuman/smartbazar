@@ -130,6 +130,9 @@
       <a href="#site" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
         <span>Site Settings</span>
       </a>
+      <a href="#notes" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
+        <span>Notes</span>
+      </a>
       <a href="#files" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
         <span>File Manager</span>
       </a>
@@ -231,6 +234,29 @@
       </div>
       </div>
       <div id="admin-message" class="text-sm mt-4"></div>
+    </section>
+
+    <section id="notes" class="bg-white border rounded-lg p-6 mt-8 hidden">
+      <h2 class="text-lg font-semibold mb-4">Notes</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+        <div class="md:col-span-2">
+          <label class="block text-sm mb-1">Title (optional)</label>
+          <input id="note-title" type="text" class="w-full border rounded px-3 py-2 mb-3" placeholder="e.g., Promo copy, Quick draft"/>
+          <label class="block text-sm mb-1">Content</label>
+          <textarea id="note-content" rows="8" class="w-full border rounded px-3 py-2" placeholder="Write anything you want to save..."></textarea>
+          <div class="mt-3 flex items-center gap-2">
+            <button id="note-save" class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">Save</button>
+            <button id="note-new" class="px-4 py-2 rounded bg-gray-100 hover:bg-gray-200">New</button>
+          </div>
+          <div id="note-message" class="text-sm mt-2"></div>
+        </div>
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="font-semibold">Saved Notes</h3>
+          </div>
+          <div id="notes-list" class="space-y-2 max-h-[60vh] overflow-y-auto"></div>
+        </div>
+      </div>
     </section>
 
     <section id="files" class="bg-white border rounded-lg p-6 mt-8 hidden">
