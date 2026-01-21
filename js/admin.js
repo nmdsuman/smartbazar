@@ -894,6 +894,10 @@ function showSection(id) {
     if (k === key) el.classList.remove('hidden');
     else el.classList.add('hidden');
   });
+  // When entering File Manager, refresh folder list
+  if (key === 'files') {
+    try { loadSiteRepoFolders(); } catch {}
+  }
 }
 
 window.addEventListener('hashchange', () => showSection(location.hash.replace('#','')));
