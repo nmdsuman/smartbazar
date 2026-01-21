@@ -474,6 +474,25 @@
   <script type="module" src="js/firebase-config.js"></script>
   <script type="module" src="js/auth.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
+  <script>
+    // Fallback: ensure the correct section is shown even if module JS is cached or errors
+    document.addEventListener('DOMContentLoaded', function(){
+      try{
+        const ids = ['add','products','orders-section','shipping','site','files','chat'];
+        function show(id){
+          const key = ids.includes(id) ? id : 'products';
+          ids.forEach(k=>{
+            const el = document.getElementById(k);
+            if (!el) return;
+            if (k===key) el.classList.remove('hidden'); else el.classList.add('hidden');
+          });
+        }
+        function sync(){ show(location.hash.replace('#','')); }
+        window.addEventListener('hashchange', sync);
+        sync();
+      } catch {}
+    });
+  </script>
   <script type="module" src="js/admin.js"></script>
 </body>
 </html>
