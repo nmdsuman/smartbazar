@@ -868,8 +868,29 @@ function showSection(id) {
 }
 
 window.addEventListener('hashchange', () => showSection(location.hash.replace('#','')));
-// Initial section
-showSection(location.hash.replace('#',''));
+// Initial section (DOMContentLoaded safety)
+try {
+  const init = () => showSection(location.hash.replace('#',''));
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else {
+    init();
+  }
+} catch {}
+
+// Sidebar links safety: force SPA-style switch without full reload
+try {
+  document.querySelectorAll('.admin-nav a[href^="#"]').forEach(a => {
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      const hash = (a.getAttribute('href') || '#').replace('#','');
+      if (hash) {
+        history.replaceState(null, '', `admin.html#${hash}`);
+        showSection(hash);
+      }
+    });
+  });
+} catch {}
 
 // Live Orders list
 function drawOrders() {
