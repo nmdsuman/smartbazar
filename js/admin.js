@@ -162,6 +162,29 @@ async function uploadToGithubAdmin(file){
   return `https://raw.githubusercontent.com/${GH_REPO}/${GH_BRANCH}/${path}`;
 }
 
+// Load folders from SITE_GH_REPO to populate File Manager folder dropdown
+async function loadSiteRepoFolders(){
+  if (!fmFolder) return;
+  try {
+    const token = getGithubTokenAdmin();
+    const apiUrl = `https://api.github.com/repos/${SITE_GH_REPO}/git/trees/${encodeURIComponent(SITE_GH_BRANCH)}?recursive=1`;
+    const res = await fetch(apiUrl, { headers: token ? { 'Authorization': `token ${token}` } : {} });
+    if (!res.ok) throw new Error('Failed to list repo tree');
+    const json = await res.json();
+    const dirs = (json?.tree || []).filter(x=>x.type==='tree').map(x=>x.path).filter(Boolean);
+    // Reset and add main (root)
+    fmFolder.innerHTML = '';
+    const optRoot = document.createElement('option'); optRoot.value = 'main'; optRoot.textContent = 'main (root)'; fmFolder.appendChild(optRoot);
+    dirs.forEach(p=>{
+      const opt = document.createElement('option');
+      opt.value = p; opt.textContent = p;
+      fmFolder.appendChild(opt);
+    });
+  } catch (e) {
+    // Leave default options if listing fails
+  }
+}
+
 async function uploadToImgbb(file) {
   const b64 = await fileToBase64(file);
   const fd = new FormData();
@@ -207,6 +230,7 @@ const fmPath = document.getElementById('fm-path');
 const fmUploadBtn = document.getElementById('fm-upload');
 const fmMsg = document.getElementById('fm-msg');
 const fmCommitMsg = document.getElementById('fm-message');
+const fmFolder = document.getElementById('fm-folder');
 
 let editUsingAdd = { active: false, productId: null, original: null };
 
@@ -214,10 +238,15 @@ let editUsingAdd = { active: false, productId: null, original: null };
 fmUploadBtn?.addEventListener('click', async ()=>{
   try{
     const file = fmFile?.files?.[0];
-    const path = (fmPath?.value || '').trim();
+    let path = (fmPath?.value || '').trim();
     const message = (fmCommitMsg?.value || 'Update via admin').trim();
     if (!file) { if (fmMsg) { fmMsg.textContent = 'Please choose a file'; fmMsg.className = 'text-sm text-red-700'; } return; }
-    const dest = path || (file.name || 'file');
+    // Build destination path from folder + path/filename
+    const folder = (fmFolder?.value || '').trim();
+    let dest = path || (file.name || 'file');
+    if (folder && folder !== 'main') {
+      dest = `${folder.replace(/^\/+|\/+$/g,'')}/${dest.replace(/^\/+/, '')}`;
+    }
     fmUploadBtn.setAttribute('disabled','');
     if (fmMsg) { fmMsg.textContent = 'Uploading to GitHub...'; fmMsg.className = 'text-sm text-gray-700'; }
     const b64 = await fileToBase64(file);
