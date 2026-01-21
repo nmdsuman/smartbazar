@@ -77,37 +77,30 @@ async function fileToBase64(file) {
     reader.readAsDataURL(file);
   });
 
-// ===== File Manager: Upload site files to GitHub repo =====
-fmUploadBtn?.addEventListener('click', async ()=>{
-  try{
-    const file = fmFile?.files?.[0];
-    const path = (fmPath?.value || '').trim();
-    const message = (fmCommitMsg?.value || 'Update via admin').trim();
-    if (!file) { if (fmMsg) { fmMsg.textContent = 'Please choose a file'; fmMsg.className = 'text-sm text-red-700'; } return; }
-    const dest = path || (file.name || 'file');
-    fmUploadBtn.setAttribute('disabled','');
-    if (fmMsg) { fmMsg.textContent = 'Uploading to GitHub...'; fmMsg.className = 'text-sm text-gray-700'; }
-    const b64 = await fileToBase64(file);
-    const rawUrl = await uploadB64ToGithubRepo(b64, SITE_GH_REPO, SITE_GH_BRANCH, dest, message);
-    if (fmMsg) { fmMsg.innerHTML = `Uploaded: <a class="text-blue-700 underline" href="${rawUrl}" target="_blank" rel="noopener">${dest}</a>`; fmMsg.className = 'text-sm text-green-700'; }
-    // Clear inputs
-    if (fmFile) fmFile.value = '';
-    if (fmPath) fmPath.value = '';
-  } catch(e){ if (fmMsg) { fmMsg.textContent = 'Upload failed: ' + (e?.message||e); fmMsg.className = 'text-sm text-red-700'; } }
-  finally{ fmUploadBtn?.removeAttribute('disabled'); }
-});
-}
 
-// Generic: upload base64 content to a specific repo path
+// Generic: upload base64 content to a specific repo path (creates or updates with sha)
 async function uploadB64ToGithubRepo(b64Content, repo, branch, path, message){
   const token = ensureGithubTokenAdmin();
   if (!token) throw new Error('GitHub token missing');
   const cleanPath = String(path || '').replace(/^\/+/, '');
   const apiUrl = `https://api.github.com/repos/${repo}/contents/${cleanPath}`;
+  // Try to get existing sha (if file exists)
+  let sha = undefined;
+  try {
+    const resHead = await fetch(`${apiUrl}?ref=${encodeURIComponent(branch)}`, {
+      headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github+json' }
+    });
+    if (resHead.ok) {
+      const info = await resHead.json();
+      if (info && typeof info.sha === 'string') sha = info.sha;
+    }
+  } catch {}
+  const body = { message: message || 'Update via admin', content: b64Content, branch };
+  if (sha) body.sha = sha;
   const res = await fetch(apiUrl, {
     method: 'PUT',
-    headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: message || 'Update via admin', content: b64Content, branch })
+    headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github+json' },
+    body: JSON.stringify(body)
   });
   if (!res.ok){
     const txt = await res.text().catch(()=> '');
