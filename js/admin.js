@@ -1,4 +1,4 @@
-import { auth, db } from './firebase-config.js';
+﻿import { auth, db } from './firebase-config.js';
 import { requireAdmin } from './auth.js';
 import {
   collection,
@@ -71,13 +71,10 @@ let lastOrders = [];
 let ordersUserFilter = null; // when set, show orders only for this userId
 
 const IMGBB_API_KEY = '462884d7f63129dede1b67d612e66ee6';
-// GitHub upload (frontend) — for security, prefer serverless in production
+// GitHub upload (frontend) â€” for security, prefer serverless in production
 const GH_REPO = 'nmdsuman/image';
 const GH_BRANCH = 'main';
 // Site file manager target repo/branch
-const SITE_GH_REPO = 'nmdsuman/smartbazar';
-const SITE_GH_BRANCH = 'main';
-
 async function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -88,36 +85,6 @@ async function fileToBase64(file) {
 }
  
 // Generic: upload base64 content to a specific repo path (creates or updates with sha)
-async function uploadB64ToGithubRepo(b64Content, repo, branch, path, message){
-  const token = ensureGithubTokenAdmin();
-  if (!token) throw new Error('GitHub token missing');
-  const cleanPath = String(path || '').replace(/^\/+/, '');
-  const apiUrl = `https://api.github.com/repos/${repo}/contents/${cleanPath}`;
-  // Try to get existing sha (if file exists)
-  let sha = undefined;
-  try {
-    const resHead = await fetch(`${apiUrl}?ref=${encodeURIComponent(branch)}`, {
-      headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github+json' }
-    });
-    if (resHead.ok) {
-      const info = await resHead.json();
-      if (info && typeof info.sha === 'string') sha = info.sha;
-    }
-  } catch {}
-  const body = { message: message || 'Update via admin', content: b64Content, branch };
-  if (sha) body.sha = sha;
-  const res = await fetch(apiUrl, {
-    method: 'PUT',
-    headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github+json' },
-    body: JSON.stringify(body)
-  });
-  if (!res.ok){
-    const txt = await res.text().catch(()=> '');
-    throw new Error(`GitHub upload failed (${res.status}): ${txt.slice(0,200)}`);
-  }
-  return `https://raw.githubusercontent.com/${repo}/${branch}/${cleanPath}`;
-}
-
 function getGithubTokenAdmin(){
   try { return localStorage.getItem('GH_TOKEN') || ''; } catch { return ''; }
 }
@@ -162,41 +129,6 @@ async function uploadToGithubAdmin(file){
   return `https://raw.githubusercontent.com/${GH_REPO}/${GH_BRANCH}/${path}`;
 }
 
-// Load folders from SITE_GH_REPO to populate File Manager folder dropdown
-async function loadSiteRepoFolders(){
-  if (!fmFolder) return;
-  try {
-    // Show loading state
-    fmFolder.innerHTML = '';
-    const loading = document.createElement('option');
-    loading.value = 'loading'; loading.textContent = 'Loading folders...';
-    fmFolder.appendChild(loading);
-    const token = getGithubTokenAdmin();
-    const apiUrl = `https://api.github.com/repos/${SITE_GH_REPO}/git/trees/${encodeURIComponent(SITE_GH_BRANCH)}?recursive=1`;
-    const res = await fetch(apiUrl, { headers: token ? { 'Authorization': `token ${token}` } : {} });
-    if (!res.ok) throw new Error('Failed to list repo tree');
-    const json = await res.json();
-    const dirs = (json?.tree || [])
-      .filter(x=>x.type==='tree')
-      .map(x=>x.path)
-      .filter(Boolean)
-      .sort((a,b)=> a.localeCompare(b));
-    // Reset and add main (root)
-    fmFolder.innerHTML = '';
-    const optRoot = document.createElement('option'); optRoot.value = 'main'; optRoot.textContent = 'main (root)'; fmFolder.appendChild(optRoot);
-    dirs.forEach(p=>{
-      const opt = document.createElement('option');
-      opt.value = p; opt.textContent = p;
-      fmFolder.appendChild(opt);
-    });
-  } catch (e) {
-    // Leave default options if listing fails
-    fmFolder.innerHTML = '';
-    const optRoot = document.createElement('option'); optRoot.value = 'main'; optRoot.textContent = 'main (root)'; fmFolder.appendChild(optRoot);
-    if (fmMsg) { fmMsg.textContent = 'Could not load folders. You can still type a path manually.'; fmMsg.className = 'text-sm text-amber-700'; }
-  }
-}
-
 async function uploadToImgbb(file) {
   const b64 = await fileToBase64(file);
   const fd = new FormData();
@@ -237,13 +169,6 @@ const addCancelEditBtn = document.getElementById('add-cancel-edit');
 const btnImageClear = document.getElementById('btn-image-clear');
 const btnGalleryClear = document.getElementById('btn-gallery-clear');
 // File Manager elements
-const fmFile = document.getElementById('fm-file');
-const fmPath = document.getElementById('fm-path');
-const fmUploadBtn = document.getElementById('fm-upload');
-const fmMsg = document.getElementById('fm-msg');
-const fmCommitMsg = document.getElementById('fm-message');
-const fmFolder = document.getElementById('fm-folder');
-const fmFolderRefresh = document.getElementById('fm-folder-refresh');
 
 let editUsingAdd = { active: false, productId: null, original: null };
 
@@ -254,30 +179,6 @@ const noteSaveBtn = document.getElementById('note-save');
 const noteNewBtn = document.getElementById('note-new');
 const noteMsgEl = document.getElementById('note-message');
 const notesListEl = document.getElementById('notes-list');
-
-// File Manager: Upload site files directly to GitHub repo
-fmUploadBtn?.addEventListener('click', async ()=>{
-  try{
-    const file = fmFile?.files?.[0];
-    let path = (fmPath?.value || '').trim();
-    const message = (fmCommitMsg?.value || 'Update via admin').trim();
-    if (!file) { if (fmMsg) { fmMsg.textContent = 'Please choose a file'; fmMsg.className = 'text-sm text-red-700'; } return; }
-    // Build destination path from folder + path/filename
-    const folder = (fmFolder?.value || '').trim();
-    let dest = path || (file.name || 'file');
-    if (folder && folder !== 'main') {
-      dest = `${folder.replace(/^\/+|\/+$/g,'')}/${dest.replace(/^\/+/, '')}`;
-    }
-    fmUploadBtn.setAttribute('disabled','');
-    if (fmMsg) { fmMsg.textContent = 'Uploading to GitHub...'; fmMsg.className = 'text-sm text-gray-700'; }
-    const b64 = await fileToBase64(file);
-    const rawUrl = await uploadB64ToGithubRepo(b64, SITE_GH_REPO, SITE_GH_BRANCH, dest, message);
-    if (fmMsg) { fmMsg.innerHTML = `Uploaded: <a class="text-blue-700 underline" href="${rawUrl}" target="_blank" rel="noopener">${dest}</a>`; fmMsg.className = 'text-sm text-green-700'; }
-    if (fmFile) fmFile.value = '';
-    if (fmPath) fmPath.value = '';
-  } catch(e){ if (fmMsg) { fmMsg.textContent = 'Upload failed: ' + (e?.message||e); fmMsg.className = 'text-sm text-red-700'; } }
-  finally{ fmUploadBtn?.removeAttribute('disabled'); }
-});
 
 // ===== Notes (Admin personal) =====
 let currentNoteId = null;
@@ -370,12 +271,6 @@ noteNewBtn?.addEventListener('click', ()=>{
   if (noteTitleEl) noteTitleEl.value='';
   if (noteContentEl) noteContentEl.value='';
   setNoteMessage('Ready for new note');
-});
-
-// Refresh folders on click (ensure token first)
-fmFolderRefresh?.addEventListener('click', (e)=>{
-  e.preventDefault();
-  try { if (!getGithubTokenAdmin()) ensureGithubTokenAdmin(); loadSiteRepoFolders(); } catch {}
 });
 
 // Image cropper state (for main product image in Add/Edit form)
@@ -596,7 +491,7 @@ function renderSelectedGalleryPreview(){
     const rm = document.createElement('button');
     rm.type = 'button';
     rm.className = 'hidden group-hover:flex items-center justify-center absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-600 text-white shadow';
-    rm.innerHTML = '×';
+    rm.innerHTML = 'Ã—';
     rm.addEventListener('click', (e)=>{
       e.preventDefault();
       selectedGalleryUrls = selectedGalleryUrls.filter((x, i)=> i!==idx);
@@ -619,9 +514,9 @@ function updateAddPreview() {
   const size = form.size ? String(form.size.value || '').trim() : '';
   const desc = form.description ? String(form.description.value || '').trim() : '';
 
-  prevTitle.textContent = title || '—';
-  prevPrice.textContent = `৳${Number(price || 0).toFixed(2)}`;
-  const extra = [weight, size].filter(Boolean).join(' · ');
+  prevTitle.textContent = title || 'â€”';
+  prevPrice.textContent = `à§³${Number(price || 0).toFixed(2)}`;
+  const extra = [weight, size].filter(Boolean).join(' Â· ');
   prevExtra.textContent = extra || '\u00A0';
   prevDesc.textContent = desc || '\u00A0';
 }
@@ -909,7 +804,7 @@ function renderProducts() {
           <p class="text-sm text-gray-600 line-clamp-2 mb-3">${data.description || ''}</p>
           <div class="mt-auto space-y-2">
             <div class="flex items-center justify-between">
-              <span class="text-blue-700 font-semibold">৳${Number(data.price).toFixed(2)}${data.weight ? ` · ${data.weight}` : ''}${data.size ? ` · ${data.size}` : ''}</span>
+              <span class="text-blue-700 font-semibold">à§³${Number(data.price).toFixed(2)}${data.weight ? ` Â· ${data.weight}` : ''}${data.size ? ` Â· ${data.size}` : ''}</span>
               <span class="text-sm ${data.active === false ? 'text-red-600' : 'text-green-700'}">${data.active === false ? 'Inactive' : 'Active'}</span>
             </div>
             <div class="flex items-center justify-between text-sm">
@@ -1016,8 +911,7 @@ function showSection(id) {
     else el.classList.add('hidden');
   });
   // When entering File Manager, refresh folder list
-  if (key === 'files') {
-    try { if (!getGithubTokenAdmin()) ensureGithubTokenAdmin(); loadSiteRepoFolders(); } catch {}
+   catch {}
   }
   // When entering Notes, ensure notes are loaded
   if (key === 'notes') {
@@ -1033,16 +927,6 @@ try {
     document.addEventListener('DOMContentLoaded', init, { once: true });
   } else {
     init();
-  }
-} catch {}
-
-// Try to pre-load folders once DOM is ready regardless of current section
-try {
-  const kick = () => { try { if (location.hash.replace('#','') === 'files') { if (!getGithubTokenAdmin()) ensureGithubTokenAdmin(); loadSiteRepoFolders(); } } catch {} };
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', kick, { once: true });
-  } else {
-    kick();
   }
 } catch {}
 
@@ -1082,10 +966,10 @@ function drawOrders() {
     div.innerHTML = `
       <div>
         <div class="font-medium">Order #${id.slice(-6)}</div>
-        <div class="text-sm text-gray-600">Items: ${count} · User: ${o.userId || 'guest'} · ${when}</div>
-        <div class="text-sm text-gray-600">${o.customer?.name || ''} · ${o.customer?.phone || ''}</div>
+        <div class="text-sm text-gray-600">Items: ${count} Â· User: ${o.userId || 'guest'} Â· ${when}</div>
+        <div class="text-sm text-gray-600">${o.customer?.name || ''} Â· ${o.customer?.phone || ''}</div>
       </div>
-      <div class="font-semibold">৳${Number(o.total || 0).toFixed(2)}</div>
+      <div class="font-semibold">à§³${Number(o.total || 0).toFixed(2)}</div>
       <div class="flex items-center gap-2">
         <label class="text-sm">Status</label>
         <select class="border rounded px-2 py-1 admin-status">
@@ -1227,8 +1111,8 @@ async function selectChatSession(id){
           const oq = query(collection(db,'orders'), where('userId','==', cur.data.userId), orderBy('createdAt','desc'), limit(1));
           const oSnap = await getDocs(oq);
           const lastOrder = oSnap.docs[0];
-          const ordInfo = lastOrder ? ` · Last order #${lastOrder.id.slice(-6)} (${(lastOrder.data().status)||'Pending'})` : '';
-          meta += ` · Role: ${role}${ordInfo} · <a href="orders.html#orders-section" id="chat-view-orders" class="text-blue-700 hover:underline">View orders</a>`;
+          const ordInfo = lastOrder ? ` Â· Last order #${lastOrder.id.slice(-6)} (${(lastOrder.data().status)||'Pending'})` : '';
+          meta += ` Â· Role: ${role}${ordInfo} Â· <a href="orders.html#orders-section" id="chat-view-orders" class="text-blue-700 hover:underline">View orders</a>`;
         } catch {}
       }
     }
@@ -1285,7 +1169,7 @@ async function selectChatSession(id){
       ind = document.createElement('div');
       ind.id = typingId;
       ind.className = 'px-3 py-1 text-xs text-gray-500 hidden';
-      ind.textContent = 'User is typing…';
+      ind.textContent = 'User is typingâ€¦';
       chatMessagesAdminEl?.parentElement?.insertBefore(ind, chatMessagesAdminEl.nextSibling);
     }
     unsubChatSessionMeta = onSnapshot(doc(db,'chat_sessions', id), (snap)=>{
@@ -1617,10 +1501,10 @@ function renderModalItems(){
     const line = it.price*it.qty; subtotal+=line;
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td class="p-2 border">${it.title}${it.weight?` · ${it.weight}`:''}</td>
-      <td class="p-2 border text-right">৳${Number(it.price).toFixed(2)}</td>
+      <td class="p-2 border">${it.title}${it.weight?` Â· ${it.weight}`:''}</td>
+      <td class="p-2 border text-right">à§³${Number(it.price).toFixed(2)}</td>
       <td class="p-2 border text-right"><input type="number" min="1" value="${it.qty}" data-idx="${idx}" class="w-20 border rounded px-2 py-1 qty"/></td>
-      <td class="p-2 border text-right">৳${line.toFixed(2)}</td>
+      <td class="p-2 border text-right">à§³${line.toFixed(2)}</td>
       <td class="p-2 border text-right"><button data-idx="${idx}" class="remove text-red-600">Remove</button></td>
     `;
     tr.querySelector('.qty').addEventListener('change', (e)=>{
@@ -1633,18 +1517,18 @@ function renderModalItems(){
     modalItemsTbody.appendChild(tr);
   });
   const delivery = calcDeliveryForItems(items);
-  modalSubtotalEl.textContent = `৳${subtotal.toFixed(2)}`;
-  modalDeliveryEl.textContent = `৳${delivery.toFixed(2)}`;
-  modalTotalEl.textContent = `৳${(subtotal+delivery).toFixed(2)}`;
+  modalSubtotalEl.textContent = `à§³${subtotal.toFixed(2)}`;
+  modalDeliveryEl.textContent = `à§³${delivery.toFixed(2)}`;
+  modalTotalEl.textContent = `à§³${(subtotal+delivery).toFixed(2)}`;
 }
 
 function openOrderModal(id, data){
   currentOrder.id = id;
   currentOrder.data = data;
   currentOrder.items = Array.isArray(data.items) ? data.items.map(x=>({ ...x })) : [];
-  modalMeta.textContent = `Order #${id.slice(-6)} · ${data.customer?.name||''} · ${data.customer?.phone||''}`;
+  modalMeta.textContent = `Order #${id.slice(-6)} Â· ${data.customer?.name||''} Â· ${data.customer?.phone||''}`;
   // populate product select
-  modalAddSelect.innerHTML = '<option value="">Select product</option>' + productsCache.map(p=>`<option value="${p.id}">${p.title} — ৳${Number(p.price).toFixed(2)}${p.weight?` · ${p.weight}`:''}</option>`).join('');
+  modalAddSelect.innerHTML = '<option value="">Select product</option>' + productsCache.map(p=>`<option value="${p.id}">${p.title} â€” à§³${Number(p.price).toFixed(2)}${p.weight?` Â· ${p.weight}`:''}</option>`).join('');
   renderModalItems();
   modal.classList.remove('hidden');
   modal.classList.add('flex');
@@ -1685,12 +1569,12 @@ modalPrintBtn?.addEventListener('click', ()=>{
     <td>
       <div style="display:flex;align-items:center;gap:8px">
         <img src="${i.image||''}" alt="${i.title}" style="width:32px;height:32px;object-fit:cover;border:1px solid #ddd;border-radius:4px"/>
-        <span>${i.title}${i.weight?` · ${i.weight}`:''}</span>
+        <span>${i.title}${i.weight?` Â· ${i.weight}`:''}</span>
       </div>
     </td>
     <td style='text-align:right'>${i.qty}</td>
-    <td style='text-align:right'>৳${Number(i.price).toFixed(2)}</td>
-    <td style='text-align:right'>৳${(i.qty*i.price).toFixed(2)}</td>
+    <td style='text-align:right'>à§³${Number(i.price).toFixed(2)}</td>
+    <td style='text-align:right'>à§³${(i.qty*i.price).toFixed(2)}</td>
   </tr>`).join('');
   const subtotal = currentOrder.items.reduce((s,i)=> s + Number(i.price)*Number(i.qty), 0);
   const delivery = calcDeliveryForItems(currentOrder.items);
@@ -1700,15 +1584,15 @@ modalPrintBtn?.addEventListener('click', ()=>{
     body{font-family:Arial,sans-serif;padding:24px}
     table{width:100%;border-collapse:collapse} td,th{border:1px solid #ddd;padding:6px}
     </style></head><body>
-      <h2>Bazar — Delivery Invoice</h2>
+      <h2>Bazar â€” Delivery Invoice</h2>
       <div>Order #${currentOrder.id.slice(-6)}</div>
-      <div>${currentOrder.data.customer?.name||''} · ${currentOrder.data.customer?.phone||''}</div>
+      <div>${currentOrder.data.customer?.name||''} Â· ${currentOrder.data.customer?.phone||''}</div>
       <div>${currentOrder.data.customer?.address||''}</div>
       <hr/>
       <table><thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead><tbody>
       ${rows}
       </tbody></table>
-      <h3 style='text-align:right'>Subtotal: ৳${subtotal.toFixed(2)}<br/>Delivery: ৳${delivery.toFixed(2)}<br/>Total: ৳${total.toFixed(2)}</h3>
+      <h3 style='text-align:right'>Subtotal: à§³${subtotal.toFixed(2)}<br/>Delivery: à§³${delivery.toFixed(2)}<br/>Total: à§³${total.toFixed(2)}</h3>
       <p>Thank you.</p>
       <script>window.print();</script>
     </body></html>
@@ -1747,7 +1631,7 @@ window.setOrdersUserFilter = function(userId){
       }
       if (chip) {
         if (ordersUserFilter) {
-          chip.innerHTML = `User filter: ${ordersUserFilter.slice(-6)} <button id="orders-user-chip-clear" class="ml-1 px-1 rounded bg-blue-600 text-white">×</button>`;
+          chip.innerHTML = `User filter: ${ordersUserFilter.slice(-6)} <button id="orders-user-chip-clear" class="ml-1 px-1 rounded bg-blue-600 text-white">Ã—</button>`;
           chip.classList.remove('hidden');
           chip.querySelector('#orders-user-chip-clear')?.addEventListener('click', ()=>{ window.setOrdersUserFilter(null); drawOrders(); });
         } else {
@@ -1757,3 +1641,5 @@ window.setOrdersUserFilter = function(userId){
     }
   } catch {}
 }
+
+
