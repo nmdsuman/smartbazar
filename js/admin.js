@@ -86,6 +86,9 @@ async function fileToBase64(file) {
     reader.readAsDataURL(file);
   });
 
+// Refresh folders on click
+fmFolderRefresh?.addEventListener('click', (e)=>{ e.preventDefault(); try{ loadSiteRepoFolders(); }catch{} });
+
 
 // Generic: upload base64 content to a specific repo path (creates or updates with sha)
 async function uploadB64ToGithubRepo(b64Content, repo, branch, path, message){
@@ -193,6 +196,7 @@ async function loadSiteRepoFolders(){
     // Leave default options if listing fails
     fmFolder.innerHTML = '';
     const optRoot = document.createElement('option'); optRoot.value = 'main'; optRoot.textContent = 'main (root)'; fmFolder.appendChild(optRoot);
+    if (fmMsg) { fmMsg.textContent = 'Could not load folders. You can still type a path manually.'; fmMsg.className = 'text-sm text-amber-700'; }
   }
 }
 
@@ -242,6 +246,7 @@ const fmUploadBtn = document.getElementById('fm-upload');
 const fmMsg = document.getElementById('fm-msg');
 const fmCommitMsg = document.getElementById('fm-message');
 const fmFolder = document.getElementById('fm-folder');
+const fmFolderRefresh = document.getElementById('fm-folder-refresh');
 
 let editUsingAdd = { active: false, productId: null, original: null };
 
