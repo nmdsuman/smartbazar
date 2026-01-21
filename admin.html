@@ -235,13 +235,19 @@
 
     <section id="files" class="bg-white border rounded-lg p-6 mt-8 hidden">
       <h2 class="text-lg font-semibold mb-4">File Manager (GitHub)</h2>
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
         <div class="md:col-span-2">
           <label class="block text-sm mb-1">Select File (HTML/JS/CSS)</label>
           <input id="fm-file" type="file" accept=".html,.htm,.js,.css,.json,.txt" class="w-full border rounded px-3 py-2"/>
         </div>
         <div>
-          <label class="block text-sm mb-1">Destination Path</label>
+          <label class="block text-sm mb-1">Folder</label>
+          <select id="fm-folder" class="w-full border rounded px-3 py-2">
+            <option value="main">main (root)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm mb-1">Destination Path (optional)</label>
           <input id="fm-path" type="text" placeholder="e.g., index.html or js/app.js" class="w-full border rounded px-3 py-2"/>
         </div>
         <div>
