@@ -166,12 +166,21 @@ async function uploadToGithubAdmin(file){
 async function loadSiteRepoFolders(){
   if (!fmFolder) return;
   try {
+    // Show loading state
+    fmFolder.innerHTML = '';
+    const loading = document.createElement('option');
+    loading.value = 'loading'; loading.textContent = 'Loading folders...';
+    fmFolder.appendChild(loading);
     const token = getGithubTokenAdmin();
     const apiUrl = `https://api.github.com/repos/${SITE_GH_REPO}/git/trees/${encodeURIComponent(SITE_GH_BRANCH)}?recursive=1`;
     const res = await fetch(apiUrl, { headers: token ? { 'Authorization': `token ${token}` } : {} });
     if (!res.ok) throw new Error('Failed to list repo tree');
     const json = await res.json();
-    const dirs = (json?.tree || []).filter(x=>x.type==='tree').map(x=>x.path).filter(Boolean);
+    const dirs = (json?.tree || [])
+      .filter(x=>x.type==='tree')
+      .map(x=>x.path)
+      .filter(Boolean)
+      .sort((a,b)=> a.localeCompare(b));
     // Reset and add main (root)
     fmFolder.innerHTML = '';
     const optRoot = document.createElement('option'); optRoot.value = 'main'; optRoot.textContent = 'main (root)'; fmFolder.appendChild(optRoot);
@@ -182,6 +191,8 @@ async function loadSiteRepoFolders(){
     });
   } catch (e) {
     // Leave default options if listing fails
+    fmFolder.innerHTML = '';
+    const optRoot = document.createElement('option'); optRoot.value = 'main'; optRoot.textContent = 'main (root)'; fmFolder.appendChild(optRoot);
   }
 }
 
