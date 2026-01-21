@@ -85,11 +85,7 @@ async function fileToBase64(file) {
     reader.onerror = () => reject(new Error('Failed to read file'));
     reader.readAsDataURL(file);
   });
-
-// Refresh folders on click
-fmFolderRefresh?.addEventListener('click', (e)=>{ e.preventDefault(); try{ loadSiteRepoFolders(); }catch{} });
-
-
+ 
 // Generic: upload base64 content to a specific repo path (creates or updates with sha)
 async function uploadB64ToGithubRepo(b64Content, repo, branch, path, message){
   const token = ensureGithubTokenAdmin();
@@ -250,6 +246,14 @@ const fmFolderRefresh = document.getElementById('fm-folder-refresh');
 
 let editUsingAdd = { active: false, productId: null, original: null };
 
+// Notes elements
+const noteTitleEl = document.getElementById('note-title');
+const noteContentEl = document.getElementById('note-content');
+const noteSaveBtn = document.getElementById('note-save');
+const noteNewBtn = document.getElementById('note-new');
+const noteMsgEl = document.getElementById('note-message');
+const notesListEl = document.getElementById('notes-list');
+
 // File Manager: Upload site files directly to GitHub repo
 fmUploadBtn?.addEventListener('click', async ()=>{
   try{
@@ -272,6 +276,12 @@ fmUploadBtn?.addEventListener('click', async ()=>{
     if (fmPath) fmPath.value = '';
   } catch(e){ if (fmMsg) { fmMsg.textContent = 'Upload failed: ' + (e?.message||e); fmMsg.className = 'text-sm text-red-700'; } }
   finally{ fmUploadBtn?.removeAttribute('disabled'); }
+});
+
+// Refresh folders on click (ensure token first)
+fmFolderRefresh?.addEventListener('click', (e)=>{
+  e.preventDefault();
+  try { if (!getGithubTokenAdmin()) ensureGithubTokenAdmin(); loadSiteRepoFolders(); } catch {}
 });
 
 // Image cropper state (for main product image in Add/Edit form)
@@ -899,6 +909,7 @@ const sectionMap = {
   'orders-section': document.getElementById('orders-section'),
   shipping: document.getElementById('shipping'),
   site: document.getElementById('site'),
+  notes: document.getElementById('notes'),
   files: document.getElementById('files'),
   chat: document.getElementById('chat')
 };
@@ -912,7 +923,11 @@ function showSection(id) {
   });
   // When entering File Manager, refresh folder list
   if (key === 'files') {
-    try { loadSiteRepoFolders(); } catch {}
+    try { if (!getGithubTokenAdmin()) ensureGithubTokenAdmin(); loadSiteRepoFolders(); } catch {}
+  }
+  // When entering Notes, ensure notes are loaded
+  if (key === 'notes') {
+    try { loadNotes(); } catch {}
   }
 }
 
@@ -929,7 +944,7 @@ try {
 
 // Try to pre-load folders once DOM is ready regardless of current section
 try {
-  const kick = () => { try { loadSiteRepoFolders(); } catch {} };
+  const kick = () => { try { if (location.hash.replace('#','') === 'files') { if (!getGithubTokenAdmin()) ensureGithubTokenAdmin(); loadSiteRepoFolders(); } } catch {} };
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', kick, { once: true });
   } else {
