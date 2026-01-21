@@ -65,6 +65,9 @@ const IMGBB_API_KEY = '462884d7f63129dede1b67d612e66ee6';
 // GitHub upload (frontend) — for security, prefer serverless in production
 const GH_REPO = 'nmdsuman/image';
 const GH_BRANCH = 'main';
+// Site file manager target repo/branch
+const SITE_GH_REPO = 'nmdsuman/smartbazar';
+const SITE_GH_BRANCH = 'main';
 
 async function fileToBase64(file) {
   return new Promise((resolve, reject) => {
@@ -73,6 +76,44 @@ async function fileToBase64(file) {
     reader.onerror = () => reject(new Error('Failed to read file'));
     reader.readAsDataURL(file);
   });
+
+// ===== File Manager: Upload site files to GitHub repo =====
+fmUploadBtn?.addEventListener('click', async ()=>{
+  try{
+    const file = fmFile?.files?.[0];
+    const path = (fmPath?.value || '').trim();
+    const message = (fmCommitMsg?.value || 'Update via admin').trim();
+    if (!file) { if (fmMsg) { fmMsg.textContent = 'Please choose a file'; fmMsg.className = 'text-sm text-red-700'; } return; }
+    const dest = path || (file.name || 'file');
+    fmUploadBtn.setAttribute('disabled','');
+    if (fmMsg) { fmMsg.textContent = 'Uploading to GitHub...'; fmMsg.className = 'text-sm text-gray-700'; }
+    const b64 = await fileToBase64(file);
+    const rawUrl = await uploadB64ToGithubRepo(b64, SITE_GH_REPO, SITE_GH_BRANCH, dest, message);
+    if (fmMsg) { fmMsg.innerHTML = `Uploaded: <a class="text-blue-700 underline" href="${rawUrl}" target="_blank" rel="noopener">${dest}</a>`; fmMsg.className = 'text-sm text-green-700'; }
+    // Clear inputs
+    if (fmFile) fmFile.value = '';
+    if (fmPath) fmPath.value = '';
+  } catch(e){ if (fmMsg) { fmMsg.textContent = 'Upload failed: ' + (e?.message||e); fmMsg.className = 'text-sm text-red-700'; } }
+  finally{ fmUploadBtn?.removeAttribute('disabled'); }
+});
+}
+
+// Generic: upload base64 content to a specific repo path
+async function uploadB64ToGithubRepo(b64Content, repo, branch, path, message){
+  const token = ensureGithubTokenAdmin();
+  if (!token) throw new Error('GitHub token missing');
+  const cleanPath = String(path || '').replace(/^\/+/, '');
+  const apiUrl = `https://api.github.com/repos/${repo}/contents/${cleanPath}`;
+  const res = await fetch(apiUrl, {
+    method: 'PUT',
+    headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: message || 'Update via admin', content: b64Content, branch })
+  });
+  if (!res.ok){
+    const txt = await res.text().catch(()=> '');
+    throw new Error(`GitHub upload failed (${res.status}): ${txt.slice(0,200)}`);
+  }
+  return `https://raw.githubusercontent.com/${repo}/${branch}/${cleanPath}`;
 }
 
 function getGithubTokenAdmin(){
@@ -158,8 +199,33 @@ const addSubmitBtn = document.getElementById('add-submit-btn');
 const addCancelEditBtn = document.getElementById('add-cancel-edit');
 const btnImageClear = document.getElementById('btn-image-clear');
 const btnGalleryClear = document.getElementById('btn-gallery-clear');
+// File Manager elements
+const fmFile = document.getElementById('fm-file');
+const fmPath = document.getElementById('fm-path');
+const fmUploadBtn = document.getElementById('fm-upload');
+const fmMsg = document.getElementById('fm-msg');
+const fmCommitMsg = document.getElementById('fm-message');
 
 let editUsingAdd = { active: false, productId: null, original: null };
+
+// File Manager: Upload site files directly to GitHub repo
+fmUploadBtn?.addEventListener('click', async ()=>{
+  try{
+    const file = fmFile?.files?.[0];
+    const path = (fmPath?.value || '').trim();
+    const message = (fmCommitMsg?.value || 'Update via admin').trim();
+    if (!file) { if (fmMsg) { fmMsg.textContent = 'Please choose a file'; fmMsg.className = 'text-sm text-red-700'; } return; }
+    const dest = path || (file.name || 'file');
+    fmUploadBtn.setAttribute('disabled','');
+    if (fmMsg) { fmMsg.textContent = 'Uploading to GitHub...'; fmMsg.className = 'text-sm text-gray-700'; }
+    const b64 = await fileToBase64(file);
+    const rawUrl = await uploadB64ToGithubRepo(b64, SITE_GH_REPO, SITE_GH_BRANCH, dest, message);
+    if (fmMsg) { fmMsg.innerHTML = `Uploaded: <a class="text-blue-700 underline" href="${rawUrl}" target="_blank" rel="noopener">${dest}</a>`; fmMsg.className = 'text-sm text-green-700'; }
+    if (fmFile) fmFile.value = '';
+    if (fmPath) fmPath.value = '';
+  } catch(e){ if (fmMsg) { fmMsg.textContent = 'Upload failed: ' + (e?.message||e); fmMsg.className = 'text-sm text-red-700'; } }
+  finally{ fmUploadBtn?.removeAttribute('disabled'); }
+});
 
 // Image cropper state (for main product image in Add/Edit form)
 let croppedMainImageFile = null;
@@ -786,6 +852,7 @@ const sectionMap = {
   'orders-section': document.getElementById('orders-section'),
   shipping: document.getElementById('shipping'),
   site: document.getElementById('site'),
+  files: document.getElementById('files'),
   chat: document.getElementById('chat')
 };
 
