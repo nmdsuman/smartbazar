@@ -85,6 +85,7 @@ async function fileToBase64(file) {
     reader.onerror = () => reject(new Error('Failed to read file'));
     reader.readAsDataURL(file);
   });
+}
  
 // Generic: upload base64 content to a specific repo path (creates or updates with sha)
 async function uploadB64ToGithubRepo(b64Content, repo, branch, path, message){
