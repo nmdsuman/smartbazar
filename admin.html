@@ -130,6 +130,9 @@
       <a href="#site" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
         <span>Site Settings</span>
       </a>
+      <a href="#files" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
+        <span>File Manager</span>
+      </a>
       <a href="#chat" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
         <span>Live Chat</span>
         <span id="chat-badge" class="hidden ml-2 inline-flex items-center justify-center text-xs rounded-full bg-blue-600 text-white min-w-5 h-5 px-1">0</span>
@@ -228,6 +231,29 @@
       </div>
       </div>
       <div id="admin-message" class="text-sm mt-4"></div>
+    </section>
+
+    <section id="files" class="bg-white border rounded-lg p-6 mt-8 hidden">
+      <h2 class="text-lg font-semibold mb-4">File Manager (GitHub)</h2>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+        <div class="md:col-span-2">
+          <label class="block text-sm mb-1">Select File (HTML/JS/CSS)</label>
+          <input id="fm-file" type="file" accept=".html,.htm,.js,.css,.json,.txt" class="w-full border rounded px-3 py-2"/>
+        </div>
+        <div>
+          <label class="block text-sm mb-1">Destination Path</label>
+          <input id="fm-path" type="text" placeholder="e.g., index.html or js/app.js" class="w-full border rounded px-3 py-2"/>
+        </div>
+        <div>
+          <button id="fm-upload" class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Upload</button>
+        </div>
+      </div>
+      <div class="mt-3">
+        <label class="block text-sm mb-1">Commit Message (optional)</label>
+        <input id="fm-message" type="text" placeholder="Update via admin" class="w-full border rounded px-3 py-2"/>
+      </div>
+      <div id="fm-msg" class="text-sm mt-3"></div>
+      <p class="text-xs text-gray-500 mt-2">Tip: You may be asked once for your GitHub token. It is stored only in this browser (localStorage) for convenience.</p>
     </section>
 
     <section id="products" class="bg-white border rounded-lg p-6">
