@@ -20,6 +20,15 @@ import {
 
 requireAdmin();
 
+// Normalize unexpected deployed URLs like /admin+files or /admin+chat
+try {
+  const m = location.pathname.match(/admin\+(\w+)/);
+  if (m && m[1]) {
+    const target = m[1];
+    location.replace(`admin.html#${target}`);
+  }
+} catch {}
+
 const form = document.getElementById('add-product-form');
 const msg = document.getElementById('admin-message');
 const listEl = document.getElementById('admin-products');
