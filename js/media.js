@@ -16,6 +16,64 @@ import {
 requireAdmin();
 
 const IMGBB_API_KEY = '462884d7f63129dede1b67d612e66ee6';
+// GitHub upload configuration
+const GH_REPO = 'nmdsuman/image'; // owner/repo
+const GH_BRANCH = 'main';
+
+function getGithubToken(){
+  try { return localStorage.getItem('GH_TOKEN') || ''; } catch { return ''; }
+}
+function ensureGithubToken(){
+  let t = getGithubToken();
+  if (!t) {
+    try {
+      // Prompt once; stored in localStorage for this browser only
+      t = window.prompt('Enter GitHub token for image upload (stored locally):', '') || '';
+      if (t) localStorage.setItem('GH_TOKEN', t);
+    } catch {}
+  }
+  return t;
+}
+
+function extFromType(type){
+  if (!type) return 'jpg';
+  if (type.includes('png')) return 'png';
+  if (type.includes('webp')) return 'webp';
+  if (type.includes('svg')) return 'svg';
+  if (type.includes('gif')) return 'gif';
+  return 'jpg';
+}
+
+async function uploadToGithub(file){
+  const token = ensureGithubToken();
+  if (!token) throw new Error('GitHub token missing');
+  const b64 = await fileToBase64(file); // pure base64 without prefix
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth()+1).padStart(2,'0');
+  const rand = Math.random().toString(36).slice(2,8);
+  const ext = extFromType(file.type||'');
+  const path = `images/${yyyy}/${mm}/${Date.now()}-${rand}.${ext}`;
+  const url = `https://api.github.com/repos/${GH_REPO}/contents/${path}`;
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `token ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      message: 'Add image via media library',
+      content: b64,
+      branch: GH_BRANCH
+    })
+  });
+  if (!res.ok) {
+    const txt = await res.text().catch(()=> '');
+    throw new Error(`GitHub upload failed (${res.status}): ${txt.slice(0,200)}`);
+  }
+  // Return raw URL
+  return `https://raw.githubusercontent.com/${GH_REPO}/${GH_BRANCH}/${path}`;
+}
 
 async function fileToBase64(file) {
   return new Promise((resolve, reject) => {
@@ -233,7 +291,13 @@ upBtn?.addEventListener('click', async ()=>{
       if (!f || f.size===0) continue;
       try{
         setMsg(`Uploading ${++done}/${files.length}...`);
-        const url = await uploadToImgbb(f);
+        let url = '';
+        try {
+          url = await uploadToGithub(f);
+        } catch (e) {
+          // Fallback to imgbb
+          url = await uploadToImgbb(f);
+        }
         await addDoc(collection(db,'media'), { url, category: cat || null, createdAt: serverTimestamp(), by: auth.currentUser?auth.currentUser.uid:null });
       }catch(e){ setMsg('One file failed, continuing...', false); }
     }
@@ -251,9 +315,19 @@ upLinkBtn?.addEventListener('click', async ()=>{
     try { new URL(link); } catch { setMsg('Invalid URL', false); return; }
     const cat = (upCat?.value||'').trim();
     upLinkBtn.setAttribute('disabled','');
-    // Simplify: save the external URL directly to the library
-    setMsg('Saving link...');
-    await addDoc(collection(db,'media'), { url: link, category: cat || null, createdAt: serverTimestamp(), by: auth.currentUser?auth.currentUser.uid:null });
+    setMsg('Fetching and uploading link...');
+    let urlFinal = '';
+    try {
+      const resp = await fetch(link, { mode: 'cors' });
+      const blob = await resp.blob();
+      const file = new File([blob], 'link', { type: blob.type || 'image/jpeg' });
+      urlFinal = await uploadToGithub(file);
+    } catch (e) {
+      // If cross-origin blocked, store the link as-is
+      urlFinal = link;
+      setMsg('Could not fetch image bytes; saving link directly', false);
+    }
+    await addDoc(collection(db,'media'), { url: urlFinal, category: cat || null, createdAt: serverTimestamp(), by: auth.currentUser?auth.currentUser.uid:null });
     setMsg('Link added');
     upLinkInput.value = '';
     await loadMedia();

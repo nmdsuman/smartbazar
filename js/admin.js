@@ -62,6 +62,9 @@ let lastOrders = [];
 let ordersUserFilter = null; // when set, show orders only for this userId
 
 const IMGBB_API_KEY = '462884d7f63129dede1b67d612e66ee6';
+// GitHub upload (frontend) — for security, prefer serverless in production
+const GH_REPO = 'nmdsuman/image';
+const GH_BRANCH = 'main';
 
 async function fileToBase64(file) {
   return new Promise((resolve, reject) => {
@@ -70,6 +73,50 @@ async function fileToBase64(file) {
     reader.onerror = () => reject(new Error('Failed to read file'));
     reader.readAsDataURL(file);
   });
+}
+
+function getGithubTokenAdmin(){
+  try { return localStorage.getItem('GH_TOKEN') || ''; } catch { return ''; }
+}
+function ensureGithubTokenAdmin(){
+  let t = getGithubTokenAdmin();
+  if (!t) {
+    try {
+      t = window.prompt('Enter GitHub token for image upload (stored locally):', '') || '';
+      if (t) localStorage.setItem('GH_TOKEN', t);
+    } catch {}
+  }
+  return t;
+}
+function extFromTypeAdmin(type){
+  if (!type) return 'jpg';
+  if (type.includes('png')) return 'png';
+  if (type.includes('webp')) return 'webp';
+  if (type.includes('svg')) return 'svg';
+  if (type.includes('gif')) return 'gif';
+  return 'jpg';
+}
+async function uploadToGithubAdmin(file){
+  const token = ensureGithubTokenAdmin();
+  if (!token) throw new Error('GitHub token missing');
+  const b64 = await fileToBase64(file);
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth()+1).padStart(2,'0');
+  const rand = Math.random().toString(36).slice(2,8);
+  const ext = extFromTypeAdmin(file.type||'');
+  const path = `images/${yyyy}/${mm}/${Date.now()}-${rand}.${ext}`;
+  const apiUrl = `https://api.github.com/repos/${GH_REPO}/contents/${path}`;
+  const res = await fetch(apiUrl, {
+    method: 'PUT',
+    headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: 'Add product image', content: b64, branch: GH_BRANCH })
+  });
+  if (!res.ok) {
+    const txt = await res.text().catch(()=> '');
+    throw new Error(`GitHub upload failed (${res.status}): ${txt.slice(0,200)}`);
+  }
+  return `https://raw.githubusercontent.com/${GH_REPO}/${GH_BRANCH}/${path}`;
 }
 
 async function uploadToImgbb(file) {
@@ -265,7 +312,9 @@ mediaUploadBtn?.addEventListener('click', async ()=>{
     if (mediaMsg) { mediaMsg.textContent = 'Uploading...'; mediaMsg.className = 'text-sm text-gray-700'; }
     for (const f of mediaUpload.files) {
       if (!f || f.size===0) continue;
-      const url = await uploadToImgbb(f);
+      let url = '';
+      try { url = await uploadToGithubAdmin(f); }
+      catch { url = await uploadToImgbb(f); }
       if (url) {
         await addDoc(collection(db,'media'), { url, createdAt: serverTimestamp(), by: auth.currentUser?auth.currentUser.uid:null });
       }
@@ -513,7 +562,8 @@ form?.addEventListener('submit', async (e) => {
           throw new Error('Please select a product image.');
         }
         setMessage('Uploading image...', true);
-        image = await uploadToImgbb(mainFile);
+        try { image = await uploadToGithubAdmin(mainFile); }
+        catch { image = await uploadToImgbb(mainFile); }
       }
       // Build gallery images: start from selected gallery URLs, then append uploads up to 5
       const images = Array.isArray(selectedGalleryUrls) ? selectedGalleryUrls.slice(0,5) : [];
@@ -523,7 +573,9 @@ form?.addEventListener('submit', async (e) => {
         for (let i = 0; i < max; i++) {
           const f = galleryFiles[i];
           if (f && f.size > 0) {
-            const url = await uploadToImgbb(f);
+            let url = '';
+            try { url = await uploadToGithubAdmin(f); }
+            catch { url = await uploadToImgbb(f); }
             if (url) images.push(url);
           }
         }
@@ -568,7 +620,9 @@ form?.addEventListener('submit', async (e) => {
         const mainFileUpd = (croppedMainImageFile instanceof File) ? croppedMainImageFile : (imageFile instanceof File ? imageFile : null);
         if (mainFileUpd instanceof File && mainFileUpd.size > 0) {
           setMessage('Uploading image...', true);
-          const uploaded = await uploadToImgbb(mainFileUpd);
+          let uploaded = '';
+          try { uploaded = await uploadToGithubAdmin(mainFileUpd); }
+          catch { uploaded = await uploadToImgbb(mainFileUpd); }
           if (uploaded) payload.image = uploaded;
         }
       }
@@ -582,7 +636,9 @@ form?.addEventListener('submit', async (e) => {
           for (let i = 0; i < max; i++) {
             const f = galleryFiles[i];
             if (f && f.size > 0) {
-              const url = await uploadToImgbb(f);
+              let url = '';
+              try { url = await uploadToGithubAdmin(f); }
+              catch { url = await uploadToImgbb(f); }
               if (url) imagesNew.push(url);
             }
           }
