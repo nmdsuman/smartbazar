@@ -927,6 +927,16 @@ try {
   }
 } catch {}
 
+// Try to pre-load folders once DOM is ready regardless of current section
+try {
+  const kick = () => { try { loadSiteRepoFolders(); } catch {} };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', kick, { once: true });
+  } else {
+    kick();
+  }
+} catch {}
+
 // Sidebar links safety: force SPA-style switch without full reload
 try {
   document.querySelectorAll('.admin-nav a[href^="#"]').forEach(a => {
