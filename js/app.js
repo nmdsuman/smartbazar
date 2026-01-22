@@ -167,6 +167,7 @@ function drawProducts() {
       const stock = Number(d.stock || 0);
       const out = stock <= 0;
       const hasOptions = Array.isArray(d.options) && d.options.length > 0;
+      const opts = hasOptions ? d.options : [];
       card.innerHTML = `
         ${out ? '<span class="absolute top-2 left-2 text-[11px] px-2 py-0.5 rounded-full bg-red-600 text-white">Out of stock</span>' : ''}
         <a href="productfullview.html?id=${encodeURIComponent(id)}" class="block bg-white">
@@ -178,16 +179,65 @@ function drawProducts() {
             <div class="text-orange-600 font-bold text-sm">৳${Number(d.price).toFixed(2)}</div>
             <span></span>
           </div>
+          ${hasOptions ? `
+          <div class="mt-2 grid gap-1" data-opt-inline>
+            ${opts.map((o,i)=>`
+              <button type="button" data-idx="${i}" class="opt-inline-pill text-xs border border-gray-200 rounded px-2 py-1 text-left hover:border-blue-400">
+                <span>${o.label || o.weight || ''}</span>
+                <span class="ml-2 text-[11px] text-gray-600">৳${Number(o.price ?? d.price).toFixed(2)}</span>
+              </button>
+            `).join('')}
+          </div>
+          ` : ''}
         </div>
         <button class="add-to-cart ${out ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white ${hasOptions ? 'px-3' : 'w-10'} h-10 rounded-full shadow-md flex items-center justify-center absolute bottom-2 right-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 active:scale-[0.98] transition" ${out ? 'disabled' : ''} aria-label="${hasOptions ? 'Select options' : 'Add to cart'}">
-          ${hasOptions ? '<span class="text-xs font-medium">Select Options</span>' : '<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-5 h-5\"><circle cx=\"9\" cy=\"21\" r=\"1\"/><circle cx=\"20\" cy=\"21\" r=\"1\"/><path d=\"M1 1h4l2.68 12.39a2 2 0 0 0 2 1.61h7.72a2 2 0 0 0 2-1.61L23 6H6\"/></svg>'}
+          ${hasOptions ? '<span class="btn-label text-xs font-medium">Select Options</span>' : '<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-5 h-5\"><circle cx=\"9\" cy=\"21\" r=\"1\"/><circle cx=\"20\" cy=\"21\" r=\"1\"/><path d=\"M1 1h4l2.68 12.39a2 2 0 0 0 2 1.61h7.72a2 2 0 0 0 2-1.61L23 6H6\"/></svg>'}
         </button>
       `;
       if (!out) {
         const btn = card.querySelector('.add-to-cart');
         const imgEl = card.querySelector('img');
+        // Inline options selection
+        if (hasOptions){
+          const pills = card.querySelectorAll('.opt-inline-pill');
+          const labelSpan = btn.querySelector('.btn-label');
+          let selectedOpt = null;
+          function refreshPillStyles(){
+            pills.forEach(p=>{
+              const idx = Number(p.getAttribute('data-idx')||'-1');
+              if (selectedOpt === idx){
+                p.classList.remove('border-gray-200');
+                p.classList.add('border-blue-600','bg-blue-50');
+              } else {
+                p.classList.remove('border-blue-600','bg-blue-50');
+                p.classList.add('border-gray-200');
+              }
+            });
+          }
+          pills.forEach(p=>{
+            p.addEventListener('click', ()=>{
+              selectedOpt = Number(p.getAttribute('data-idx')||'0');
+              btn.setAttribute('aria-label','Add to cart');
+              if (labelSpan) labelSpan.textContent = 'Add To Cart';
+              btn.classList.remove('px-3'); btn.classList.add('px-3');
+              refreshPillStyles();
+            });
+          });
+          btn.addEventListener('click', () => {
+            if (selectedOpt === null){
+              // Require selecting an option first
+              btn.classList.add('ring-2','ring-blue-400');
+              setTimeout(()=>btn.classList.remove('ring-2','ring-blue-400'), 600);
+              return;
+            }
+            const opt = opts[selectedOpt] || {};
+            addToCart({ id: `${id}__${opt.label||opt.weight||'opt'}`, title: d.title, price: Number((opt.price ?? d.price)), image: d.image, weight: opt.label || opt.weight || d.weight || '', qty: 1 });
+            bumpCartBadge();
+            flyToCartFrom(imgEl);
+          });
+          return; // skip default
+        }
         btn.addEventListener('click', () => {
-          if (hasOptions) { openOptionsModal({ id, data: d, imgEl }); return; }
           addToCart({ id, title: d.title, price: Number(d.price), image: d.image, weight: d.weight || '' });
           bumpCartBadge();
           flyToCartFrom(imgEl);
