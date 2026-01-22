@@ -191,6 +191,7 @@ const sectionMap = {
   'orders-section': document.getElementById('orders-section'),
   shipping: document.getElementById('shipping'),
   site: document.getElementById('site'),
+  categories: document.getElementById('categories'),
   notes: document.getElementById('notes'),
   files: document.getElementById('files'),
   chat: document.getElementById('chat')
@@ -208,6 +209,10 @@ function showSection(id) {
   // When entering Notes, ensure notes are loaded
   if (key === 'notes') {
     try { window.Notes && window.Notes.loadNotes && window.Notes.loadNotes(); } catch {}
+  }
+  // When entering Categories, ensure categories are loaded and selects populated
+  if (key === 'categories') {
+    try { window.Categories && window.Categories.load && window.Categories.load(); } catch {}
   }
 }
 
