@@ -378,6 +378,14 @@ window.AddProduct = {
       if (form.active) form.active.checked = data.active === false ? false : true;
       if (form.image) form.image.value = '';
       const gal = form.querySelector('[name="gallery"]'); if (gal) gal.value = '';
+      // Populate variants if present
+      try {
+        clearVariants();
+        const opts = Array.isArray(data.options) ? data.options : [];
+        if (opts.length > 0) {
+          opts.slice(0,20).forEach(o => addVariant(o.label || '', o.price ?? ''));
+        }
+      } catch {}
     }
     updateAddPreview(); updateAddPreviewImage(); updateAddPreviewGallery();
     const addSection = document.getElementById('add');
