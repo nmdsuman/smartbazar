@@ -23,6 +23,9 @@ const prevPrice = document.getElementById('add-preview-price');
 const prevExtra = document.getElementById('add-preview-extra');
 const prevDesc = document.getElementById('add-preview-desc');
 const prevGallery = document.getElementById('add-preview-gallery');
+// Variants elements
+const variantsList = document.getElementById('variants-list');
+const variantAddBtn = document.getElementById('variant-add');
 
 // Media Library elements
 const mediaModal = document.getElementById('media-modal');
@@ -46,6 +49,41 @@ let mediaSelected = new Set();
 let mediaMode = 'main';
 let selectedMainUrl = '';
 let selectedGalleryUrls = [];
+
+// ===== Variants helpers =====
+function makeVariantRow(labelValue = '', priceValue = ''){
+  const row = document.createElement('div');
+  row.className = 'grid grid-cols-5 gap-2';
+  row.innerHTML = `
+    <input type="text" placeholder="Label (e.g., 500g, 1kg)" class="col-span-3 border rounded px-3 py-2 text-sm variant-label" value="${labelValue ? String(labelValue).replace(/"/g,'&quot;') : ''}">
+    <input type="number" placeholder="Price" step="0.01" min="0" class="col-span-1 border rounded px-3 py-2 text-sm variant-price" value="${priceValue !== '' && priceValue !== null && priceValue !== undefined ? String(priceValue) : ''}">
+    <button type="button" class="col-span-1 px-3 py-2 rounded bg-red-50 text-red-700 hover:bg-red-100 variant-del">Remove</button>
+  `;
+  row.querySelector('.variant-del').addEventListener('click', ()=>{ row.remove(); });
+  return row;
+}
+
+function clearVariants(){ if (variantsList) variantsList.innerHTML = ''; }
+
+function addVariant(label='', price=''){ if (!variantsList) return; variantsList.appendChild(makeVariantRow(label, price)); }
+
+function getVariantsFromForm(){
+  if (!variantsList) return [];
+  const rows = Array.from(variantsList.querySelectorAll('.variant-label')).map((_,i)=> i);
+  const out = [];
+  const labels = variantsList.querySelectorAll('.variant-label');
+  const prices = variantsList.querySelectorAll('.variant-price');
+  for (let i=0;i<labels.length;i++){
+    const label = String(labels[i].value||'').trim();
+    const price = Number(prices[i]?.value || NaN);
+    if (!label) continue;
+    if (!Number.isFinite(price)) continue;
+    out.push({ label, price });
+  }
+  return out.slice(0,20);
+}
+
+variantAddBtn?.addEventListener('click', ()=> addVariant());
 
 // Simple message helper (scoped here)
 function setMessage(text, ok = true) {
@@ -218,6 +256,7 @@ form?.addEventListener('submit', async (e)=>{
   const size = (data.get('size') || '').toString().trim();
   const stock = Number(data.get('stock') || 0);
   const active = data.get('active') ? true : false;
+  const options = getVariantsFromForm();
   if (!title || Number.isNaN(price)) { setMessage('Please fill all required fields correctly.', false); return; }
   try {
     const submitBtn = form.querySelector('button[type="submit"]');
@@ -260,6 +299,7 @@ form?.addEventListener('submit', async (e)=>{
         images,
         stock: Number.isFinite(stock) ? stock : 0,
         active: !!active,
+        options: Array.isArray(options) && options.length>0 ? options : null,
         createdAt: serverTimestamp(),
         createdBy: auth.currentUser ? auth.currentUser.uid : null
       });
@@ -267,9 +307,10 @@ form?.addEventListener('submit', async (e)=>{
       updateAddPreview(); updateAddPreviewImage(); updateAddPreviewGallery();
       setMessage('Product added successfully.');
       if (submitBtn) submitBtn.disabled = prevDisabled ?? false;
-      croppedMainImageFile = null; selectedMainUrl = ''; selectedGalleryUrls = [];
+      croppedMainImageFile = null; selectedMainUrl = ''; selectedGalleryUrls = []; clearVariants();
     } else {
       const payload = { title, price, category: category || null, description, weight: weight || null, size: size || null, stock: Number.isFinite(stock) ? stock : 0, active: !!active };
+      if (Array.isArray(options) && options.length>0) payload.options = options; else payload.options = null;
       if (imageUrlTyped) { payload.image = imageUrlTyped; selectedMainUrl = imageUrlTyped; }
       else if (selectedMainUrl) { payload.image = selectedMainUrl; }
       else {
@@ -294,7 +335,7 @@ form?.addEventListener('submit', async (e)=>{
       if (addSectionTitle) addSectionTitle.textContent = 'Add Product';
       if (addSubmitBtn) addSubmitBtn.textContent = 'Add Product';
       if (addCancelEditBtn) addCancelEditBtn.classList.add('hidden');
-      form.reset(); updateAddPreview(); updateAddPreviewImage(); updateAddPreviewGallery();
+      form.reset(); updateAddPreview(); updateAddPreviewImage(); updateAddPreviewGallery(); clearVariants();
       try { location.hash = '#products'; window.showSection && window.showSection('products'); } catch {}
       if (submitBtn) submitBtn.disabled = prevDisabled ?? false;
       croppedMainImageFile = null; selectedMainUrl = ''; selectedGalleryUrls = [];
