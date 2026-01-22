@@ -130,6 +130,9 @@
       <a href="#site" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
         <span>Site Settings</span>
       </a>
+      <a href="#categories" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
+        <span>Categories</span>
+      </a>
       <a href="#notes" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
         <span>Notes</span>
       </a>
@@ -163,7 +166,11 @@
         </div>
         <div>
           <label class="block text-sm mb-1">Category</label>
-          <input type="text" name="category" placeholder="e.g., Grocery, Electronics" class="w-full border rounded px-3 py-2"/>
+          <select name="category" id="add-category" class="w-full border rounded px-3 py-2"></select>
+        </div>
+        <div>
+          <label class="block text-sm mb-1">Subcategory</label>
+          <select name="subcategory" id="add-subcategory" class="w-full border rounded px-3 py-2"></select>
         </div>
         <div>
           <label class="block text-sm mb-1">Weight</label>
@@ -250,6 +257,24 @@
       </div>
       </div>
       <div id="admin-message" class="text-sm mt-4"></div>
+    </section>
+
+    <section id="categories" class="bg-white border rounded-lg p-6 mt-8 hidden">
+      <h2 class="text-lg font-semibold mb-4">Categories</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+        <div class="md:col-span-1">
+          <label class="block text-sm mb-1">Add New Category</label>
+          <div class="flex items-center gap-2">
+            <input id="cat-name" type="text" class="flex-1 border rounded px-3 py-2" placeholder="e.g., Grocery"/>
+            <button id="cat-add" class="px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">Add</button>
+          </div>
+          <div id="cat-msg" class="text-sm mt-2"></div>
+        </div>
+        <div class="md:col-span-2">
+          <div class="text-sm text-gray-600 mb-2">Manage subcategories for each category.</div>
+          <div id="cat-list" class="space-y-3"></div>
+        </div>
+      </div>
     </section>
 
     <section id="notes" class="bg-white border rounded-lg p-6 mt-8 hidden">
@@ -545,6 +570,7 @@
     });
   </script>
   <script src="js/file-manager.js"></script>
+  <script type="module" src="js/categories.js"></script>
   <script type="module" src="js/add-product.js"></script>
   <script type="module" src="js/products.js"></script>
   <script type="module" src="js/notes.js"></script>
