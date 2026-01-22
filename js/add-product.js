@@ -176,17 +176,26 @@ function renderSelectedGalleryPreview(){ if (!prevGallery) return; prevGallery.i
 
 function updateAddPreview(){ if (!form || !prevTitle || !prevPrice || !prevExtra || !prevDesc) return; const title = form.title ? String(form.title.value || '').trim() : ''; const price = form.price ? Number(form.price.value || 0) : 0; const weightVal = form.weightValue ? String(form.weightValue.value || '').trim() : ''; const weightUnit = form.weightUnit ? String(form.weightUnit.value || '').trim() : ''; const unitLabel = weightUnit === 'l' ? 'L' : (weightUnit === 'ml' ? 'ml' : (weightUnit === 'kg' ? 'kg' : 'g')); const weight = weightVal ? `${weightVal}${unitLabel}` : ''; const size = form.size ? String(form.size.value || '').trim() : ''; const desc = form.description ? String(form.description.value || '').trim() : ''; prevTitle.textContent = title || '—'; prevPrice.textContent = `৳${Number(price || 0).toFixed(2)}`; const extra = [weight, size].filter(Boolean).join(' · '); prevExtra.textContent = extra || '\u00A0'; prevDesc.textContent = desc || '\u00A0'; }
 function updateAddPreviewImage(){ if (!form || !prevImg) return; if (selectedMainUrl) { prevImg.src = selectedMainUrl; prevImg.classList.remove('hidden'); return; } const file = form.image && form.image.files ? form.image.files[0] : null; if (file) { const url = URL.createObjectURL(file); prevImg.src = url; prevImg.classList.remove('hidden'); } else { if (editUsingAdd.active && editUsingAdd.original?.image) { prevImg.src = editUsingAdd.original.image; prevImg.classList.remove('hidden'); } else { prevImg.src = ''; prevImg.classList.add('hidden'); } } }
-function updateAddPreviewGallery(){ if (!form || !prevGallery) return; const input = form.querySelector('[name="gallery"]'); const files = input && input.files ? input.files : []; prevGallery.innerHTML=''; const max = Math.min(5, files.length); if (max>0){ for (let i=0;i<max;i++){ const f = files[i]; if (!f) continue; const url = URL.createObjectURL(f); const div = document.createElement('div'); div.className='relative'; const img=document.createElement('img'); img.src=url; img.alt='Preview'; img.className='w-full h-16 object-contain bg-white border rounded opacity-90'; div.appendChild(img); prevGallery.appendChild(div); } } if (selectedGalleryUrls.length>0){ renderSelectedGalleryPreview(); } else if (max===0 && editUsingAdd.active){ const urls = Array.isArray(editUsingAdd.original?.images) ? editUsingAdd.original.images.slice(0,5) : []; urls.forEach(u=>{ const img=document.createElement('img'); img.src=u; img.alt='Gallery'; img.className='w-full h-16 object-contain bg-white border rounded'; prevGallery.appendChild(img); }); } }
+function updateAddPreviewGallery(){ if (!form || !prevGallery) return; const input = form.querySelector('[name="gallery"]'); const files = input && input.files ? input.files : []; const urlsTextEl = form.querySelector('[name="galleryUrls"]'); const typed = (urlsTextEl?.value||'').toString(); const typedUrls = typed.split(/[\n,]/).map(s=>s.trim()).filter(Boolean).slice(0,5); prevGallery.innerHTML=''; // typed URLs first
+  typedUrls.forEach(u=>{ const img=document.createElement('img'); img.src=u; img.alt='Gallery'; img.className='w-full h-16 object-contain bg-white border rounded'; prevGallery.appendChild(img); });
+  // then file previews up to remaining slots
+  const remaining = Math.max(0, 5 - typedUrls.length);
+  const max = Math.min(remaining, files.length);
+  for (let i=0;i<max;i++){ const f = files[i]; if (!f) continue; const url = URL.createObjectURL(f); const div=document.createElement('div'); div.className='relative'; const img=document.createElement('img'); img.src=url; img.alt='Preview'; img.className='w-full h-16 object-contain bg-white border rounded opacity-90'; div.appendChild(img); prevGallery.appendChild(div); }
+  // Also render any library-selected gallery images
+  if (selectedGalleryUrls.length>0){ renderSelectedGalleryPreview(); }
+  else if (typedUrls.length===0 && max===0 && editUsingAdd.active){ const urls = Array.isArray(editUsingAdd.original?.images) ? editUsingAdd.original.images.slice(0,5) : []; urls.forEach(u=>{ const img=document.createElement('img'); img.src=u; img.alt='Gallery'; img.className='w-full h-16 object-contain bg-white border rounded'; prevGallery.appendChild(img); }); }
+}
 
 // Wire preview listeners
-if (form){ ['title','price','weightValue','weightUnit','size','description'].forEach(name=>{ const el = form.querySelector(`[name="${name}"]`); if (el) el.addEventListener('input', updateAddPreview); }); const imgInput = form.querySelector('[name="image"]'); if (imgInput) imgInput.addEventListener('change', (e)=>{ const f = e.target.files && e.target.files[0] ? e.target.files[0] : null; if (f) { openCropper(f); } updateAddPreviewImage(); }); const galInput = form.querySelector('[name="gallery"]'); if (galInput) galInput.addEventListener('change', updateAddPreviewGallery); updateAddPreview(); }
+if (form){ ['title','price','weightValue','weightUnit','size','description'].forEach(name=>{ const el = form.querySelector(`[name="${name}"]`); if (el) el.addEventListener('input', updateAddPreview); }); const imgInput = form.querySelector('[name="image"]'); if (imgInput) imgInput.addEventListener('change', (e)=>{ const f = e.target.files && e.target.files[0] ? e.target.files[0] : null; if (f) { openCropper(f); } updateAddPreviewImage(); }); const imgUrl = form.querySelector('[name="imageUrl"]'); if (imgUrl) imgUrl.addEventListener('input', ()=>{ selectedMainUrl = imgUrl.value.trim(); updateAddPreviewImage(); }); const galInput = form.querySelector('[name="gallery"]'); if (galInput) galInput.addEventListener('change', updateAddPreviewGallery); const galUrls = form.querySelector('[name="galleryUrls"]'); if (galUrls) galUrls.addEventListener('input', updateAddPreviewGallery); updateAddPreview(); }
 
 // Cancel edit mode
 addCancelEditBtn?.addEventListener('click', ()=>{ editUsingAdd = { active:false, productId:null, original:null }; if (addSectionTitle) addSectionTitle.textContent = 'Add Product'; if (addSubmitBtn) addSubmitBtn.textContent = 'Add Product'; addCancelEditBtn.classList.add('hidden'); if (form) form.reset(); updateAddPreview(); updateAddPreviewImage(); updateAddPreviewGallery(); });
 
 // Clear buttons
-btnImageClear?.addEventListener('click', ()=>{ try { const imgInput = form?.querySelector('[name="image"]'); if (imgInput) imgInput.value=''; selectedMainUrl = ''; croppedMainImageFile = null; if (prevImg){ prevImg.src=''; prevImg.classList.add('hidden'); } } catch {} });
-btnGalleryClear?.addEventListener('click', ()=>{ try { const galInput = form?.querySelector('[name="gallery"]'); if (galInput) galInput.value=''; selectedGalleryUrls = []; renderSelectedGalleryPreview(); } catch {} });
+btnImageClear?.addEventListener('click', ()=>{ try { const imgInput = form?.querySelector('[name="image"]'); if (imgInput) imgInput.value=''; const imgUrl = form?.querySelector('[name="imageUrl"]'); if (imgUrl) imgUrl.value=''; selectedMainUrl = ''; croppedMainImageFile = null; if (prevImg){ prevImg.src=''; prevImg.classList.add('hidden'); } } catch {} });
+btnGalleryClear?.addEventListener('click', ()=>{ try { const galInput = form?.querySelector('[name="gallery"]'); if (galInput) galInput.value=''; const galUrls = form?.querySelector('[name="galleryUrls"]'); if (galUrls) galUrls.value=''; selectedGalleryUrls = []; renderSelectedGalleryPreview(); updateAddPreviewGallery(); } catch {} });
 
 // Submit handler
 form?.addEventListener('submit', async (e)=>{
@@ -195,8 +204,11 @@ form?.addEventListener('submit', async (e)=>{
   const title = (data.get('title') || '').toString().trim();
   const price = Number(data.get('price'));
   let imageFile = data.get('image');
+  const imageUrlTyped = (data.get('imageUrl') || '').toString().trim();
   const galleryInput = form.querySelector('[name="gallery"]');
   const galleryFiles = galleryInput && galleryInput.files ? galleryInput.files : [];
+  const galleryUrlsTyped = (data.get('galleryUrls') || '').toString();
+  const galleryUrls = galleryUrlsTyped.split(/[\n,]/).map(s=>s.trim()).filter(Boolean).slice(0,5);
   const description = (data.get('description') || '').toString().trim();
   const category = (data.get('category') || '').toString().trim();
   const wv = (data.get('weightValue') || '').toString().trim();
@@ -213,14 +225,22 @@ form?.addEventListener('submit', async (e)=>{
     if (submitBtn) submitBtn.disabled = true;
     if (!editUsingAdd.active){
       let image = '';
-      if (selectedMainUrl){ image = selectedMainUrl; }
+      if (imageUrlTyped){ image = imageUrlTyped; selectedMainUrl = image; }
+      else if (selectedMainUrl){ image = selectedMainUrl; }
       else {
         const mainFile = (croppedMainImageFile instanceof File) ? croppedMainImageFile : imageFile;
         if (!(mainFile instanceof File) || mainFile.size === 0) throw new Error('Please select a product image.');
         setMessage('Uploading image...', true);
         try { image = await uploadToGithubAdmin(mainFile); } catch { image = await uploadToImgbb(mainFile); }
       }
-      const images = Array.isArray(selectedGalleryUrls) ? selectedGalleryUrls.slice(0,5) : [];
+      const images = [];
+      // typed gallery URLs first
+      galleryUrls.forEach(u=>{ if (images.length<5) images.push(u); });
+      // then selected from library
+      const remainingSlots = Math.max(0, 5 - images.length);
+      if (remainingSlots>0 && Array.isArray(selectedGalleryUrls)){
+        selectedGalleryUrls.slice(0, remainingSlots).forEach(u=> images.push(u));
+      }
       try {
         const left = Math.max(0, 5 - images.length);
         const max = Math.min(left, galleryFiles.length);
@@ -250,16 +270,23 @@ form?.addEventListener('submit', async (e)=>{
       croppedMainImageFile = null; selectedMainUrl = ''; selectedGalleryUrls = [];
     } else {
       const payload = { title, price, category: category || null, description, weight: weight || null, size: size || null, stock: Number.isFinite(stock) ? stock : 0, active: !!active };
-      if (selectedMainUrl) { payload.image = selectedMainUrl; }
+      if (imageUrlTyped) { payload.image = imageUrlTyped; selectedMainUrl = imageUrlTyped; }
+      else if (selectedMainUrl) { payload.image = selectedMainUrl; }
       else {
         const mainFileUpd = (croppedMainImageFile instanceof File) ? croppedMainImageFile : (imageFile instanceof File ? imageFile : null);
         if (mainFileUpd instanceof File && mainFileUpd.size>0){ setMessage('Uploading image...', true); let uploaded=''; try { uploaded = await uploadToGithubAdmin(mainFileUpd); } catch { uploaded = await uploadToImgbb(mainFileUpd); } if (uploaded) payload.image = uploaded; }
       }
       try {
-        const selectedCount = Array.isArray(selectedGalleryUrls) ? selectedGalleryUrls.length : 0;
-        const leftSlots = Math.max(0, 5 - selectedCount);
-        const max = Math.min(leftSlots, galleryFiles.length);
-        if (max>0 || selectedCount>0){ const imagesNew = Array.isArray(selectedGalleryUrls) ? selectedGalleryUrls.slice(0,5) : []; for (let i=0;i<max;i++){ const f = galleryFiles[i]; if (f && f.size>0){ let url=''; try { url = await uploadToGithubAdmin(f); } catch { url = await uploadToImgbb(f); } if (url) imagesNew.push(url); } } payload.images = imagesNew; }
+        // Combine typed URLs, selected gallery, and uploaded files
+        const base = galleryUrls.slice(0,5);
+        let imagesNew = base.slice(0,5);
+        const leftSlots = Math.max(0, 5 - imagesNew.length);
+        const fromLib = Array.isArray(selectedGalleryUrls) ? selectedGalleryUrls.slice(0,leftSlots) : [];
+        imagesNew = imagesNew.concat(fromLib).slice(0,5);
+        const leftAfterLib = Math.max(0, 5 - imagesNew.length);
+        const max = Math.min(leftAfterLib, galleryFiles.length);
+        for (let i=0;i<max;i++){ const f = galleryFiles[i]; if (f && f.size>0){ let url=''; try { url = await uploadToGithubAdmin(f); } catch { url = await uploadToImgbb(f); } if (url) imagesNew.push(url); } }
+        if (imagesNew.length>0) payload.images = imagesNew.slice(0,5);
       } catch {}
       await updateDoc(doc(db,'products', editUsingAdd.productId), payload);
       setMessage('Product updated.');
