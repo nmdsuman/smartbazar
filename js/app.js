@@ -538,17 +538,19 @@ function openOptionsModal({ id, data, imgEl }){
   const body = host.querySelector('#opt-body');
   const addBtn = host.querySelector('#opt-add');
   const closeBtn = host.querySelector('#opt-close');
+  const minusBtn = host.querySelector('#opt-minus');
+  const plusBtn = host.querySelector('#opt-plus');
+  const qtyView = host.querySelector('#opt-qty-view');
   const options = Array.isArray(data.options) ? data.options : [];
-  // Build radio list
+
+  // Build pill list (buttons)
   const optsHtml = options.map((o,i)=>`
-    <label class="flex items-center justify-between border rounded px-3 py-2 cursor-pointer">
-      <div class="flex items-center gap-2">
-        <input type="radio" name="opt" value="${i}" ${i===0?'checked':''} class="opt-radio"/>
-        <span class="text-sm">${o.label || o.weight || ''}</span>
-      </div>
-      <div class="text-sm font-semibold">৳${Number(o.price ?? data.price).toFixed(2)}</div>
-    </label>
+    <button data-idx="${i}" class="opt-pill inline-flex items-center justify-between w-full border rounded px-3 py-2 text-sm">
+      <span>${o.label || o.weight || ''}</span>
+      <span class="font-semibold">৳${Number(o.price ?? data.price).toFixed(2)}</span>
+    </button>
   `).join('');
+
   body.innerHTML = `
     <div class="flex items-center gap-3">
       <img src="${data.image}" alt="${data.title}" class="w-16 h-16 object-contain bg-white border rounded"/>
@@ -557,20 +559,43 @@ function openOptionsModal({ id, data, imgEl }){
         <div class="text-xs text-gray-600">Choose an option</div>
       </div>
     </div>
-    <div class="mt-3 space-y-2">${optsHtml}</div>
-    <div class="mt-3 flex items-center gap-2">
-      <label class="text-sm">Qty</label>
-      <input id="opt-qty" type="number" min="1" value="1" class="w-20 border rounded px-2 py-1 text-sm"/>
-    </div>
+    <div class="mt-3 grid gap-2">${optsHtml}</div>
   `;
-  const cleanup = ()=>{ addBtn.onclick=null; closeBtn.onclick=null; host.classList.add('hidden'); host.classList.remove('flex'); };
+
+  // Local state
+  let selectedIdx = 0;
+  let qty = 1;
+  if (qtyView) qtyView.textContent = String(qty);
+
+  // Style helpers
+  function refreshPills(){
+    body.querySelectorAll('.opt-pill').forEach((el, i)=>{
+      if (i === selectedIdx){
+        el.classList.remove('border-gray-200');
+        el.classList.add('bg-green-600','text-white','border-green-600');
+      } else {
+        el.classList.remove('bg-green-600','text-white','border-green-600');
+        el.classList.add('border-gray-200');
+      }
+    });
+  }
+  refreshPills();
+  body.querySelectorAll('.opt-pill').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ selectedIdx = Number(btn.getAttribute('data-idx')||'0'); refreshPills(); });
+  });
+
+  minusBtn && minusBtn.addEventListener('click', ()=>{ qty = Math.max(1, qty-1); if (qtyView) qtyView.textContent = String(qty); });
+  plusBtn && plusBtn.addEventListener('click', ()=>{ qty = Math.max(1, qty+1); if (qtyView) qtyView.textContent = String(qty); });
+
+  const cleanup = ()=>{
+    addBtn.onclick=null; closeBtn.onclick=null;
+    minusBtn && (minusBtn.onclick=null); plusBtn && (plusBtn.onclick=null);
+    host.classList.add('hidden'); host.classList.remove('flex');
+  };
   closeBtn.onclick = cleanup;
   addBtn.onclick = ()=>{
-    const selected = body.querySelector('.opt-radio:checked');
-    const idx = selected ? Number(selected.value) : 0;
+    const idx = Number.isFinite(selectedIdx) ? selectedIdx : 0;
     const opt = options[idx] || {};
-    const qtyEl = document.getElementById('opt-qty');
-    const qty = Math.max(1, Number(qtyEl?.value||1));
     addToCart({ id: `${id}__${opt.label||opt.weight||'opt'}`, title: data.title, price: Number((opt.price ?? data.price)), image: data.image, weight: opt.label || opt.weight || data.weight || '', qty });
     bumpCartBadge();
     flyToCartFrom(imgEl);
