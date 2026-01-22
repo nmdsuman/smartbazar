@@ -166,6 +166,7 @@ function drawProducts() {
       card.className = 'relative border border-gray-200 rounded-lg bg-white overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-shadow';
       const stock = Number(d.stock || 0);
       const out = stock <= 0;
+      const hasOptions = Array.isArray(d.options) && d.options.length > 0;
       card.innerHTML = `
         ${out ? '<span class="absolute top-2 left-2 text-[11px] px-2 py-0.5 rounded-full bg-red-600 text-white">Out of stock</span>' : ''}
         <a href="productfullview.html?id=${encodeURIComponent(id)}" class="block bg-white">
@@ -178,21 +179,16 @@ function drawProducts() {
             <span></span>
           </div>
         </div>
-        <button class="add-to-cart ${out ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white w-10 h-10 rounded-full shadow-md flex items-center justify-center absolute bottom-2 right-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 active:scale-[0.98] transition" ${out ? 'disabled' : ''} aria-label="Add to cart">
-          <svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-5 h-5\"><circle cx=\"9\" cy=\"21\" r=\"1\"/><circle cx=\"20\" cy=\"21\" r=\"1\"/><path d=\"M1 1h4l2.68 12.39a2 2 0 0 0 2 1.61h7.72a2 2 0 0 0 2-1.61L23 6H6\"/></svg>
+        <button class="add-to-cart ${out ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white ${hasOptions ? 'px-3' : 'w-10'} h-10 rounded-full shadow-md flex items-center justify-center absolute bottom-2 right-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 active:scale-[0.98] transition" ${out ? 'disabled' : ''} aria-label="${hasOptions ? 'Select options' : 'Add to cart'}">
+          ${hasOptions ? '<span class="text-xs font-medium">Select Options</span>' : '<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-5 h-5\"><circle cx=\"9\" cy=\"21\" r=\"1\"/><circle cx=\"20\" cy=\"21\" r=\"1\"/><path d=\"M1 1h4l2.68 12.39a2 2 0 0 0 2 1.61h7.72a2 2 0 0 0 2-1.61L23 6H6\"/></svg>'}
         </button>
       `;
       if (!out) {
         const btn = card.querySelector('.add-to-cart');
         const imgEl = card.querySelector('img');
         btn.addEventListener('click', () => {
-          addToCart({
-            id: id,
-            title: d.title,
-            price: Number(d.price),
-            image: d.image,
-            weight: d.weight || ''
-          });
+          if (hasOptions) { openOptionsModal({ id, data: d, imgEl }); return; }
+          addToCart({ id, title: d.title, price: Number(d.price), image: d.image, weight: d.weight || '' });
           bumpCartBadge();
           flyToCartFrom(imgEl);
         });
@@ -534,3 +530,52 @@ export async function renderCartPage() {
   hideHomeLinkOnHome();
   loadProducts();
 })();
+
+// ===== Options Modal (weight/size variants) =====
+function openOptionsModal({ id, data, imgEl }){
+  let host = document.getElementById('opt-modal');
+  if (!host) return;
+  const body = host.querySelector('#opt-body');
+  const addBtn = host.querySelector('#opt-add');
+  const closeBtn = host.querySelector('#opt-close');
+  const options = Array.isArray(data.options) ? data.options : [];
+  // Build radio list
+  const optsHtml = options.map((o,i)=>`
+    <label class="flex items-center justify-between border rounded px-3 py-2 cursor-pointer">
+      <div class="flex items-center gap-2">
+        <input type="radio" name="opt" value="${i}" ${i===0?'checked':''} class="opt-radio"/>
+        <span class="text-sm">${o.label || o.weight || ''}</span>
+      </div>
+      <div class="text-sm font-semibold">৳${Number(o.price ?? data.price).toFixed(2)}</div>
+    </label>
+  `).join('');
+  body.innerHTML = `
+    <div class="flex items-center gap-3">
+      <img src="${data.image}" alt="${data.title}" class="w-16 h-16 object-contain bg-white border rounded"/>
+      <div>
+        <div class="font-medium">${data.title}</div>
+        <div class="text-xs text-gray-600">Choose an option</div>
+      </div>
+    </div>
+    <div class="mt-3 space-y-2">${optsHtml}</div>
+    <div class="mt-3 flex items-center gap-2">
+      <label class="text-sm">Qty</label>
+      <input id="opt-qty" type="number" min="1" value="1" class="w-20 border rounded px-2 py-1 text-sm"/>
+    </div>
+  `;
+  const cleanup = ()=>{ addBtn.onclick=null; closeBtn.onclick=null; host.classList.add('hidden'); host.classList.remove('flex'); };
+  closeBtn.onclick = cleanup;
+  addBtn.onclick = ()=>{
+    const selected = body.querySelector('.opt-radio:checked');
+    const idx = selected ? Number(selected.value) : 0;
+    const opt = options[idx] || {};
+    const qtyEl = document.getElementById('opt-qty');
+    const qty = Math.max(1, Number(qtyEl?.value||1));
+    addToCart({ id: `${id}__${opt.label||opt.weight||'opt'}`, title: data.title, price: Number((opt.price ?? data.price)), image: data.image, weight: opt.label || opt.weight || data.weight || '', qty });
+    bumpCartBadge();
+    flyToCartFrom(imgEl);
+    cleanup();
+  };
+  host.classList.remove('hidden');
+  host.classList.add('flex');
+}
