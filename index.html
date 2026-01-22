@@ -76,6 +76,22 @@
     <div class="bg-gray-50 text-center text-xs text-gray-500 py-3">© <span id="year"></span> Bazar. All rights reserved.</div>
   </footer>
 
+  <!-- Options Modal -->
+  <div id="opt-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+    <div class="bg-white w-full max-w-md rounded shadow-lg overflow-hidden flex flex-col max-h-[90vh] m-4">
+      <div class="px-4 py-3 border-b flex items-center justify-between">
+        <h3 class="font-semibold">Select Options</h3>
+        <button id="opt-close" class="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200">Close</button>
+      </div>
+      <div id="opt-body" class="p-4 space-y-3 flex-1 overflow-y-auto">
+        <!-- Filled by JS -->
+      </div>
+      <div class="px-4 py-3 border-t flex items-center justify-end gap-2 sticky bottom-0 bg-white">
+        <button id="opt-add" class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">Add to Cart</button>
+      </div>
+    </div>
+  </div>
+
   <script type="module" src="js/firebase-config.js"></script>
   <script type="module" src="js/auth.js"></script>
   <script type="module" src="js/app.js"></script>
