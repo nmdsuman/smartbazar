@@ -86,8 +86,15 @@
       <div id="opt-body" class="p-4 space-y-3 flex-1 overflow-y-auto">
         <!-- Filled by JS -->
       </div>
-      <div class="px-4 py-3 border-t flex items-center justify-end gap-2 sticky bottom-0 bg-white">
-        <button id="opt-add" class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">Add to Cart</button>
+      <div class="px-4 py-3 border-t sticky bottom-0 bg-white">
+        <div class="flex items-center gap-2">
+          <div class="flex items-center rounded overflow-hidden bg-green-600 text-white">
+            <button id="opt-minus" class="px-3 py-2 hover:bg-green-700">-</button>
+            <span id="opt-qty-view" class="px-4 py-2 border-x border-white/20 select-none">1</span>
+            <button id="opt-plus" class="px-3 py-2 hover:bg-green-700">+</button>
+          </div>
+          <button id="opt-add" class="flex-1 px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700">Add To Cart</button>
+        </div>
       </div>
     </div>
   </div>
