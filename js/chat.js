@@ -1,6 +1,6 @@
 import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged } from 'firebase/auth';
-import { addDoc, getDoc, doc, collection, serverTimestamp, onSnapshot, query, orderBy, updateDoc } from 'firebase/firestore';
+import { addDoc, setDoc, getDoc, doc, collection, serverTimestamp, onSnapshot, query, orderBy, updateDoc } from 'firebase/firestore';
 
 (function initChatWidget(){
   if (window.__chatWidgetInit) return; window.__chatWidgetInit = true;

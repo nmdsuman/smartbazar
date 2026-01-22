@@ -156,132 +156,568 @@ function setMessage(text, ok = true) {
   msg.className = `text-sm mt-4 ${ok ? 'text-green-700' : 'text-red-700'}`;
 }
 
-// Live preview for Add Product
-const prevImg = document.getElementById('add-preview-image');
-const prevTitle = document.getElementById('add-preview-title');
-const prevPrice = document.getElementById('add-preview-price');
-const prevExtra = document.getElementById('add-preview-extra');
-const prevDesc = document.getElementById('add-preview-desc');
-const prevGallery = document.getElementById('add-preview-gallery');
-const addSectionTitle = document.getElementById('add-section-title');
-const addSubmitBtn = document.getElementById('add-submit-btn');
-const addCancelEditBtn = document.getElementById('add-cancel-edit');
-const btnImageClear = document.getElementById('btn-image-clear');
-const btnGalleryClear = document.getElementById('btn-gallery-clear');
-// File Manager elements
+// Add Product moved to js/add-product.js
 
-let editUsingAdd = { active: false, productId: null, original: null };\n// Image cropper state (for main product image in Add/Edit form)
-let croppedMainImageFile = null;
-let cropper = null;
-const cropperModal = document.getElementById('cropper-modal');
-const cropperImgEl = document.getElementById('cropper-image');
-const cropperCloseBtn = document.getElementById('cropper-close');
-const cropperCancelBtn = document.getElementById('cropper-cancel');
-const cropperApplyBtn = document.getElementById('cropper-apply');
+// Notes elements
+const noteTitleEl = document.getElementById('note-title');
+const noteContentEl = document.getElementById('note-content');
+const noteSaveBtn = document.getElementById('note-save');
+const noteNewBtn = document.getElementById('note-new');
+const noteMsgEl = document.getElementById('note-message');
+const notesListEl = document.getElementById('notes-list');
 
-function openCropper(file){
-  try {
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    if (cropper) { try { cropper.destroy(); } catch {}
-      cropper = null;
-    }
-    if (cropperImgEl) {
-      cropperImgEl.src = url;
-      // Show modal
-      cropperModal?.classList.remove('hidden');
-      cropperModal?.classList.add('flex');
-      // Init after image loads
-      cropperImgEl.onload = () => {
-        try {
-          // 1:1 square by default, good for thumbnails
-          cropper = new window.Cropper(cropperImgEl, { aspectRatio: NaN, viewMode: 1, autoCropArea: 0.9 });
-        } catch {}
-      };
-    }
-  } catch {}
+// ===== Notes (Admin personal) =====
+let currentNoteId = null;
+
+function setNoteMessage(text, ok=true){
+  if (!noteMsgEl) return;
+  noteMsgEl.textContent = text;
+  noteMsgEl.className = `text-sm mt-2 ${ok ? 'text-green-700' : 'text-red-700'}`;
 }
 
-function closeCropper(){
+async function loadNotes(){
+  if (!notesListEl || !auth.currentUser) return;
+  notesListEl.innerHTML = '';
   try {
-    cropperModal?.classList.add('hidden');
-    cropperModal?.classList.remove('flex');
-    if (cropper) { cropper.destroy(); cropper = null; }
-    if (cropperImgEl) { cropperImgEl.src = ''; }
-  } catch {}
-}
-
-cropperCloseBtn?.addEventListener('click', closeCropper);
-cropperCancelBtn?.addEventListener('click', ()=>{ croppedMainImageFile = null; closeCropper(); });
-cropperApplyBtn?.addEventListener('click', ()=>{
-  try {
-    if (!cropper) { closeCropper(); return; }
-    const canvas = cropper.getCroppedCanvas({ maxWidth: 1600, maxHeight: 1600 });
-    if (!canvas) { closeCropper(); return; }
-    canvas.toBlob((blob)=>{
-      if (!blob) { closeCropper(); return; }
-      const file = new File([blob], 'product.jpg', { type: blob.type || 'image/jpeg' });
-      croppedMainImageFile = file;
-      // Update live preview with cropped image
-      if (prevImg) {
-        const u = URL.createObjectURL(file);
-        prevImg.src = u;
-        prevImg.classList.remove('hidden');
-      }
-      closeCropper();
-    }, 'image/jpeg', 0.9);
-  } catch { closeCropper(); }
-});\nfunction updateAddPreview() {
-  if (!form || !prevTitle || !prevPrice || !prevExtra || !prevDesc) return;
-  const title = form.title ? String(form.title.value || '').trim() : '';
-  const price = form.price ? Number(form.price.value || 0) : 0;
-  const weightVal = form.weightValue ? String(form.weightValue.value || '').trim() : '';
-  const weightUnit = form.weightUnit ? String(form.weightUnit.value || '').trim() : '';
-  const unitLabel = weightUnit === 'l' ? 'L' : (weightUnit === 'ml' ? 'ml' : (weightUnit === 'kg' ? 'kg' : 'g'));
-  const weight = weightVal ? `${weightVal}${unitLabel}` : '';
-  const size = form.size ? String(form.size.value || '').trim() : '';
-  const desc = form.description ? String(form.description.value || '').trim() : '';
-
-  prevTitle.textContent = title || 'â€”';
-  prevPrice.textContent = `à§³${Number(price || 0).toFixed(2)}`;
-  const extra = [weight, size].filter(Boolean).join(' Â· ');
-  prevExtra.textContent = extra || '\u00A0';
-  prevDesc.textContent = desc || '\u00A0';
-}\nfunction updateAddPreviewGallery() {
-  if (!form || !prevGallery) return;
-  const input = form.querySelector('[name="gallery"]');
-  const files = input && input.files ? input.files : [];
-  prevGallery.innerHTML = '';
-  const max = Math.min(5, files.length);
-  if (max > 0) {
-    for (let i = 0; i < max; i++) {
-      const f = files[i];
-      if (!f) continue;
-      const url = URL.createObjectURL(f);
-      const div = document.createElement('div');
-      div.className = 'relative';
-      const img = document.createElement('img');
-      img.src = url; img.alt = 'Preview'; img.className = 'w-full h-16 object-contain bg-white border rounded opacity-90';
-      div.appendChild(img);
-      prevGallery.appendChild(div);
-    }
+    const qy = query(collection(db,'notes'), where('uid','==', auth.currentUser.uid), orderBy('updatedAt','desc'));
+    const snap = await getDocs(qy);
+    const notes = snap.docs.map(d=>({ id: d.id, ...d.data() }));
+    renderNotes(notes);
+  } catch (e) {
+    try {
+      // Fallback without orderBy index
+      const qy2 = query(collection(db,'notes'), where('uid','==', auth.currentUser.uid));
+      const snap2 = await getDocs(qy2);
+      const notes2 = snap2.docs.map(d=>({ id: d.id, ...d.data() }))
+        .sort((a,b)=> (b.updatedAt?.seconds||0) - (a.updatedAt?.seconds||0));
+      renderNotes(notes2);
+    } catch(err){ if (noteMsgEl) { setNoteMessage('Failed to load notes', false); } }
   }
-  // Also render any library-selected gallery images with removal buttons
-  if (selectedGalleryUrls.length > 0) {
-    renderSelectedGalleryPreview();
-  } else if (max === 0 && editUsingAdd.active) {
-    const urls = Array.isArray(editUsingAdd.original?.images) ? editUsingAdd.original.images.slice(0,5) : [];
-    urls.forEach(u => {
-      const img = document.createElement('img');
-      img.src = u;
-      img.alt = 'Gallery';
-      img.className = 'w-full h-16 object-contain bg-white border rounded';
-      prevGallery.appendChild(img);
+}
+
+function renderNotes(items){
+  if (!notesListEl) return;
+  notesListEl.innerHTML = '';
+  if (!Array.isArray(items) || items.length===0){
+    const d = document.createElement('div'); d.className='text-gray-500 text-sm'; d.textContent='No notes yet.'; notesListEl.appendChild(d); return;
+  }
+  const frag = document.createDocumentFragment();
+  items.forEach(n=>{
+    const row = document.createElement('div');
+    row.className = 'border rounded p-2 flex items-start justify-between gap-2';
+    const when = n.updatedAt?.toDate ? n.updatedAt.toDate().toLocaleString() : '';
+    row.innerHTML = `
+      <div class="min-w-0">
+        <div class="font-medium truncate">${(n.title||'Untitled')}</div>
+        <div class="text-xs text-gray-500 truncate">${when}</div>
+      </div>
+      <div class="shrink-0 flex items-center gap-2">
+        <button class="copy px-2 py-1 text-sm rounded bg-gray-100 hover:bg-gray-200">Copy</button>
+        <button class="edit px-2 py-1 text-sm rounded bg-blue-600 text-white hover:bg-blue-700">Edit</button>
+        <button class="del px-2 py-1 text-sm rounded bg-red-600 text-white hover:bg-red-700">Delete</button>
+      </div>
+    `;
+    row.querySelector('.copy').addEventListener('click', async ()=>{
+      try{ await navigator.clipboard.writeText(n.content||''); setNoteMessage('Copied to clipboard'); }catch{ setNoteMessage('Copy failed', false); }
     });
+    row.querySelector('.edit').addEventListener('click', ()=>{
+      currentNoteId = n.id;
+      if (noteTitleEl) noteTitleEl.value = n.title||'';
+      if (noteContentEl) noteContentEl.value = n.content||'';
+      setNoteMessage('Loaded note for editing');
+    });
+    row.querySelector('.del').addEventListener('click', async ()=>{
+      try{ await deleteDoc(doc(db,'notes', n.id)); setNoteMessage('Deleted'); loadNotes(); }catch(e){ setNoteMessage('Delete failed: '+e.message, false); }
+    });
+    frag.appendChild(row);
+  });
+  notesListEl.appendChild(frag);
+}
+
+noteSaveBtn?.addEventListener('click', async ()=>{
+  if (!auth.currentUser) { setNoteMessage('Not signed in', false); return; }
+  const title = (noteTitleEl?.value||'').toString().trim();
+  const content = (noteContentEl?.value||'').toString();
+  if (!content) { setNoteMessage('Content is empty', false); return; }
+  try {
+    if (currentNoteId) {
+      await setDoc(doc(db,'notes', currentNoteId), { uid: auth.currentUser.uid, title: title||null, content, updatedAt: serverTimestamp() }, { merge: true });
+      setNoteMessage('Saved changes');
+    } else {
+      await addDoc(collection(db,'notes'), { uid: auth.currentUser.uid, title: title||null, content, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+      setNoteMessage('Note saved');
+    }
+    currentNoteId = null;
+    loadNotes();
+  } catch (e) { setNoteMessage('Save failed: '+e.message, false); }
+});
+
+noteNewBtn?.addEventListener('click', ()=>{
+  currentNoteId = null;
+  if (noteTitleEl) noteTitleEl.value='';
+  if (noteContentEl) noteContentEl.value='';
+  setNoteMessage('Ready for new note');
+});
+
+// Cropper handled in add-product.js
+
+// Cropper handlers moved to add-product.js
+
+// Media library moved to add-product.js
+
+// Gallery preview moved to add-product.js
+
+// Add Product form, preview, media and submit logic moved to add-product.js
+
+function renderProducts() {
+  const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
+  onSnapshot(q, (snap) => {
+    listEl.innerHTML = '';
+    if (snap.empty) {
+      emptyEl.classList.remove('hidden');
+      return;
+    }
+    emptyEl.classList.add('hidden');
+    productsCache = [];
+    const frag = document.createDocumentFragment();
+    snap.forEach(d => {
+      const data = d.data();
+      productsCache.push({ id: d.id, ...data, price: Number(data.price) });
+      const card = document.createElement('div');
+      card.className = 'border rounded-lg bg-white overflow-hidden flex flex-col';
+      card.innerHTML = `
+        <img src="${data.image}" alt="${data.title}" class="h-44 w-full object-contain bg-white">
+        <div class="p-4 flex-1 flex flex-col">
+          <h3 class="font-semibold text-lg mb-1">${data.title}</h3>
+          <p class="text-sm text-gray-600 line-clamp-2 mb-3">${data.description || ''}</p>
+          <div class="mt-auto space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-blue-700 font-semibold">à§³${Number(data.price).toFixed(2)}${data.weight ? ` Â· ${data.weight}` : ''}${data.size ? ` Â· ${data.size}` : ''}</span>
+              <span class="text-sm ${data.active === false ? 'text-red-600' : 'text-green-700'}">${data.active === false ? 'Inactive' : 'Active'}</span>
+            </div>
+            <div class="flex items-center justify-between text-sm">
+              <span>Stock: <strong>${Number(data.stock || 0)}</strong></span>
+              <div class="flex items-center gap-2">
+                <button class="toggle-active bg-gray-100 px-3 py-1.5 rounded hover:bg-gray-200">${data.active === false ? 'Activate' : 'Deactivate'}</button>
+                <button class="edit bg-gray-100 px-3 py-1.5 rounded hover:bg-gray-200">Edit</button>
+                <button class="delete bg-red-600 text-white px-3 py-1.5 rounded hover:bg-red-700">Delete</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      card.querySelector('.delete').addEventListener('click', async () => {
+        if (!confirm('Delete this product?')) return;
+        try {
+          await deleteDoc(doc(db, 'products', d.id));
+        } catch (err) {
+          alert('Delete failed: ' + err.message);
+        }
+      });
+      card.querySelector('.edit').addEventListener('click', () => {
+        if (window.AddProduct && typeof window.AddProduct.enterEditMode === 'function') {
+          window.AddProduct.enterEditMode(d.id, { ...data });
+        } else {
+          // Fallback: navigate to Add section
+          const addSection = document.getElementById('add');
+          if (addSection) addSection.scrollIntoView({ behavior: 'smooth' });
+          showSection('add');
+        }
+      });
+      card.querySelector('.toggle-active').addEventListener('click', async () => {
+        try {
+          await updateDoc(doc(db, 'products', d.id), { active: data.active === false ? true : false });
+        } catch (err) {
+          alert('Update failed: ' + err.message);
+        }
+      });
+      frag.appendChild(card);
+    });
+    listEl.appendChild(frag);
+  }, (err) => {
+    setMessage('Failed to load products: ' + err.message, false);
+  });
+}
+
+renderProducts();
+
+// Section visibility control (show only one section at a time)
+const sectionMap = {
+  add: document.getElementById('add'),
+  products: document.getElementById('products'),
+  'orders-section': document.getElementById('orders-section'),
+  shipping: document.getElementById('shipping'),
+  site: document.getElementById('site'),
+  notes: document.getElementById('notes'),
+  files: document.getElementById('files'),
+  chat: document.getElementById('chat')
+};
+
+function showSection(id) {
+  const key = id && sectionMap[id] ? id : 'products';
+  Object.entries(sectionMap).forEach(([k, el]) => {
+    if (!el) return;
+    if (k === key) el.classList.remove('hidden');
+    else el.classList.add('hidden');
+  });
+  // When entering File Manager, refresh folder list
+   catch {}
+  }
+  // When entering Notes, ensure notes are loaded
+  if (key === 'notes') {
+    try { loadNotes(); } catch {}
   }
 }
 
-// Wire preview listeners\n// Cancel edit using Add form\n// Enable Enter to send (Shift+Enter for newline)\n\n
+// Expose for other modules (e.g., add-product.js)
+try { window.showSection = showSection; } catch {}
+
+window.addEventListener('hashchange', () => showSection(location.hash.replace('#','')));
+// Initial section (DOMContentLoaded safety)
+try {
+  const init = () => showSection(location.hash.replace('#',''));
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else {
+    init();
+  }
+} catch {}
+
+// Sidebar links safety: force SPA-style switch without full reload
+try {
+  document.querySelectorAll('.admin-nav a[href^="#"]').forEach(a => {
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      const hash = (a.getAttribute('href') || '#').replace('#','');
+      if (hash) {
+        history.replaceState(null, '', `admin.html#${hash}`);
+        showSection(hash);
+      }
+    });
+  });
+} catch {}
+
+// Live Orders list
+function drawOrders() {
+  if (!ordersListEl) return;
+  ordersListEl.innerHTML = '';
+  const filterVal = ordersFilter?.value || 'All';
+  let subset = lastOrders.filter(o => filterVal === 'All' || o.data.status === filterVal);
+  if (ordersUserFilter) subset = subset.filter(o => (o.data.userId || null) === ordersUserFilter);
+  if (subset.length === 0) {
+    ordersEmptyEl?.classList.remove('hidden');
+    updateOrdersBadge();
+    return;
+  }
+  ordersEmptyEl?.classList.add('hidden');
+  const frag = document.createDocumentFragment();
+  subset.forEach(({ id, data: o }) => {
+    const div = document.createElement('div');
+    div.className = 'border rounded p-3 grid grid-cols-1 md:grid-cols-4 gap-3 items-center';
+    const count = Array.isArray(o.items) ? o.items.reduce((s,i)=>s+i.qty,0) : 0;
+    const when = o.createdAt?.toDate ? o.createdAt.toDate().toLocaleString() : '';
+    div.innerHTML = `
+      <div>
+        <div class="font-medium">Order #${id.slice(-6)}</div>
+        <div class="text-sm text-gray-600">Items: ${count} Â· User: ${o.userId || 'guest'} Â· ${when}</div>
+        <div class="text-sm text-gray-600">${o.customer?.name || ''} Â· ${o.customer?.phone || ''}</div>
+      </div>
+      <div class="font-semibold">à§³${Number(o.total || 0).toFixed(2)}</div>
+      <div class="flex items-center gap-2">
+        <label class="text-sm">Status</label>
+        <select class="border rounded px-2 py-1 admin-status">
+          ${['Pending','Processing','Shipped','Delivered','Cancelled'].map(s=>`<option ${o.status===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="text-right">
+        <button class="view px-3 py-1 rounded bg-gray-100 hover:bg-gray-200">View</button>
+      </div>
+    `;
+    div.querySelector('.admin-status').addEventListener('change', async (e)=>{
+      const nextStatus = e.target.value;
+      try {
+        await runTransaction(db, async (tx) => {
+          const orderRef = doc(db, 'orders', id);
+          const ordSnap = await tx.get(orderRef);
+          if (!ordSnap.exists()) throw new Error('Order not found');
+          const ord = ordSnap.data() || {};
+          const prevStatus = ord.status || 'Pending';
+          const alreadyRestocked = !!ord.restocked;
+          // If transitioning to Cancelled and not restocked before, add items back to stock
+          if (nextStatus === 'Cancelled' && prevStatus !== 'Cancelled' && !alreadyRestocked) {
+            const items = Array.isArray(ord.items) ? ord.items : [];
+            for (const it of items) {
+              const pid = it.id;
+              const qty = Number(it.qty || 0);
+              if (!pid || !Number.isFinite(qty) || qty <= 0) continue;
+              const prodRef = doc(db, 'products', pid);
+              const prodSnap = await tx.get(prodRef);
+              if (!prodSnap.exists()) continue;
+              const cur = Number(prodSnap.data().stock || 0);
+              tx.update(prodRef, { stock: cur + qty });
+            }
+            tx.update(orderRef, { status: nextStatus, restocked: true });
+          } else {
+            // Just update status (do not decrement again if moving out of Cancelled)
+            tx.update(orderRef, { status: nextStatus });
+          }
+        });
+      } catch(err) { alert('Failed to update: '+err.message); }
+    });
+    div.querySelector('.view').addEventListener('click', ()=> { window.location.href = `view.html?id=${id}`; });
+    frag.appendChild(div);
+  });
+  ordersListEl.appendChild(frag);
+  updateOrdersBadge();
+}
+
+// ========== Live Chat (Admin) ==========
+let chatSessions = [];
+let selectedChatId = null;
+let unsubChatMessages = null;
+let unsubChatSessionMeta = null;
+let adminTypingTimer = null;
+let selectedGroupKey = null;
+
+function getGroupKey(s){
+  const d = s.data || {};
+  return d.userId ? `user:${d.userId}` : (d.userEmail ? `email:${d.userEmail}` : `guest:${s.id}`);
+}
+
+function renderChatSessions(){
+  if (!chatSessionsEl) return;
+  chatSessionsEl.innerHTML = '';
+  // Build groups by user (guests remain separate)
+  const groupsMap = new Map();
+  chatSessions.forEach(s=>{
+    const key = getGroupKey(s);
+    let g = groupsMap.get(key);
+    const ts = s.data.updatedAt?.toDate ? s.data.updatedAt.toDate().getTime() : 0;
+    if (!g) {
+      g = {
+        key,
+        isUser: !!s.data.userId,
+        title: s.data.userId ? (s.data.userEmail || s.data.userId) : (s.data.userEmail || `Guest ${s.id.slice(-6)}`),
+        lastMessage: s.data.lastMessage || '',
+        updatedAtMs: ts,
+        anyUnread: !!s.data.adminUnread,
+        latestSessionId: s.id
+      };
+      groupsMap.set(key, g);
+    } else {
+      if (ts > g.updatedAtMs) { g.updatedAtMs = ts; g.lastMessage = s.data.lastMessage || ''; g.latestSessionId = s.id; }
+      if (s.data.adminUnread) g.anyUnread = true;
+    }
+  });
+  const groups = Array.from(groupsMap.values()).sort((a,b)=> b.updatedAtMs - a.updatedAtMs);
+  if (chatCountEl) chatCountEl.textContent = groups.length > 0 ? `${groups.length}` : '';
+  // Update unread badge in sidebar (unique users)
+  try {
+    const unread = groups.filter(g => g.anyUnread).length;
+    if (chatBadge) {
+      if (unread > 0) { chatBadge.textContent = String(unread); chatBadge.classList.remove('hidden'); }
+      else { chatBadge.classList.add('hidden'); }
+    }
+  } catch {}
+  const frag = document.createDocumentFragment();
+  groups.forEach(g => {
+    const div = document.createElement('div');
+    const unreadDot = g.anyUnread ? '<span class="ml-2 inline-block w-2 h-2 rounded-full bg-blue-600 align-middle"></span>' : '';
+    div.className = `px-3 py-2 cursor-pointer ${selectedGroupKey===g.key?'bg-blue-50':''}`;
+    const when = g.updatedAtMs ? new Date(g.updatedAtMs).toLocaleString() : '';
+    div.innerHTML = `
+      <div class="flex items-center justify-between">
+        <div class="font-medium flex items-center">${g.title}${unreadDot}</div>
+        <span class="text-xs ${g.isUser?'text-green-700':'text-gray-500'}">${g.isUser?'User':'Guest'}</span>
+      </div>
+      <div class="text-xs text-gray-600 line-clamp-1">${g.lastMessage || ''}</div>
+      <div class="text-[11px] text-gray-400">${when}</div>
+    `;
+    div.addEventListener('click', ()=> selectChatGroup(g));
+    frag.appendChild(div);
+  });
+  chatSessionsEl.appendChild(frag);
+}
+
+async function selectChatSession(id){
+  selectedChatId = id;
+  chatMessagesAdminEl.innerHTML = '';
+  if (unsubChatMessages) { unsubChatMessages(); unsubChatMessages = null; }
+  if (unsubChatSessionMeta) { unsubChatSessionMeta(); unsubChatSessionMeta = null; }
+  const cur = chatSessions.find(x=>x.id===id);
+  if (chatMetaEl) {
+    let meta = 'Select a session';
+    if (cur) {
+      const isUser = !!cur.data.userId;
+      const label = isUser ? (cur.data.userEmail || cur.data.userId) : `Guest ${id.slice(-6)}`;
+      // Links: view orders filtered and profile (for users)
+      if (isUser) {
+        meta = `User: <a href="#" id="chat-user-link" class="text-blue-700 hover:underline">${label}</a>`;
+      } else {
+        meta = `Guest: ${label}`;
+      }
+      // append profile + latest order if user
+      if (isUser) {
+        try {
+          const uSnap = await getDoc(doc(db,'users', cur.data.userId));
+          const role = uSnap.exists() ? (uSnap.data()?.role || 'user') : 'user';
+          const oq = query(collection(db,'orders'), where('userId','==', cur.data.userId), orderBy('createdAt','desc'), limit(1));
+          const oSnap = await getDocs(oq);
+          const lastOrder = oSnap.docs[0];
+          const ordInfo = lastOrder ? ` Â· Last order #${lastOrder.id.slice(-6)} (${(lastOrder.data().status)||'Pending'})` : '';
+          meta += ` Â· Role: ${role}${ordInfo} Â· <a href="orders.html#orders-section" id="chat-view-orders" class="text-blue-700 hover:underline">View orders</a>`;
+        } catch {}
+      }
+    }
+    chatMetaEl.innerHTML = meta;
+    // Wire links
+    try {
+      const cur2 = cur;
+      const link = document.getElementById('chat-user-link');
+      if (link && cur2?.data?.userId) {
+        link.addEventListener('click', (e)=>{
+          e.preventDefault();
+          // jump to orders section filtered by this user
+          window.location.hash = '#orders-section';
+          showSection('orders-section');
+          window.setOrdersUserFilter(cur2.data.userId);
+          drawOrders();
+        });
+      }
+      const viewOrders = document.getElementById('chat-view-orders');
+      if (viewOrders && cur2?.data?.userId) {
+        viewOrders.addEventListener('click', (e)=>{
+          e.preventDefault();
+          window.location.hash = '#orders-section';
+          showSection('orders-section');
+          window.setOrdersUserFilter(cur2.data.userId);
+          drawOrders();
+        });
+      }
+    } catch {}
+  }
+  // stream messages
+  unsubChatMessages = onSnapshot(query(collection(db,'chat_sessions', id, 'messages'), orderBy('createdAt','asc')), (snap)=>{
+    chatMessagesAdminEl.innerHTML = '';
+    const frag = document.createDocumentFragment();
+    snap.forEach(d=>{
+      const m = d.data();
+      const mine = m.from === 'admin';
+      const row = document.createElement('div');
+      row.className = `flex ${mine ? 'justify-end' : 'justify-start'}`;
+      const bubble = document.createElement('div');
+      bubble.className = `${mine ? 'bg-gray-800 text-white' : 'bg-white border'} inline-block rounded-2xl px-3 py-2 text-sm max-w-[80%] whitespace-pre-wrap break-words`;
+      bubble.textContent = m.text || '';
+      row.appendChild(bubble);
+      frag.appendChild(row);
+    });
+    chatMessagesAdminEl.appendChild(frag);
+    chatMessagesAdminEl.scrollTop = chatMessagesAdminEl.scrollHeight;
+  });
+  // stream session meta for typing indicator from user + live draft bubble
+  try {
+    const typingId = 'chat-typing-admin';
+    let ind = document.getElementById(typingId);
+    if (!ind) {
+      ind = document.createElement('div');
+      ind.id = typingId;
+      ind.className = 'px-3 py-1 text-xs text-gray-500 hidden';
+      ind.textContent = 'User is typingâ€¦';
+      chatMessagesAdminEl?.parentElement?.insertBefore(ind, chatMessagesAdminEl.nextSibling);
+    }
+    unsubChatSessionMeta = onSnapshot(doc(db,'chat_sessions', id), (snap)=>{
+      const data = snap.data() || {};
+      if (data.userTyping) ind.classList.remove('hidden');
+      else ind.classList.add('hidden');
+      // Live draft bubble (faint preview of what user is typing)
+      try {
+        const prevId = 'chat-draft-preview';
+        let prev = document.getElementById(prevId);
+        if (data.userDraft && String(data.userDraft).trim().length > 0) {
+          if (!prev) {
+            prev = document.createElement('div');
+            prev.id = prevId;
+            prev.className = 'mt-1';
+            // append after current messages
+            chatMessagesAdminEl.appendChild(prev);
+          }
+          // Render as faint incoming bubble
+          prev.innerHTML = '';
+          const row = document.createElement('div');
+          row.className = 'flex justify-start';
+          const bubble = document.createElement('div');
+          bubble.className = 'inline-block rounded-2xl px-3 py-2 text-sm max-w-[80%] whitespace-pre-wrap break-words bg-white border opacity-70';
+          bubble.textContent = String(data.userDraft).slice(0,500);
+          row.appendChild(bubble);
+          prev.appendChild(row);
+          // keep scroll at bottom when draft updates
+          chatMessagesAdminEl.scrollTop = chatMessagesAdminEl.scrollHeight;
+        } else if (prev) {
+          prev.remove();
+        }
+      } catch {}
+    });
+  } catch {}
+  // mark as read for admin
+  try {
+    await updateDoc(doc(db,'chat_sessions', id), { adminUnread: false, adminUnreadCount: 0 });
+  } catch {}
+}
+
+async function selectChatGroup(group){
+  selectedGroupKey = group.key;
+  // Always open latest session in the group
+  await selectChatSession(group.latestSessionId);
+  // If this is a user group, clear unread across all sessions for this user
+  try {
+    if (group.isUser) {
+      const uid = (group.key || '').replace(/^user:/,'');
+      const qy = query(collection(db,'chat_sessions'), where('userId','==', uid));
+      const snap = await getDocs(qy);
+      await Promise.all(snap.docs.map(d=> updateDoc(doc(db,'chat_sessions', d.id), { adminUnread: false, adminUnreadCount: 0 }).catch(()=>{})));
+    }
+  } catch {}
+}
+
+async function sendAdminReply(){
+  const text = (chatReplyInput?.value||'').toString().trim();
+  if (!selectedChatId || !text) return;
+  try {
+    await addDoc(collection(db,'chat_sessions', selectedChatId, 'messages'), {
+      text,
+      from: 'admin',
+      adminId: auth.currentUser ? auth.currentUser.uid : null,
+      createdAt: serverTimestamp()
+    });
+    await updateDoc(doc(db,'chat_sessions', selectedChatId), {
+      updatedAt: serverTimestamp(),
+      lastMessage: text,
+      lastFrom: 'admin',
+      userUnread: true
+    });
+    if (chatReplyInput) { chatReplyInput.value = ''; chatSendBtn?.setAttribute('disabled',''); }
+  } catch (e) { alert('Send failed: ' + e.message); }
+}
+
+chatSendBtn?.addEventListener('click', async ()=>{
+  await sendAdminReply();
+});
+
+// Enable Enter to send (Shift+Enter for newline)
+chatReplyInput?.addEventListener('keydown', (e)=>{
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendAdminReply();
+  }
+});
+
+// Disable send button if empty
+function updateAdminSendState(){
+  const has = !!String(chatReplyInput?.value||'').trim();
+  if (chatSendBtn) chatSendBtn.disabled = !has;
+}
+chatReplyInput?.addEventListener('input', updateAdminSendState);
+updateAdminSendState();
 
 // Admin typing indicator (debounced)
 chatReplyInput?.addEventListener('input', ()=>{
@@ -292,7 +728,18 @@ chatReplyInput?.addEventListener('input', ()=>{
   adminTypingTimer = setTimeout(()=>{
     try { updateDoc(doc(db,'chat_sessions', curId), { adminTyping: false }); } catch {}
   }, 1200);
-});\nfunction renderOrders() {
+});
+
+// Load chat sessions live
+if (chatSessionsEl) {
+  const cq = query(collection(db,'chat_sessions'), orderBy('updatedAt','desc'));
+  onSnapshot(cq, (snap)=>{
+    chatSessions = snap.docs.map(d=>({ id: d.id, data: d.data() }));
+    renderChatSessions();
+  }, (err)=> console.error('Chat load failed', err));
+}
+
+function renderOrders() {
   if (!ordersListEl) return;
   const oq = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
   onSnapshot(oq, (snap) => {
@@ -343,7 +790,69 @@ shippingForm?.addEventListener('submit', async (e) => {
   }
 });
 
-loadShipping();\n
+loadShipping();
+// Site settings load/save
+async function loadSiteSettings(){
+  if (!siteForm) return;
+  try {
+    const ref = doc(db, 'settings', 'site');
+    const snap = await getDoc(ref);
+    const s = snap.exists() ? snap.data() : {};
+    siteForm.title.value = s.title ?? '';
+    siteForm.logo.value = s.logo ?? '';
+    siteForm.favicon.value = s.favicon ?? '';
+    siteForm.email.value = s.email ?? '';
+    siteForm.phone.value = s.phone ?? '';
+    if ('marqueeEnabled' in siteForm) siteForm.marqueeEnabled.checked = !!s.marqueeEnabled;
+    if ('marqueeText' in siteForm) siteForm.marqueeText.value = s.marqueeText ?? '';
+    // update previews if existing
+    const lp = document.getElementById('site-logo-preview');
+    const fp = document.getElementById('site-favicon-preview');
+    if (lp) { if (s.logo) { lp.src = s.logo; lp.classList.remove('hidden'); } else { lp.src=''; lp.classList.add('hidden'); } }
+    if (fp) { if (s.favicon) { fp.src = s.favicon; fp.classList.remove('hidden'); } else { fp.src=''; fp.classList.add('hidden'); } }
+  } catch (e) {
+    if (siteMsg) { siteMsg.textContent = 'Failed to load site settings: ' + e.message; siteMsg.className = 'text-sm mt-3 text-red-700'; }
+  }
+}
+
+siteForm?.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  try {
+    if (siteMsg) { siteMsg.textContent = 'Saving...'; siteMsg.className = 'text-sm mt-3 text-gray-700'; }
+    // Upload files if provided
+    let logoUrl = (siteForm.logo.value || '').toString().trim();
+    let favUrl = (siteForm.favicon.value || '').toString().trim();
+    const logoFile = siteForm.querySelector('[name="logoFile"]').files?.[0];
+    const faviconFile = siteForm.querySelector('[name="faviconFile"]').files?.[0];
+    if (logoFile && logoFile.size > 0) {
+      const up = await uploadToImgbb(logoFile);
+      if (up) logoUrl = up;
+    }
+    if (faviconFile && faviconFile.size > 0) {
+      const up = await uploadToImgbb(faviconFile);
+      if (up) favUrl = up;
+    }
+    const payload = {
+      title: (siteForm.title.value || '').toString().trim() || null,
+      logo: logoUrl || null,
+      favicon: favUrl || null,
+      email: (siteForm.email.value || '').toString().trim() || null,
+      phone: (siteForm.phone.value || '').toString().trim() || null,
+      marqueeEnabled: siteForm.marqueeEnabled?.checked ? true : false,
+      marqueeText: (siteForm.marqueeText?.value || '').toString().trim() || null,
+      updatedAt: serverTimestamp()
+    };
+    await setDoc(doc(db,'settings','site'), payload, { merge: true });
+    if (siteMsg) { siteMsg.textContent = 'Site settings saved.'; siteMsg.className = 'text-sm mt-3 text-green-700'; }
+    // refresh previews
+    const lp = document.getElementById('site-logo-preview');
+    const fp = document.getElementById('site-favicon-preview');
+    if (lp) { if (payload.logo) { lp.src = payload.logo; lp.classList.remove('hidden'); } else { lp.src=''; lp.classList.add('hidden'); } }
+    if (fp) { if (payload.favicon) { fp.src = payload.favicon; fp.classList.remove('hidden'); } else { fp.src=''; fp.classList.add('hidden'); } }
+  } catch (e) {
+    if (siteMsg) { siteMsg.textContent = 'Save failed: ' + e.message; siteMsg.className = 'text-sm mt-3 text-red-700'; }
+  }
+});
 
 loadSiteSettings();
 
@@ -585,11 +1094,5 @@ window.setOrdersUserFilter = function(userId){
     }
   } catch {}
 }
-
-
-
-
-
-
 
 
