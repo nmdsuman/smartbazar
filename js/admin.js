@@ -158,106 +158,7 @@ function setMessage(text, ok = true) {
 
 // Add Product moved to js/add-product.js
 
-// Notes elements
-const noteTitleEl = document.getElementById('note-title');
-const noteContentEl = document.getElementById('note-content');
-const noteSaveBtn = document.getElementById('note-save');
-const noteNewBtn = document.getElementById('note-new');
-const noteMsgEl = document.getElementById('note-message');
-const notesListEl = document.getElementById('notes-list');
-
-// ===== Notes (Admin personal) =====
-let currentNoteId = null;
-
-function setNoteMessage(text, ok=true){
-  if (!noteMsgEl) return;
-  noteMsgEl.textContent = text;
-  noteMsgEl.className = `text-sm mt-2 ${ok ? 'text-green-700' : 'text-red-700'}`;
-}
-
-async function loadNotes(){
-  if (!notesListEl || !auth.currentUser) return;
-  notesListEl.innerHTML = '';
-  try {
-    const qy = query(collection(db,'notes'), where('uid','==', auth.currentUser.uid), orderBy('updatedAt','desc'));
-    const snap = await getDocs(qy);
-    const notes = snap.docs.map(d=>({ id: d.id, ...d.data() }));
-    renderNotes(notes);
-  } catch (e) {
-    try {
-      // Fallback without orderBy index
-      const qy2 = query(collection(db,'notes'), where('uid','==', auth.currentUser.uid));
-      const snap2 = await getDocs(qy2);
-      const notes2 = snap2.docs.map(d=>({ id: d.id, ...d.data() }))
-        .sort((a,b)=> (b.updatedAt?.seconds||0) - (a.updatedAt?.seconds||0));
-      renderNotes(notes2);
-    } catch(err){ if (noteMsgEl) { setNoteMessage('Failed to load notes', false); } }
-  }
-}
-
-function renderNotes(items){
-  if (!notesListEl) return;
-  notesListEl.innerHTML = '';
-  if (!Array.isArray(items) || items.length===0){
-    const d = document.createElement('div'); d.className='text-gray-500 text-sm'; d.textContent='No notes yet.'; notesListEl.appendChild(d); return;
-  }
-  const frag = document.createDocumentFragment();
-  items.forEach(n=>{
-    const row = document.createElement('div');
-    row.className = 'border rounded p-2 flex items-start justify-between gap-2';
-    const when = n.updatedAt?.toDate ? n.updatedAt.toDate().toLocaleString() : '';
-    row.innerHTML = `
-      <div class="min-w-0">
-        <div class="font-medium truncate">${(n.title||'Untitled')}</div>
-        <div class="text-xs text-gray-500 truncate">${when}</div>
-      </div>
-      <div class="shrink-0 flex items-center gap-2">
-        <button class="copy px-2 py-1 text-sm rounded bg-gray-100 hover:bg-gray-200">Copy</button>
-        <button class="edit px-2 py-1 text-sm rounded bg-blue-600 text-white hover:bg-blue-700">Edit</button>
-        <button class="del px-2 py-1 text-sm rounded bg-red-600 text-white hover:bg-red-700">Delete</button>
-      </div>
-    `;
-    row.querySelector('.copy').addEventListener('click', async ()=>{
-      try{ await navigator.clipboard.writeText(n.content||''); setNoteMessage('Copied to clipboard'); }catch{ setNoteMessage('Copy failed', false); }
-    });
-    row.querySelector('.edit').addEventListener('click', ()=>{
-      currentNoteId = n.id;
-      if (noteTitleEl) noteTitleEl.value = n.title||'';
-      if (noteContentEl) noteContentEl.value = n.content||'';
-      setNoteMessage('Loaded note for editing');
-    });
-    row.querySelector('.del').addEventListener('click', async ()=>{
-      try{ await deleteDoc(doc(db,'notes', n.id)); setNoteMessage('Deleted'); loadNotes(); }catch(e){ setNoteMessage('Delete failed: '+e.message, false); }
-    });
-    frag.appendChild(row);
-  });
-  notesListEl.appendChild(frag);
-}
-
-noteSaveBtn?.addEventListener('click', async ()=>{
-  if (!auth.currentUser) { setNoteMessage('Not signed in', false); return; }
-  const title = (noteTitleEl?.value||'').toString().trim();
-  const content = (noteContentEl?.value||'').toString();
-  if (!content) { setNoteMessage('Content is empty', false); return; }
-  try {
-    if (currentNoteId) {
-      await setDoc(doc(db,'notes', currentNoteId), { uid: auth.currentUser.uid, title: title||null, content, updatedAt: serverTimestamp() }, { merge: true });
-      setNoteMessage('Saved changes');
-    } else {
-      await addDoc(collection(db,'notes'), { uid: auth.currentUser.uid, title: title||null, content, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
-      setNoteMessage('Note saved');
-    }
-    currentNoteId = null;
-    loadNotes();
-  } catch (e) { setNoteMessage('Save failed: '+e.message, false); }
-});
-
-noteNewBtn?.addEventListener('click', ()=>{
-  currentNoteId = null;
-  if (noteTitleEl) noteTitleEl.value='';
-  if (noteContentEl) noteContentEl.value='';
-  setNoteMessage('Ready for new note');
-});
+// Notes moved to js/notes.js
 
 // Cropper handled in add-product.js
 
@@ -269,77 +170,19 @@ noteNewBtn?.addEventListener('click', ()=>{
 
 // Add Product form, preview, media and submit logic moved to add-product.js
 
-function renderProducts() {
-  const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
-  onSnapshot(q, (snap) => {
-    listEl.innerHTML = '';
-    if (snap.empty) {
-      emptyEl.classList.remove('hidden');
-      return;
-    }
-    emptyEl.classList.add('hidden');
-    productsCache = [];
-    const frag = document.createDocumentFragment();
-    snap.forEach(d => {
-      const data = d.data();
-      productsCache.push({ id: d.id, ...data, price: Number(data.price) });
-      const card = document.createElement('div');
-      card.className = 'border rounded-lg bg-white overflow-hidden flex flex-col';
-      card.innerHTML = `
-        <img src="${data.image}" alt="${data.title}" class="h-44 w-full object-contain bg-white">
-        <div class="p-4 flex-1 flex flex-col">
-          <h3 class="font-semibold text-lg mb-1">${data.title}</h3>
-          <p class="text-sm text-gray-600 line-clamp-2 mb-3">${data.description || ''}</p>
-          <div class="mt-auto space-y-2">
-            <div class="flex items-center justify-between">
-              <span class="text-blue-700 font-semibold">à§³${Number(data.price).toFixed(2)}${data.weight ? ` Â· ${data.weight}` : ''}${data.size ? ` Â· ${data.size}` : ''}</span>
-              <span class="text-sm ${data.active === false ? 'text-red-600' : 'text-green-700'}">${data.active === false ? 'Inactive' : 'Active'}</span>
-            </div>
-            <div class="flex items-center justify-between text-sm">
-              <span>Stock: <strong>${Number(data.stock || 0)}</strong></span>
-              <div class="flex items-center gap-2">
-                <button class="toggle-active bg-gray-100 px-3 py-1.5 rounded hover:bg-gray-200">${data.active === false ? 'Activate' : 'Deactivate'}</button>
-                <button class="edit bg-gray-100 px-3 py-1.5 rounded hover:bg-gray-200">Edit</button>
-                <button class="delete bg-red-600 text-white px-3 py-1.5 rounded hover:bg-red-700">Delete</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-      card.querySelector('.delete').addEventListener('click', async () => {
-        if (!confirm('Delete this product?')) return;
-        try {
-          await deleteDoc(doc(db, 'products', d.id));
-        } catch (err) {
-          alert('Delete failed: ' + err.message);
-        }
-      });
-      card.querySelector('.edit').addEventListener('click', () => {
-        if (window.AddProduct && typeof window.AddProduct.enterEditMode === 'function') {
-          window.AddProduct.enterEditMode(d.id, { ...data });
-        } else {
-          // Fallback: navigate to Add section
-          const addSection = document.getElementById('add');
-          if (addSection) addSection.scrollIntoView({ behavior: 'smooth' });
-          showSection('add');
-        }
-      });
-      card.querySelector('.toggle-active').addEventListener('click', async () => {
-        try {
-          await updateDoc(doc(db, 'products', d.id), { active: data.active === false ? true : false });
-        } catch (err) {
-          alert('Update failed: ' + err.message);
-        }
-      });
-      frag.appendChild(card);
-    });
-    listEl.appendChild(frag);
-  }, (err) => {
-    setMessage('Failed to load products: ' + err.message, false);
+// Products list moved to js/products.js
+// Keep a local mirror of productsCache for admin usage (e.g., order modal)
+try {
+  if (window.Products && typeof window.Products.getCache === 'function') {
+    productsCache = window.Products.getCache().map(x=>({ id: x.id, ...x.data }));
+  }
+  window.addEventListener('ProductsCacheUpdated', () => {
+    try {
+      const src = Array.isArray(window.productsCache) ? window.productsCache : [];
+      productsCache = src.map(x=> ({ id: x.id, ...x.data }));
+    } catch {}
   });
-}
-
-renderProducts();
+} catch {}
 
 // Section visibility control (show only one section at a time)
 const sectionMap = {
@@ -361,11 +204,10 @@ function showSection(id) {
     else el.classList.add('hidden');
   });
   // When entering File Manager, refresh folder list
-   catch {}
-  }
+  
   // When entering Notes, ensure notes are loaded
   if (key === 'notes') {
-    try { loadNotes(); } catch {}
+    try { window.Notes && window.Notes.loadNotes && window.Notes.loadNotes(); } catch {}
   }
 }
 

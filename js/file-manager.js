@@ -106,20 +106,61 @@ fmFolderRefresh?.addEventListener('click', (e)=>{
 
 fmUploadBtn?.addEventListener('click', async ()=>{
   try{
-    const file = fmFile?.files?.[0];
-    let path = (fmPath?.value || '').trim();
+    const files = fmFile?.files;
+    const rawPath = (fmPath?.value || '').trim();
     const message = (fmCommitMsg?.value || 'Update via admin').trim();
-    if (!file) { if (fmMsg) { fmMsg.textContent = 'Please choose a file'; fmMsg.className = 'text-sm text-red-700'; } return; }
+    if (!files || files.length === 0) { if (fmMsg) { fmMsg.textContent = 'Please choose file(s)'; fmMsg.className = 'text-sm text-red-700'; } return; }
     const folder = (fmFolder?.value || '').trim();
-    let dest = path || (file.name || 'file');
-    if (folder && folder !== 'main') {
-      dest = `${folder.replace(/^\/+|\/+$/g,'')}/${dest.replace(/^\/+/, '')}`;
+    const prefixParts = [];
+    if (folder && folder !== 'main') prefixParts.push(folder.replace(/^\/+|\/+$/g,''));
+    if (rawPath) {
+      // If user provided a path: treat as folder prefix when multiple files or when it ends with '/'
+      if (files.length > 1 || /\/$/.test(rawPath)) {
+        prefixParts.push(rawPath.replace(/^\/+/, '').replace(/\/+$/,''));
+      }
     }
+    const prefix = prefixParts.filter(Boolean).join('/');
     fmUploadBtn.setAttribute('disabled','');
     if (fmMsg) { fmMsg.textContent = 'Uploading to GitHub...'; fmMsg.className = 'text-sm text-gray-700'; }
-    const b64 = await fileToBase64FM(file);
-    const rawUrl = await uploadB64ToGithubRepoFM(b64, SITE_GH_REPO, SITE_GH_BRANCH, dest, message);
-    if (fmMsg) { fmMsg.innerHTML = `Uploaded: <a class="text-blue-700 underline" href="${rawUrl}" target="_blank" rel="noopener">${dest}</a>`; fmMsg.className = 'text-sm text-green-700'; }
+    const results = [];
+    let index = 0;
+    for (const file of files){
+      index++;
+      if (!file || !file.name) continue;
+      let dest;
+      if (files.length === 1 && rawPath && !/\/$/.test(rawPath)) {
+        // Single file and explicit filename provided
+        dest = rawPath.replace(/^\/+/, '');
+        if (folder && folder !== 'main') dest = `${folder.replace(/^\/+|\/+$/g,'')}/${dest}`;
+      } else {
+        const name = file.name || `file_${index}`;
+        dest = prefix ? `${prefix}/${name}` : name;
+      }
+      try {
+        if (fmMsg) { fmMsg.textContent = `Uploading (${index}/${files.length}) ${dest}...`; fmMsg.className = 'text-sm text-gray-700'; }
+        const b64 = await fileToBase64FM(file);
+        const rawUrl = await uploadB64ToGithubRepoFM(b64, SITE_GH_REPO, SITE_GH_BRANCH, dest, message);
+        results.push({ ok: true, dest, url: rawUrl });
+      } catch (err){
+        results.push({ ok: false, dest, error: err?.message || String(err) });
+      }
+    }
+    // Show summary
+    const ok = results.filter(r=>r.ok);
+    const bad = results.filter(r=>!r.ok);
+    if (fmMsg) {
+      if (results.length === 1 && ok.length === 1) {
+        const r = ok[0];
+        fmMsg.innerHTML = `Uploaded: <a class="text-blue-700 underline" href="${r.url}" target="_blank" rel="noopener">${r.dest}</a>`;
+        fmMsg.className = 'text-sm text-green-700';
+      } else {
+        const lines = [];
+        ok.forEach(r=> lines.push(`✅ <a class=\"text-blue-700 underline\" href=\"${r.url}\" target=\"_blank\" rel=\"noopener\">${r.dest}</a>`));
+        bad.forEach(r=> lines.push(`❌ ${r.dest} — ${r.error}`));
+        fmMsg.innerHTML = lines.map(l=>`<div class=\"text-sm\">${l}</div>`).join('');
+        fmMsg.className = bad.length ? 'text-sm text-amber-700' : 'text-sm text-green-700';
+      }
+    }
     if (fmFile) fmFile.value = '';
     if (fmPath) fmPath.value = '';
   } catch(e){ if (fmMsg) { fmMsg.textContent = 'Upload failed: ' + (e?.message||e); fmMsg.className = 'text-sm text-red-700'; } }
