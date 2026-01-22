@@ -226,7 +226,7 @@ function updateAddPreviewGallery(){ if (!form || !prevGallery) return; const inp
 }
 
 // Wire preview listeners
-if (form){ ['title','price','weightValue','weightUnit','size','description'].forEach(name=>{ const el = form.querySelector(`[name="${name}"]`); if (el) el.addEventListener('input', updateAddPreview); }); const imgInput = form.querySelector('[name="image"]'); if (imgInput) imgInput.addEventListener('change', (e)=>{ const f = e.target.files && e.target.files[0] ? e.target.files[0] : null; if (f) { openCropper(f); } updateAddPreviewImage(); }); const imgUrl = form.querySelector('[name="imageUrl"]'); if (imgUrl) imgUrl.addEventListener('input', ()=>{ selectedMainUrl = imgUrl.value.trim(); updateAddPreviewImage(); }); const galInput = form.querySelector('[name="gallery"]'); if (galInput) galInput.addEventListener('change', updateAddPreviewGallery); const galUrls = form.querySelector('[name="galleryUrls"]'); if (galUrls) galUrls.addEventListener('input', updateAddPreviewGallery); updateAddPreview(); }
+if (form){ ['title','price','weightValue','weightUnit','size','description'].forEach(name=>{ const el = form.querySelector(`[name="${name}"]`); if (el) el.addEventListener('input', updateAddPreview); }); const imgInput = form.querySelector('[name="image"]'); if (imgInput) imgInput.addEventListener('change', (e)=>{ const f = e.target.files && e.target.files[0] ? e.target.files[0] : null; if (f) { openCropper(f); } updateAddPreviewImage(); }); const imgUrl = form.querySelector('[name="imageUrl"]'); if (imgUrl) imgUrl.addEventListener('input', ()=>{ selectedMainUrl = imgUrl.value.trim(); updateAddPreviewImage(); }); const galInput = form.querySelector('[name="gallery"]'); if (galInput) galInput.addEventListener('change', updateAddPreviewGallery); const galUrls = form.querySelector('[name="galleryUrls"]'); if (galUrls) galUrls.addEventListener('input', updateAddPreviewGallery); try { window.Categories && window.Categories.populateSelects && window.Categories.populateSelects('', ''); } catch {} updateAddPreview(); }
 
 // Cancel edit mode
 addCancelEditBtn?.addEventListener('click', ()=>{ editUsingAdd = { active:false, productId:null, original:null }; if (addSectionTitle) addSectionTitle.textContent = 'Add Product'; if (addSubmitBtn) addSubmitBtn.textContent = 'Add Product'; addCancelEditBtn.classList.add('hidden'); if (form) form.reset(); updateAddPreview(); updateAddPreviewImage(); updateAddPreviewGallery(); });
@@ -249,6 +249,7 @@ form?.addEventListener('submit', async (e)=>{
   const galleryUrls = galleryUrlsTyped.split(/[\n,]/).map(s=>s.trim()).filter(Boolean).slice(0,5);
   const description = (data.get('description') || '').toString().trim();
   const category = (data.get('category') || '').toString().trim();
+  const subcategory = (data.get('subcategory') || '').toString().trim();
   const wv = (data.get('weightValue') || '').toString().trim();
   const wu = (data.get('weightUnit') || '').toString().trim();
   const unitOut = wu === 'l' ? 'L' : (wu === 'ml' ? 'ml' : (wu === 'kg' ? 'kg' : 'g'));
@@ -293,6 +294,7 @@ form?.addEventListener('submit', async (e)=>{
         price,
         image,
         category: category || null,
+        subcategory: subcategory || null,
         description,
         weight: weight || null,
         size: size || null,
@@ -309,7 +311,7 @@ form?.addEventListener('submit', async (e)=>{
       if (submitBtn) submitBtn.disabled = prevDisabled ?? false;
       croppedMainImageFile = null; selectedMainUrl = ''; selectedGalleryUrls = []; clearVariants();
     } else {
-      const payload = { title, price, category: category || null, description, weight: weight || null, size: size || null, stock: Number.isFinite(stock) ? stock : 0, active: !!active };
+      const payload = { title, price, category: category || null, subcategory: subcategory || null, description, weight: weight || null, size: size || null, stock: Number.isFinite(stock) ? stock : 0, active: !!active };
       if (Array.isArray(options) && options.length>0) payload.options = options; else payload.options = null;
       if (imageUrlTyped) { payload.image = imageUrlTyped; selectedMainUrl = imageUrlTyped; }
       else if (selectedMainUrl) { payload.image = selectedMainUrl; }
