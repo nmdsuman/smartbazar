@@ -249,7 +249,19 @@ function drawProducts() {
       card.className = 'relative border border-gray-200 rounded-lg bg-white overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-shadow';
       const stock = Number(d.stock || 0);
       const out = stock <= 0;
-      const opts = normalizeOptions(d.options);
+      let opts = normalizeOptions(d.options);
+      // Ensure base product (price + weight/size) is also treated as a variant for backward compatibility
+      try {
+        const basePrice = Number(d.price);
+        const baseLabel = String(d.weight || d.size || '').trim();
+        const validBase = Number.isFinite(basePrice);
+        if (validBase) {
+          const exists = opts.some(o => String(o.label || o.weight || '').trim().toLowerCase() === baseLabel.toLowerCase());
+          if (!exists) {
+            opts = [{ label: baseLabel || 'ডিফল্ট', price: basePrice }, ...opts];
+          }
+        }
+      } catch {}
       const hasOptions = Array.isArray(opts) && opts.length > 0;
       if (DEBUG_PRODUCTS) {
         try {
