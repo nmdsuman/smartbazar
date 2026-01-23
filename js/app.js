@@ -22,6 +22,33 @@ let allProducts = [];
 let currentFilters = { q: '', category: '' };
 const DEBUG_PRODUCTS = true;
 
+// Helpers: convert English digits to Bangla and localize unit labels
+function toBnDigits(str){
+  const map = { '0':'০','1':'১','2':'২','3':'৩','4':'৪','5':'৫','6':'৬','7':'৭','8':'৮','9':'৯','.':'․' };
+  return String(str).replace(/[0-9.]/g, ch => map[ch] ?? ch);
+}
+function localizeLabel(lbl){
+  const s = String(lbl||'').trim();
+  if (!s) return '';
+  const m = s.toLowerCase().replace(/\s+/g,'').match(/^([0-9]*\.?[0-9]+)(kg|g|l|liter|ltr|ml|milliliter|millilitre)?$/);
+  if (m){
+    const num = m[1];
+    const unit = m[2] || '';
+    const bnNum = toBnDigits(num);
+    let bnUnit = '';
+    if (unit === 'kg') bnUnit = 'কেজি';
+    else if (unit === 'g') bnUnit = 'গ্রাম';
+    else if (unit === 'l' || unit === 'liter' || unit === 'ltr') bnUnit = 'লিটার';
+    else if (unit === 'ml' || unit === 'milliliter' || unit === 'millilitre') bnUnit = 'মিলি';
+    return bnUnit ? `${bnNum} ${bnUnit}` : toBnDigits(s);
+  }
+  return toBnDigits(s)
+    .replace(/\bkg\b/gi,'কেজি')
+    .replace(/\bg\b/gi,'গ্রাম')
+    .replace(/\b(l|liter|ltr)\b/gi,'লিটার')
+    .replace(/\bml\b/gi,'মিলি');
+}
+
 // Inject minimal CSS for cart animations once
 let cartAnimStylesInjected = false;
 function ensureCartAnimStyles() {
@@ -42,35 +69,6 @@ function readCart() {
     return JSON.parse(localStorage.getItem(CART_KEY)) || [];
   } catch {
     return [];
-  }
-
-  // Localize unit labels to Bangla (kg/g/l/ml) and convert digits if possible
-  function toBnDigits(str){
-    const map = { '0':'০','1':'১','2':'২','3':'৩','4':'৪','5':'৫','6':'৬','7':'৭','8':'৮','9':'৯','.':'․' };
-    return String(str).replace(/[0-9.]/g, ch => map[ch] ?? ch);
-  }
-  function localizeLabel(lbl){
-    const s = String(lbl||'').trim();
-    if (!s) return '';
-    // Extract number and unit (e.g., 1kg, 500 g, 1 L, 250ml)
-    const m = s.toLowerCase().replace(/\s+/g,'').match(/^([0-9]*\.?[0-9]+)(kg|g|l|liter|ltr|ml|milliliter|millilitre)?$/);
-    if (m){
-      const num = m[1];
-      const unit = m[2] || '';
-      const bnNum = toBnDigits(num);
-      let bnUnit = '';
-      if (unit === 'kg') bnUnit = 'কেজি';
-      else if (unit === 'g') bnUnit = 'গ্রাম';
-      else if (unit === 'l' || unit === 'liter' || unit === 'ltr') bnUnit = 'লিটার';
-      else if (unit === 'ml' || unit === 'milliliter' || unit === 'millilitre') bnUnit = 'মিলি';
-      return bnUnit ? `${bnNum} ${bnUnit}` : toBnDigits(s);
-    }
-    // Fallback simple replacements
-    return toBnDigits(s)
-      .replace(/\bkg\b/gi,'কেজি')
-      .replace(/\bg\b/gi,'গ্রাম')
-      .replace(/\b(l|liter|ltr)\b/gi,'লিটার')
-      .replace(/\bml\b/gi,'মিলি');
   }
 }
 
