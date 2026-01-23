@@ -40,8 +40,8 @@ import { collection, onSnapshot, query, where } from 'firebase/firestore';
       docs.forEach(d => {
         const o = d.data();
         const div = document.createElement('div');
-        div.className = 'border rounded p-4';
-        const items = (o.items || []).map(i => `${i.title} x${i.qty}`).join(', ');
+        div.className = 'rounded-xl border border-gray-100 bg-white p-4 shadow-sm';
+        const items = (o.items || []).map(i => `${i.title} ×${i.qty}`).join(', ');
         const when = o.createdAt?.toDate ? o.createdAt.toDate().toLocaleString() : '';
         const status = (o.status || 'Pending');
         const badgeClass = {
@@ -51,16 +51,25 @@ import { collection, onSnapshot, query, where } from 'firebase/firestore';
           'Delivered': 'bg-green-50 text-green-800 border-green-200',
           'Cancelled': 'bg-red-50 text-red-800 border-red-200'
         }[status] || 'bg-gray-50 text-gray-800 border-gray-200';
+        // thumbnails preview (first 3)
+        const thumbs = (o.items||[]).slice(0,3).map(i => `<img src="${i.image||''}" alt="" class="w-8 h-8 object-contain bg-white rounded border"/>`).join('');
         div.innerHTML = `
-          <div class="flex items-start justify-between">
-            <div>
-              <div class="font-semibold">Order #${d.id.slice(-6)} · <span class="text-sm text-gray-600">${when}</span></div>
-              <div class="text-sm text-gray-700">${items}</div>
-              <span class="inline-block mt-1 text-xs px-2 py-0.5 rounded border ${badgeClass}">${status}</span>
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <div class="text-base font-semibold">Order #${d.id.slice(-6)}</div>
+                <span class="text-xs text-gray-500">${when}</span>
+                <span class="inline-block text-xs px-2 py-0.5 rounded border ${badgeClass}">${status}</span>
+              </div>
+              <div class="mt-2 flex items-center gap-2">${thumbs}</div>
+              <div class="mt-2 text-sm text-gray-700 line-clamp-2">${items}</div>
             </div>
-            <div class="text-right space-y-2">
-              <div class="font-semibold">Tk ${Number(o.total || 0).toFixed(2)}</div>
-              <a class="inline-block text-sm px-3 py-1 rounded bg-gray-100 hover:bg-gray-200" href="view.html?id=${d.id}">View</a>
+            <div class="text-right min-w-[140px]">
+              <div class="text-xs text-gray-500">Total</div>
+              <div class="text-lg font-semibold">৳${Number(o.total || 0).toFixed(2)}</div>
+              <div class="mt-2 flex gap-2 justify-end">
+                <a class="inline-block text-sm px-3 py-1 rounded bg-gray-100 hover:bg-gray-200" href="view.html?id=${d.id}">View</a>
+              </div>
             </div>
           </div>
         `;
