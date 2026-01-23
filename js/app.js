@@ -45,6 +45,40 @@ let allProducts = [];
 let currentFilters = { q: '', category: '' };
 const DEBUG_PRODUCTS = true;
 
+// Shared cart row template generator (Price / Quantity / Subtotal layout)
+function generateCartRowHTML(item, idx) {
+  const price = Number(item.price) || 0;
+  const qty = Math.max(1, Number(item.qty || 1) || 1);
+  const line = price * qty;
+  const weightChip = item.weight
+    ? ` <span class="inline-block align-middle ml-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-[11px]">${item.weight}</span>`
+    : '';
+  return `
+    <div class="relative p-3 rounded-xl border border-gray-100 bg-white shadow-sm" data-idx="${idx}">
+      <button class="remove w-8 h-8 flex items-center justify-center rounded-full bg-red-600 text-white hover:bg-red-700 absolute top-2 right-2" aria-label="Remove item" title="Remove">✕</button>
+      <div class="flex items-start gap-3 pr-10">
+        <img src="${item.image || ''}" alt="${item.title || ''}" class="w-16 h-16 object-contain bg-white rounded">
+        <div class="flex-1 min-w-0">
+          <div class="text-[14px] font-medium leading-snug truncate">${item.title || 'Item'}${weightChip}</div>
+          <div class="mt-2 space-y-2 text-[13px]">
+            <div class="flex items-center justify-between"><span class="text-gray-500">Price</span><span>৳${price.toFixed(2)}</span></div>
+            <div class="flex items-center justify-between">
+              <span class="text-gray-500">Quantity</span>
+              <div class="inline-flex items-center rounded-md border border-gray-200 overflow-hidden">
+                <button aria-label="Decrease quantity" class="qty-dec px-3 h-8 hover:bg-gray-50">−</button>
+                <span class="qty-view px-3 select-none">${qty}</span>
+                <button aria-label="Increase quantity" class="qty-inc px-3 h-8 hover:bg-gray-50">+</button>
+              </div>
+            </div>
+            <div class="flex items-center justify-between"><span class="text-gray-500">Subtotal</span><span class="font-semibold text-green-700">৳${line.toFixed(2)}</span></div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+// Expose for non-module consumers (e.g., index.html drawer script)
+try { window.CartTemplates = Object.assign(window.CartTemplates || {}, { row: generateCartRowHTML }); } catch {}
+
 // Helpers: convert English digits to Bangla and localize unit labels
 function toBnDigits(str){
   const map = { '0':'০','1':'১','2':'২','3':'৩','4':'৪','5':'৫','6':'৬','7':'৭','8':'৮','9':'৯','.':'․' };
