@@ -17,6 +17,29 @@ import {
 // CART utils (localStorage)
 const CART_KEY = 'bazar_cart';
 let shippingSettings = null; // { baseFee, extraPerBlock, blockGrams, fallbackFee }
+
+// Prefer a target unit family when rendering (e.g., force liters for liquids)
+// Assumes 1kg≈1L and 1000g≈1kg, 1000ml≈1L for display purposes only
+function localizeLabelPrefer(lbl, preferred){
+  const s = String(lbl||'').trim();
+  const pref = String(preferred||'').toLowerCase();
+  if (!s) return '';
+  const m = s.toLowerCase().replace(/\s+/g,'').match(/^([0-9]*\.?[0-9]+)(kg|g|l|liter|ltr|ml)?$/);
+  if (!m) return localizeLabel(s);
+  let val = parseFloat(m[1]);
+  let unit = m[2] || '';
+  if (pref === 'l'){
+    // Coerce any kg/g to liters for display
+    if (unit === 'g'){ val = val/1000; unit = 'l'; }
+    else if (unit === 'kg'){ unit = 'l'; }
+  } else if (pref === 'kg'){
+    // Coerce any l/ml to kilograms for display
+    if (unit === 'ml'){ val = val/1000; unit = 'kg'; }
+    else if (unit === 'l' || unit === 'liter' || unit === 'ltr'){ unit = 'kg'; }
+  }
+  const combined = `${val}${unit}`;
+  return localizeLabel(combined);
+}
 let cloudSaveTimer = null;
 let allProducts = [];
 let currentFilters = { q: '', category: '' };
@@ -301,7 +324,30 @@ function drawProducts() {
           }
         }
       } catch {}
+      // If some labels are numeric-only, infer unit from product's base weight
+      try {
+        const baseW = String(d.weight || '').trim().toLowerCase();
+        const m = baseW.match(/([0-9]*\.?[0-9]+)\s*(kg|g|l|liter|ltr|ml)/);
+        const unit = m ? (m[2] === 'liter' || m[2] === 'ltr' ? 'l' : m[2]) : '';
+        if (unit) {
+          opts = opts.map(o => {
+            const raw = String(o.label || o.weight || '').trim();
+            const numericOnly = /^\d*\.?\d+$/.test(raw);
+            const hasKnownUnit = /\b(kg|g|l|liter|ltr|ml)\b/i.test(raw);
+            if (numericOnly || !hasKnownUnit) {
+              return { ...o, label: raw ? `${raw}${unit.toUpperCase()}` : `${unit.toUpperCase()}` };
+            }
+            return o;
+          });
+        }
+      } catch {}
       const hasOptions = Array.isArray(opts) && opts.length > 0;
+      // Derive preferred unit from base weight for consistent rendering
+      let preferredUnit = '';
+      try {
+        const mPref = String(d.weight||'').toLowerCase().match(/(kg|g|l|liter|ltr|ml)/);
+        if (mPref){ preferredUnit = (mPref[1] === 'liter' || mPref[1] === 'ltr') ? 'l' : mPref[1]; }
+      } catch {}
       if (DEBUG_PRODUCTS) {
         try {
           const rawType = d.options === null ? 'null' : Array.isArray(d.options) ? 'array' : typeof d.options;
@@ -341,7 +387,7 @@ function drawProducts() {
           <div class="mt-2 grid gap-1" data-opt-inline>
             ${opts.map((o,i)=>`
               <button type="button" data-idx="${i}" class="opt-inline-pill text-xs border border-gray-200 rounded px-2 py-1 text-left hover:border-blue-400">
-                <span>${localizeLabel(o.label || o.weight || '')}</span>
+                <span>${localizeLabelPrefer(o.label || o.weight || '', preferredUnit)}</span>
               </button>
             `).join('')}
           </div>
@@ -398,7 +444,7 @@ function drawProducts() {
                 return;
               }
               const opt = opts[selectedOpt] || {};
-              addToCart({ id: `${id}__${opt.label||opt.weight||'opt'}`, title: d.title, price: Number((opt.price ?? d.price)), image: d.image, weight: localizeLabel(opt.label || opt.weight || d.weight || ''), qty: 1 });
+              addToCart({ id: `${id}__${opt.label||opt.weight||'opt'}`, title: d.title, price: Number((opt.price ?? d.price)), image: d.image, weight: localizeLabelPrefer(opt.label || opt.weight || d.weight || '', preferredUnit), qty: 1 });
               bumpCartBadge();
               flyToCartFrom(imgEl);
             });
