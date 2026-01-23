@@ -9,7 +9,11 @@
     nav.id = 'mobile-bottom-nav';
     nav.className = 'md:hidden fixed bottom-0 inset-x-0 bg-white border-t z-40';
     nav.innerHTML = `
-      <div class="grid grid-cols-4 text-xs text-gray-600">
+      <div class="grid grid-cols-5 text-xs text-gray-600">
+        <a href="#" id="mobile-menu-btn" class="flex flex-col items-center justify-center py-2 gap-0.5">
+          <span class="icon" aria-hidden="true">☰</span>
+          <span>Menu</span>
+        </a>
         <a href="index.html" data-key="home" class="flex flex-col items-center justify-center py-2 gap-0.5">
           <span class="icon" aria-hidden="true">🏠</span>
           <span>Home</span>
@@ -39,6 +43,18 @@
       const total = Array.isArray(arr) ? arr.reduce((s, i) => s + Number(i?.qty || 0), 0) : 0;
       const bottom = document.getElementById('cart-count-bottom');
       if (bottom) bottom.textContent = String(total);
+    } catch {}
+
+    // Hook menu button: open drawer if available, else go to index with hash
+    try {
+      const menuBtn = nav.querySelector('#mobile-menu-btn');
+      menuBtn?.addEventListener('click', (e)=>{
+        e.preventDefault();
+        const opener = document.getElementById('menu-open');
+        const drawer = document.getElementById('cat-drawer');
+        if (opener && drawer){ opener.click(); }
+        else { window.location.href = 'index.html#menu'; }
+      });
     } catch {}
 
     // Determine active route (robust to subpaths, query params)
