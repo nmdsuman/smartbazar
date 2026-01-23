@@ -94,6 +94,25 @@
     <div class="bg-gray-50 text-center text-xs text-gray-500 py-3">© <span id="year"></span> Bazar. All rights reserved.</div>
   </footer>
 
+  <!-- Cart Drawer -->
+  <div id="cart-drawer" class="fixed inset-y-0 right-0 w-11/12 max-w-[90vw] sm:w-96 bg-white shadow-2xl translate-x-[100%] transition-transform duration-300 z-50">
+    <div class="flex items-center justify-between px-4 py-3 border-b">
+      <div class="font-semibold">My Cart</div>
+      <button id="cart-close" class="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200">Close</button>
+    </div>
+    <div id="cart-body" class="p-3 overflow-y-auto h-[calc(100%-120px)] space-y-2 text-sm"></div>
+    <div class="px-4 py-3 border-t bg-white sticky bottom-0">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-gray-600">Subtotal</span>
+        <span id="cart-subtotal" class="font-semibold">৳0.00</span>
+      </div>
+      <div class="flex gap-2">
+        <a href="cart.html" class="flex-1 px-4 py-2 rounded bg-gray-100 hover:bg-gray-200 text-center">View Cart</a>
+        <a href="checkout.html" class="flex-1 px-4 py-2 rounded bg-green-600 hover:bg-green-700 text-white text-center">Checkout</a>
+      </div>
+    </div>
+  </div>
+
   <!-- Options Modal -->
   <div id="opt-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
     <div class="bg-white w-full max-w-md rounded shadow-lg overflow-hidden flex flex-col max-h-[90vh] m-4">
@@ -186,6 +205,83 @@
       // Populate when categories ready
       if (window.categoriesCache) renderCatMenu();
       window.addEventListener('CategoriesUpdated', renderCatMenu);
+    })();
+  </script>
+  <script>
+    // Cart drawer controls and rendering (no module imports, uses localStorage directly)
+    (function(){
+      const drawer = document.getElementById('cart-drawer');
+      const backdrop = document.getElementById('cat-backdrop'); // reuse same backdrop
+      const closeBtn = document.getElementById('cart-close');
+      const bodyEl = document.getElementById('cart-body');
+      const subEl = document.getElementById('cart-subtotal');
+      const cartBadge = document.getElementById('cart-count');
+      function readCart(){
+        try { return JSON.parse(localStorage.getItem('cart')||'[]'); } catch { return []; }
+      }
+      function writeCart(arr){
+        localStorage.setItem('cart', JSON.stringify(arr));
+      }
+      function updateBadge(){
+        try {
+          const items = readCart();
+          const totalQty = items.reduce((s,it)=> s + Math.max(1, Number(it.qty||1)||1), 0);
+          if (cartBadge) cartBadge.textContent = String(totalQty);
+        } catch {}
+      }
+      function open(){ drawer.style.transform = 'translateX(0)'; backdrop.classList.remove('hidden'); render(); }
+      function close(){ drawer.style.transform = 'translateX(100%)'; backdrop.classList.add('hidden'); }
+      function money(n){ return '৳' + (Number(n)||0).toFixed(2); }
+      function render(){
+        const items = readCart();
+        if (!bodyEl) return;
+        if (items.length === 0){ bodyEl.innerHTML = '<div class="text-gray-500 text-sm">Your cart is empty.</div>'; if (subEl) subEl.textContent = money(0); return; }
+        let subtotal = 0;
+        bodyEl.innerHTML = items.map((it,idx)=>{
+          const p = Number(it.price)||0; const q = Math.max(1, Number(it.qty||1)||1); const line = p*q; subtotal += line;
+          const wt = it.weight ? `<div class=\"text-xs text-gray-500\">${it.weight}</div>` : '';
+          return `
+            <div class=\"flex gap-2 items-center border rounded p-2\" data-idx=\"${idx}\">
+              <img src=\"${it.image||''}\" alt=\"\" class=\"w-12 h-12 object-contain bg-white\"/>
+              <div class=\"flex-1 min-w-0\">
+                <div class=\"text-sm font-medium truncate\">${it.title||'Item'}</div>
+                ${wt}
+                <div class=\"text-xs text-gray-500\">${money(p)}</div>
+              </div>
+              <div class=\"inline-flex items-center rounded-full bg-green-600 text-white overflow-hidden\">
+                <button class=\"cd-dec px-2 h-8 hover:bg-green-700\">−</button>
+                <span class=\"cd-qty px-2 select-none\">${q}</span>
+                <button class=\"cd-inc px-2 h-8 hover:bg-green-700\">+</button>
+              </div>
+              <button class=\"cd-del ml-2 text-gray-400 hover:text-red-600\" title=\"Remove\">✕</button>
+            </div>`;
+        }).join('');
+        if (subEl) subEl.textContent = money(subtotal);
+        // wire controls
+        bodyEl.querySelectorAll('[data-idx]').forEach(row=>{
+          const idx = Number(row.getAttribute('data-idx')||'-1');
+          const dec = row.querySelector('.cd-dec');
+          const inc = row.querySelector('.cd-inc');
+          const del = row.querySelector('.cd-del');
+          if (dec) dec.addEventListener('click', ()=>{ const list = readCart(); const it = list[idx]; if (!it) return; it.qty = Math.max(1, (Number(it.qty)||1)-1); writeCart(list); render(); updateBadge(); });
+          if (inc) inc.addEventListener('click', ()=>{ const list = readCart(); const it = list[idx]; if (!it) return; it.qty = Math.max(1, (Number(it.qty)||1)+1); writeCart(list); render(); updateBadge(); });
+          if (del) del.addEventListener('click', ()=>{ const list = readCart(); list.splice(idx,1); writeCart(list); render(); updateBadge(); });
+        });
+      }
+      // open hooks: header and bottom nav cart links on small screens
+      function interceptCartLinks(){
+        const isSmall = window.matchMedia('(max-width: 767px)').matches;
+        document.querySelectorAll('a[href="cart.html"]').forEach(a=>{
+          a.addEventListener('click', (e)=>{
+            if (isSmall){ e.preventDefault(); open(); }
+          });
+        });
+      }
+      closeBtn?.addEventListener('click', close);
+      backdrop?.addEventListener('click', ()=>{ close(); });
+      interceptCartLinks();
+      updateBadge();
+      window.addEventListener('storage', (e)=>{ if (e.key==='cart'){ updateBadge(); if (drawer.style.transform==='translateX(0)') render(); }});
     })();
   </script>
 </body>
