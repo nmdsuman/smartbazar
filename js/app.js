@@ -391,31 +391,33 @@ function drawProducts() {
         </div>
         <div class="action-bar absolute bottom-2 left-2 right-2 z-10">
           ${hasOptions ? `
-          <div class="bar flex items-center gap-2 w-full rounded-full bg-green-600 text-white overflow-hidden shadow">
+          <div class="bar flex items-center gap-1 w-full rounded-full bg-green-600 text-white overflow-hidden shadow">
             <div class="qty-inline hidden shrink-0">
               <div class="inline-flex items-center">
-                <button class="qty-dec px-3 h-10 hover:bg-green-700" aria-label="Decrease">−</button>
+                <button class="qty-dec px-2 h-9 hover:bg-green-700" aria-label="Decrease">−</button>
                 <span class="qty-view px-2 select-none">1</span>
-                <button class="qty-inc px-3 h-10 hover:bg-green-700" aria-label="Increase">+</button>
+                <button class="qty-inc px-2 h-9 hover:bg-green-700" aria-label="Increase">+</button>
               </div>
             </div>
-            <div class="grow h-6 bg-white/20 rounded-sm opacity-0 separator"></div>
-            <button class="add-to-cart flex-1 h-10 flex items-center justify-center text-white px-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 active:scale-[0.98] transition" aria-label="Select options">
-              <span class="btn-label text-sm font-medium">Select Options</span>
+            <div class="separator hidden w-1.5 h-5 bg-white/20 rounded-sm"></div>
+            <button class="add-to-cart flex-1 h-9 flex items-center justify-center text-white px-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 active:scale-[0.98] transition" aria-label="Select options">
+              <span class="btn-label text-[12px] font-medium whitespace-nowrap sm:hidden">Options</span>
+              <span class="btn-label hidden sm:inline text-[13px] font-medium whitespace-nowrap">Select Options</span>
             </button>
           </div>
           ` : `
-          <div class="bar flex items-center gap-2 w-full rounded-full bg-green-600 text-white overflow-hidden shadow">
+          <div class="bar flex items-center gap-1 w-full rounded-full bg-green-600 text-white overflow-hidden shadow">
             <div class="qty-inline shrink-0">
               <div class="inline-flex items-center">
-                <button class="qty-dec px-3 h-10 hover:bg-green-700" aria-label="Decrease">−</button>
+                <button class="qty-dec px-2 h-9 hover:bg-green-700" aria-label="Decrease">−</button>
                 <span class="qty-view px-2 select-none">1</span>
-                <button class="qty-inc px-3 h-10 hover:bg-green-700" aria-label="Increase">+</button>
+                <button class="qty-inc px-2 h-9 hover:bg-green-700" aria-label="Increase">+</button>
               </div>
             </div>
-            <div class="grow h-6 bg-white/20 rounded-sm opacity-0 separator"></div>
-            <button class="add-to-cart flex-1 h-10 flex items-center justify-center text-white px-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 active:scale-[0.98] transition" aria-label="Add to cart">
-              <span class="btn-label text-sm font-medium">Add To Cart</span>
+            <div class="separator w-1.5 h-5 bg-white/20 rounded-sm"></div>
+            <button class="add-to-cart flex-1 h-9 flex items-center justify-center text-white px-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 active:scale-[0.98] transition" aria-label="Add to cart">
+              <span class="btn-label text-[12px] font-medium whitespace-nowrap sm:hidden">Add</span>
+              <span class="btn-label hidden sm:inline text-[13px] font-medium whitespace-nowrap">Add To Cart</span>
             </button>
           </div>
           `}
