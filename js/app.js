@@ -127,11 +127,12 @@ export function addToCart(item) {
   const cart = readCart();
   const existing = cart.find(p => p.id === item.id);
   if (existing) {
-    // Do not increase count on repeated Add-to-Cart; keep one entry
-    // Quantity should be adjusted from the Cart page only
-    existing.qty = Math.max(1, existing.qty | 0);
+    // Increment by requested qty (default 1)
+    const add = Math.max(1, Number(item.qty || 1) | 0);
+    existing.qty = Math.max(1, (existing.qty | 0) + add);
   } else {
-    cart.push({ ...item, qty: 1 });
+    const q = Math.max(1, Number(item.qty || 1) | 0);
+    cart.push({ ...item, qty: q });
   }
   writeCart(cart);
 }
