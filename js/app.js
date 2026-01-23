@@ -168,6 +168,22 @@ function drawProducts() {
       const out = stock <= 0;
       const hasOptions = Array.isArray(d.options) && d.options.length > 0;
       const opts = hasOptions ? d.options : [];
+      // Compute initial price display: base price or min–max from options
+      let priceDisplayHtml = '';
+      if (hasOptions) {
+        const priceList = opts
+          .map(o => Number(o.price ?? d.price))
+          .filter(v => Number.isFinite(v));
+        if (priceList.length > 0) {
+          const minP = Math.min(...priceList);
+          // Show only the lowest price initially for optioned products
+          priceDisplayHtml = `৳${minP.toFixed(2)}`;
+        } else {
+          priceDisplayHtml = `৳${Number(d.price).toFixed(2)}`;
+        }
+      } else {
+        priceDisplayHtml = `৳${Number(d.price).toFixed(2)}`;
+      }
       card.innerHTML = `
         ${out ? '<span class="absolute top-2 left-2 text-[11px] px-2 py-0.5 rounded-full bg-red-600 text-white">Out of stock</span>' : ''}
         <a href="productfullview.html?id=${encodeURIComponent(id)}" class="block bg-white">
@@ -176,7 +192,7 @@ function drawProducts() {
         <div class="p-2 pb-3 flex-1 flex flex-col">
           <h3 class="font-semibold text-[15px] mb-0.5 leading-snug line-clamp-2"><a href="productfullview.html?id=${encodeURIComponent(id)}" class="hover:text-blue-700">${d.title}</a></h3>
           <div class="flex items-center justify-between mt-1">
-            <div class="text-orange-600 font-bold text-sm">৳${Number(d.price).toFixed(2)}</div>
+            <div class="price-view text-orange-600 font-bold text-sm">${priceDisplayHtml}</div>
             <span></span>
           </div>
           ${hasOptions ? `
@@ -197,6 +213,7 @@ function drawProducts() {
       if (!out) {
         const btn = card.querySelector('.add-to-cart');
         const imgEl = card.querySelector('img');
+        const priceEl = card.querySelector('.price-view');
         // Inline options selection
         if (hasOptions){
           const pills = card.querySelectorAll('.opt-inline-pill');
@@ -220,6 +237,12 @@ function drawProducts() {
               btn.setAttribute('aria-label','Add to cart');
               if (labelSpan) labelSpan.textContent = 'Add To Cart';
               btn.classList.remove('px-3'); btn.classList.add('px-3');
+              // Update the main price to the selected option's price
+              try {
+                const opt = opts[selectedOpt] || {};
+                const selPrice = Number(opt.price ?? d.price);
+                if (priceEl && Number.isFinite(selPrice)) priceEl.textContent = `৳${selPrice.toFixed(2)}`;
+              } catch {}
               refreshPillStyles();
             });
           });
