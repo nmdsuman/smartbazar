@@ -95,9 +95,9 @@
   </footer>
 
   <!-- Cart Drawer -->
-  <div id="cart-drawer" class="fixed inset-y-0 right-0 w-1/2 max-w-[50vw] sm:w-96 bg-white shadow-2xl translate-x-[100%] transition-transform duration-300 z-50">
+  <div id="cart-drawer" class="fixed inset-y-0 right-0 w-4/5 max-w-[85vw] sm:w-96 bg-white shadow-2xl translate-x-[100%] transition-transform duration-300 z-50">
     <div class="flex items-center justify-between px-4 py-3 border-b">
-      <div class="font-semibold">My Cart</div>
+      <div class="font-semibold">Shopping cart</div>
       <button id="cart-close" class="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200">Close</button>
     </div>
     <div id="cart-body" class="p-3 overflow-y-auto h-[calc(100%-120px)] space-y-2 text-sm"></div>
@@ -106,6 +106,8 @@
         <span class="text-gray-600">Subtotal</span>
         <span id="cart-subtotal" class="font-semibold">৳0.00</span>
       </div>
+      <div id="cart-free" class="mb-2 text-xs text-gray-600"></div>
+      <div class="w-full h-2 rounded bg-gray-200 overflow-hidden mb-3"><div id="cart-free-bar" class="h-full bg-green-500 w-0"></div></div>
       <div class="flex gap-2">
         <a href="cart.html" class="flex-1 px-4 py-2 rounded bg-gray-100 hover:bg-gray-200 text-center">View Cart</a>
         <a href="checkout.html" class="flex-1 px-4 py-2 rounded bg-green-600 hover:bg-green-700 text-white text-center">Checkout</a>
