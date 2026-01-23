@@ -819,27 +819,45 @@ export async function renderCartPage() {
       localStorage.setItem('profile_address', address);
     } catch {}
 
-    // Build invoice preview HTML
+    // Build invoice preview HTML (polished)
     const rows = cart.map(i => `
-      <tr>
-        <td class="p-2 border">
-          <div class="flex items-center gap-2"><img src="${i.image}" alt="${i.title}" class="w-10 h-10 object-contain bg-white rounded border"/><span>${i.title}${i.weight?` · ${i.weight}`:''}</span></div>
+      <tr class="border-b last:border-0">
+        <td class="p-3">
+          <div class="flex items-center gap-3">
+            <img src="${i.image}" alt="${i.title}" class="w-12 h-12 object-contain bg-white rounded border"/>
+            <div class="min-w-0">
+              <div class="text-sm font-medium truncate">${i.title}</div>
+              ${i.weight?`<div class=\"text-xs text-gray-500\">${i.weight}</div>`:''}
+            </div>
+          </div>
         </td>
-        <td class="p-2 border text-right">${i.qty}</td>
-        <td class="p-2 border text-right">৳${Number(i.price).toFixed(2)}</td>
-        <td class="p-2 border text-right">৳${(i.qty*i.price).toFixed(2)}</td>
+        <td class="p-3 text-right align-middle">${i.qty}</td>
+        <td class="p-3 text-right align-middle">৳${Number(i.price).toFixed(2)}</td>
+        <td class="p-3 text-right align-middle font-medium">৳${(i.qty*i.price).toFixed(2)}</td>
       </tr>`).join('');
     invBody.innerHTML = `
-      <div class="text-sm text-gray-700">${name} · ${phone}<br/>${address}</div>
-      <table class="w-full text-sm border">
-        <thead class="bg-gray-50"><tr><th class="text-left p-2 border">Product</th><th class="text-right p-2 border">Qty</th><th class="text-right p-2 border">Price</th><th class="text-right p-2 border">Total</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-      <div class="text-right space-y-1">
-        <div>Subtotal: <span class="font-semibold">৳${subtotal.toFixed(2)}</span></div>
-        <div>Delivery: <span class="font-semibold">৳${delivery.toFixed(2)}</span></div>
-        <div class="text-lg">Total: <span class="inline-block font-semibold bg-blue-600 text-white px-3 py-1 rounded-full">৳${(subtotal+delivery).toFixed(2)}</span></div>
+      <div class="mb-3 p-3 bg-gray-50 rounded border text-sm text-gray-700">
+        <div class="font-medium mb-0.5">Customer</div>
+        <div>${name} · ${phone}</div>
+        <div class="truncate">${address}</div>
       </div>
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 text-gray-600">
+          <tr>
+            <th class="text-left p-3">Product</th>
+            <th class="text-right p-3">Qty</th>
+            <th class="text-right p-3">Price</th>
+            <th class="text-right p-3">Total</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y">${rows}</tbody>
+      </table>
+      <div class="mt-4 p-3 rounded border bg-white grid gap-1 text-sm">
+        <div class="flex items-center justify-between text-gray-700"><span>Subtotal</span><span class="font-medium">৳${subtotal.toFixed(2)}</span></div>
+        <div class="flex items-center justify-between text-gray-700"><span>Delivery</span><span class="font-medium">৳${delivery.toFixed(2)}</span></div>
+        <div class="flex items-center justify-between text-base mt-1"><span class="font-semibold">Grand Total</span><span class="inline-flex items-center justify-center font-semibold bg-green-600 text-white px-3 py-1 rounded-full">৳${(subtotal+delivery).toFixed(2)}</span></div>
+      </div>
+      <div class="mt-2 text-xs text-gray-500">Please review your order details before confirmation.</div>
     `;
     // Show modal
     invModal?.classList.remove('hidden');
@@ -860,7 +878,9 @@ export async function renderCartPage() {
           // 1) Read all product docs first (no writes yet)
           const writePlan = [];
           for (const it of cart) {
-            const prodRef = doc(db, 'products', it.id);
+            // Support variant cart IDs like `${productId}__${variantLabel}` by extracting base product ID
+            const baseId = String(it.id || '').split('__')[0] || String(it.id || '');
+            const prodRef = doc(db, 'products', baseId);
             const snap = await tx.get(prodRef);
             if (!snap.exists()) throw new Error(`Product not found: ${it.title || it.id}`);
             const data = snap.data() || {};
