@@ -484,8 +484,15 @@ function drawProducts() {
             });
             return; // skip default
           }
+          // Simple product qty handling
+          let qty = 1;
+          const qtyView = card.querySelector('.qty-view');
+          const decBtn = card.querySelector('.qty-dec');
+          const incBtn = card.querySelector('.qty-inc');
+          if (decBtn) decBtn.addEventListener('click', ()=>{ qty = Math.max(1, qty-1); if (qtyView) qtyView.textContent = String(qty); });
+          if (incBtn) incBtn.addEventListener('click', ()=>{ qty = Math.max(1, qty+1); if (qtyView) qtyView.textContent = String(qty); });
           btn.addEventListener('click', () => {
-            addToCart({ id, title: d.title, price: Number(d.price), image: d.image, weight: d.weight || '' });
+            addToCart({ id, title: d.title, price: Number(d.price), image: d.image, weight: d.weight || '', qty });
             bumpCartBadge();
             flyToCartFrom(imgEl);
           });
