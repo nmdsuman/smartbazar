@@ -216,11 +216,12 @@
       const bodyEl = document.getElementById('cart-body');
       const subEl = document.getElementById('cart-subtotal');
       const cartBadge = document.getElementById('cart-count');
+      const CART_KEY = 'bazar_cart';
       function readCart(){
-        try { return JSON.parse(localStorage.getItem('cart')||'[]'); } catch { return []; }
+        try { return JSON.parse(localStorage.getItem(CART_KEY)||'[]'); } catch { return []; }
       }
       function writeCart(arr){
-        localStorage.setItem('cart', JSON.stringify(arr));
+        localStorage.setItem(CART_KEY, JSON.stringify(arr));
       }
       function updateBadge(){
         try {
@@ -277,6 +278,8 @@
         document.addEventListener('click', (e)=>{
           const a = e.target.closest && e.target.closest('a[href="cart.html"]');
           if (!a) return;
+          // Allow clicks inside the drawer (e.g., View Cart button) to navigate normally
+          if (a.closest && a.closest('#cart-drawer')) return;
           if (mq.matches){ e.preventDefault(); open(); }
         }, true);
       }
@@ -284,7 +287,7 @@
       backdrop?.addEventListener('click', ()=>{ close(); });
       interceptCartLinks();
       updateBadge();
-      window.addEventListener('storage', (e)=>{ if (e.key==='cart'){ updateBadge(); if (drawer.style.transform==='translateX(0)') render(); }});
+      window.addEventListener('storage', (e)=>{ if (e.key===CART_KEY){ updateBadge(); if (drawer.style.transform==='translateX(0)') render(); }});
     })();
   </script>
 </body>
