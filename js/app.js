@@ -388,18 +388,20 @@ function drawProducts() {
           </div>
           ` : ''}
         </div>
-        ${hasOptions ? `
-        <div class="qty-inline hidden absolute bottom-2 left-2">
-          <div class="inline-flex items-center rounded-full bg-green-600 text-white overflow-hidden shadow">
-            <button class="qty-dec px-3 h-10 hover:bg-green-700" aria-label="Decrease">−</button>
-            <span class="qty-view px-3 select-none">1</span>
-            <button class="qty-inc px-3 h-10 hover:bg-green-700" aria-label="Increase">+</button>
+        <div class="action-bar absolute bottom-2 left-2 right-2 z-10 flex items-center justify-between gap-2">
+          ${hasOptions ? `
+          <div class="qty-inline hidden shrink-0">
+            <div class="inline-flex items-center rounded-full bg-green-600 text-white overflow-hidden shadow">
+              <button class="qty-dec px-3 h-10 hover:bg-green-700" aria-label="Decrease">−</button>
+              <span class="qty-view px-3 select-none">1</span>
+              <button class="qty-inc px-3 h-10 hover:bg-green-700" aria-label="Increase">+</button>
+            </div>
           </div>
+          ` : '<span></span>'}
+          <button class="add-to-cart ${out ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white ${hasOptions ? 'px-3' : 'w-10'} h-10 rounded-full shadow-md flex-1 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 active:scale-[0.98] transition" ${out ? 'disabled' : ''} aria-label="${hasOptions ? 'Select options' : 'Add to cart'}">
+            ${hasOptions ? '<span class="btn-label text-xs font-medium">Select Options</span>' : '<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-5 h-5\"><circle cx=\"9\" cy=\"21\" r=\"1\"/><circle cx=\"20\" cy=\"21\" r=\"1\"/><path d=\"M1 1h4l2.68 12.39a2 2 0 0 0 2 1.61h7.72a2 2 0 0 0 2-1.61L23 6H6\"/></svg>'}
+          </button>
         </div>
-        ` : ''}
-        <button class="add-to-cart ${out ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white ${hasOptions ? 'px-3' : 'w-10'} h-10 rounded-full shadow-md flex items-center justify-center absolute bottom-2 right-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 active:scale-[0.98] transition" ${out ? 'disabled' : ''} aria-label="${hasOptions ? 'Select options' : 'Add to cart'}">
-          ${hasOptions ? '<span class="btn-label text-xs font-medium">Select Options</span>' : '<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-5 h-5\"><circle cx=\"9\" cy=\"21\" r=\"1\"/><circle cx=\"20\" cy=\"21\" r=\"1\"/><path d=\"M1 1h4l2.68 12.39a2 2 0 0 0 2 1.61h7.72a2 2 0 0 0 2-1.61L23 6H6\"/></svg>'}
-        </button>
       `;
       // Always append the card first so rendering never breaks
       frag.appendChild(card);
