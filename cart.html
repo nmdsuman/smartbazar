@@ -34,36 +34,47 @@
     </div>
   </header>
 
-  <main class="max-w-4xl mx-auto px-4 py-8">
+  <main class="max-w-6xl mx-auto px-4 py-8">
     <h1 class="text-2xl font-semibold mb-6">Your Cart</h1>
-    <div id="cart-container" class="bg-white border rounded-lg p-6">
-      <div id="cart-items" class="space-y-4"></div>
-      <div id="cart-empty" class="text-gray-500">Your cart is empty.</div>
-      <div id="cart-summary" class="mt-6 hidden">
-        <div class="flex items-center justify-between text-lg">
-          <span>Total</span>
-          <span id="cart-total" class="font-semibold">৳0.00</span>
-        </div>
-        <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm mb-1">Full Name</label>
-            <input id="chk-name" type="text" class="w-full border rounded px-3 py-2" placeholder="Customer name"/>
-          </div>
-          <div>
-            <label class="block text-sm mb-1">Phone</label>
-            <input id="chk-phone" type="tel" class="w-full border rounded px-3 py-2" placeholder="01XXXXXXXXX"/>
-          </div>
-          <div class="md:col-span-2">
-            <label class="block text-sm mb-1">Address</label>
-            <textarea id="chk-address" rows="2" class="w-full border rounded px-3 py-2" placeholder="Delivery address"></textarea>
+    <div class="grid md:grid-cols-3 gap-6 items-start">
+      <!-- Items column -->
+      <div class="md:col-span-2">
+        <div id="cart-items" class="space-y-4"></div>
+        <div id="cart-empty" class="hidden">
+          <div class="bg-white border rounded-lg p-6 text-center">
+            <div class="text-gray-600 mb-3">Your cart is empty.</div>
+            <a href="index.html" class="inline-flex items-center px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700">Continue Shopping</a>
           </div>
         </div>
-        <div class="mt-4 text-sm text-gray-700 space-y-1">
-          <div class="flex items-center justify-between"><span>Delivery</span><span id="delivery-fee">৳0.00</span></div>
-          <div class="flex items-center justify-between font-semibold text-base"><span>Grand Total</span><span id="grand-total">৳0.00</span></div>
-        </div>
-        <button id="checkout-btn" class="mt-4 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Checkout</button>
       </div>
+      <!-- Summary column -->
+      <aside id="cart-summary" class="hidden sticky top-4">
+        <div class="bg-white border rounded-lg p-5 shadow-sm">
+          <div class="flex items-center justify-between text-lg">
+            <span class="text-gray-700">Total</span>
+            <span id="cart-total" class="font-semibold">৳0.00</span>
+          </div>
+          <div class="mt-4 grid grid-cols-1 gap-4">
+            <div>
+              <label class="block text-sm mb-1">Full Name</label>
+              <input id="chk-name" type="text" class="w-full border rounded px-3 py-2" placeholder="Customer name"/>
+            </div>
+            <div>
+              <label class="block text-sm mb-1">Phone</label>
+              <input id="chk-phone" type="tel" class="w-full border rounded px-3 py-2" placeholder="01XXXXXXXXX"/>
+            </div>
+            <div>
+              <label class="block text-sm mb-1">Address</label>
+              <textarea id="chk-address" rows="2" class="w-full border rounded px-3 py-2" placeholder="Delivery address"></textarea>
+            </div>
+          </div>
+          <div class="mt-4 text-sm text-gray-700 space-y-1">
+            <div class="flex items-center justify-between"><span>Delivery</span><span id="delivery-fee">৳0.00</span></div>
+            <div class="flex items-center justify-between font-semibold text-base"><span>Grand Total</span><span id="grand-total">৳0.00</span></div>
+          </div>
+          <button id="checkout-btn" class="mt-4 w-full bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Checkout</button>
+        </div>
+      </aside>
     </div>
   </main>
 
