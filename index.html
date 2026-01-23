@@ -276,6 +276,22 @@
           if (a.closest && a.closest('#cart-drawer')) return;
           if (mq.matches){ e.preventDefault(); open(); }
         }, true);
+
+        // Intercept Drawer Checkout to route to cart with optional quick
+        const drawerCheckout = drawer.querySelector('a[href="checkout.html"]');
+        if (drawerCheckout) {
+          drawerCheckout.addEventListener('click', (ev)=>{
+            ev.preventDefault();
+            let url = 'cart.html';
+            try {
+              const n = localStorage.getItem('profile_name')||'';
+              const p = localStorage.getItem('profile_phone')||'';
+              const a = localStorage.getItem('profile_address')||'';
+              if (n.trim() && p.trim() && a.trim()) url = 'cart.html?quick=1';
+            } catch {}
+            window.location.href = url;
+          });
+        }
       }
       closeBtn?.addEventListener('click', close);
       backdrop?.addEventListener('click', ()=>{ close(); });
