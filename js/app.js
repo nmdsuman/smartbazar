@@ -721,30 +721,27 @@ export async function renderCartPage() {
     let total = 0;
     cart.forEach(item => {
       const row = document.createElement('div');
-      row.className = 'relative border rounded p-2';
+      row.className = 'relative p-3 rounded-xl border border-gray-100 bg-white shadow-sm';
       const itemTotal = item.price * item.qty;
       total += itemTotal;
+      const weightChip = item.weight ? ` <span class=\"inline-block align-middle ml-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-[11px]\">${item.weight}</span>` : '';
       row.innerHTML = `
-        <button class="remove w-9 h-9 flex items-center justify-center rounded-full bg-red-600 text-white hover:bg-red-700 absolute top-2 right-2" aria-label="Remove item" title="Remove">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="3 6 5 6 21 6"/>
-            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-            <path d="M10 11v6"/>
-            <path d="M14 11v6"/>
-            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-          </svg>
-        </button>
-        <div class="flex items-start gap-3 pr-12">
+        <button class="remove w-8 h-8 flex items-center justify-center rounded-full bg-red-600 text-white hover:bg-red-700 absolute top-2 right-2" aria-label="Remove item" title="Remove">✕</button>
+        <div class="flex items-start gap-3 pr-10">
           <img src="${item.image}" alt="${item.title}" class="w-16 h-16 object-contain bg-white rounded">
-          <div class="flex-1">
-            <div class="font-medium leading-tight">${item.title}${item.weight ? ` · ${item.weight}` : ''}</div>
-            <div class="text-sm text-gray-600">৳${item.price.toFixed(2)}</div>
-            <div class="mt-2 flex items-center justify-end">
-              <div class="inline-flex items-center rounded-full border border-gray-200 overflow-hidden shadow-sm">
-                <button aria-label="Decrease quantity" class="qty-dec w-9 h-9 flex items-center justify-center bg-gray-50 hover:bg-gray-100 active:bg-gray-200 text-base">−</button>
-                <span class="w-10 text-center text-sm select-none">${item.qty}</span>
-                <button aria-label="Increase quantity" class="qty-inc w-9 h-9 flex items-center justify-center bg-gray-50 hover:bg-gray-100 active:bg-gray-200 text-base">+</button>
+          <div class="flex-1 min-w-0">
+            <div class="text-[14px] font-medium leading-snug truncate">${item.title}${weightChip}</div>
+            <div class="mt-2 space-y-2 text-[13px]">
+              <div class="flex items-center justify-between"><span class="text-gray-500">Price</span><span>৳${item.price.toFixed(2)}</span></div>
+              <div class="flex items-center justify-between">
+                <span class="text-gray-500">Quantity</span>
+                <div class="inline-flex items-center rounded-md border border-gray-200 overflow-hidden">
+                  <button aria-label="Decrease quantity" class="qty-dec px-3 h-8 hover:bg-gray-50">−</button>
+                  <span class="qty-view px-3 select-none">${item.qty}</span>
+                  <button aria-label="Increase quantity" class="qty-inc px-3 h-8 hover:bg-gray-50">+</button>
+                </div>
               </div>
+              <div class="flex items-center justify-between"><span class="text-gray-500">Subtotal</span><span class="font-semibold text-green-700">৳${itemTotal.toFixed(2)}</span></div>
             </div>
           </div>
         </div>
