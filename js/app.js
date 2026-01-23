@@ -760,7 +760,7 @@ export async function renderCartPage() {
       total += itemTotal;
       const weightChip = item.weight ? ` <span class=\"inline-block align-middle ml-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-[11px]\">${item.weight}</span>` : '';
       row.innerHTML = `
-        <button class="remove w-8 h-8 flex items-center justify-center rounded-full bg-red-600 text-white hover:bg-red-700 absolute top-2 right-2" aria-label="Remove item" title="Remove">✕</button>
+        <button class="remove absolute top-2 right-2 text-gray-400 hover:text-red-600" aria-label="Remove item" title="Remove">✕</button>
         <div class="flex items-start gap-3 pr-10">
           <img src="${item.image}" alt="${item.title}" class="w-16 h-16 object-contain bg-white rounded">
           <div class="flex-1 min-w-0">
@@ -769,10 +769,10 @@ export async function renderCartPage() {
               <div class="flex items-center justify-between"><span class="text-gray-500">Price</span><span>৳${item.price.toFixed(2)}</span></div>
               <div class="flex items-center justify-between">
                 <span class="text-gray-500">Quantity</span>
-                <div class="inline-flex items-center rounded-md border border-gray-200 overflow-hidden">
-                  <button aria-label="Decrease quantity" class="qty-dec px-3 h-8 hover:bg-gray-50">−</button>
-                  <span class="qty-view px-3 select-none">${item.qty}</span>
-                  <button aria-label="Increase quantity" class="qty-inc px-3 h-8 hover:bg-gray-50">+</button>
+                <div class="inline-flex items-center rounded-md border border-gray-200 overflow-hidden text-sm">
+                  <button aria-label="Decrease quantity" class="qty-dec px-2 h-7 hover:bg-gray-50">−</button>
+                  <span class="qty-view px-2 select-none">${item.qty}</span>
+                  <button aria-label="Increase quantity" class="qty-inc px-2 h-7 hover:bg-gray-50">+</button>
                 </div>
               </div>
               <div class="flex items-center justify-between"><span class="text-gray-500">Subtotal</span><span class="font-semibold text-green-700">৳${itemTotal.toFixed(2)}</span></div>
