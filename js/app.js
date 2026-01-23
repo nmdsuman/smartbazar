@@ -324,23 +324,7 @@ function drawProducts() {
           }
         }
       } catch {}
-      // If some labels are numeric-only, infer unit from product's base weight
-      try {
-        const baseW = String(d.weight || '').trim().toLowerCase();
-        const m = baseW.match(/([0-9]*\.?[0-9]+)\s*(kg|g|l|liter|ltr|ml)/);
-        const unit = m ? (m[2] === 'liter' || m[2] === 'ltr' ? 'l' : m[2]) : '';
-        if (unit) {
-          opts = opts.map(o => {
-            const raw = String(o.label || o.weight || '').trim();
-            const numericOnly = /^\d*\.?\d+$/.test(raw);
-            const hasKnownUnit = /\b(kg|g|l|liter|ltr|ml)\b/i.test(raw);
-            if (numericOnly || !hasKnownUnit) {
-              return { ...o, label: raw ? `${raw}${unit.toUpperCase()}` : `${unit.toUpperCase()}` };
-            }
-            return o;
-          });
-        }
-      } catch {}
+      // Do not mutate original labels; we'll render using preferred unit dynamically
       const hasOptions = Array.isArray(opts) && opts.length > 0;
       // Derive preferred unit from base weight for consistent rendering
       let preferredUnit = '';
@@ -348,6 +332,15 @@ function drawProducts() {
         const mPref = String(d.weight||'').toLowerCase().match(/(kg|g|l|liter|ltr|ml)/);
         if (mPref){ preferredUnit = (mPref[1] === 'liter' || mPref[1] === 'ltr') ? 'l' : mPref[1]; }
       } catch {}
+      // Helper to format a raw option label into preferred-unit Bangla label
+      function formatVariantLabel(raw){
+        const s = String(raw||'').trim();
+        const numericOnly = /^\d*\.?\d+$/.test(s);
+        if (numericOnly && preferredUnit){
+          return localizeLabelPrefer(`${s}${preferredUnit}`, preferredUnit);
+        }
+        return localizeLabelPrefer(s, preferredUnit);
+      }
       if (DEBUG_PRODUCTS) {
         try {
           const rawType = d.options === null ? 'null' : Array.isArray(d.options) ? 'array' : typeof d.options;
@@ -387,7 +380,7 @@ function drawProducts() {
           <div class="mt-2 grid gap-1" data-opt-inline>
             ${opts.map((o,i)=>`
               <button type="button" data-idx="${i}" class="opt-inline-pill text-xs border border-gray-200 rounded px-2 py-1 text-left hover:border-blue-400">
-                <span>${localizeLabelPrefer(o.label || o.weight || '', preferredUnit)}</span>
+                <span>${formatVariantLabel(o.label || o.weight || '')}</span>
               </button>
             `).join('')}
           </div>
@@ -444,7 +437,8 @@ function drawProducts() {
                 return;
               }
               const opt = opts[selectedOpt] || {};
-              addToCart({ id: `${id}__${opt.label||opt.weight||'opt'}`, title: d.title, price: Number((opt.price ?? d.price)), image: d.image, weight: localizeLabelPrefer(opt.label || opt.weight || d.weight || '', preferredUnit), qty: 1 });
+              const weightDisp = formatVariantLabel(opt.label || opt.weight || d.weight || '');
+              addToCart({ id: `${id}__${opt.label||opt.weight||'opt'}`, title: d.title, price: Number((opt.price ?? d.price)), image: d.image, weight: weightDisp, qty: 1 });
               bumpCartBadge();
               flyToCartFrom(imgEl);
             });
