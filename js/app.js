@@ -146,8 +146,11 @@ function drawProducts() {
   const list = allProducts
     .filter(p => (p.data.active === false ? false : true))
     .filter(p => {
-      if (!currentFilters.category) return true;
-      return (p.data.category || '').toLowerCase() === currentFilters.category.toLowerCase();
+      const sel = String(currentFilters.category || '').trim().toLowerCase();
+      if (!sel) return true;
+      const cat = String(p.data.category || '').trim().toLowerCase();
+      const sub = String(p.data.subcategory || '').trim().toLowerCase();
+      return cat === sel || sub === sel;
     })
     .filter(p => {
       const q = currentFilters.q.trim().toLowerCase();
@@ -170,8 +173,13 @@ function drawProducts() {
   const total = allProducts.length;
   const onlyActive = allProducts.filter(p => (p.data.active === false ? false : true));
   const activeCount = onlyActive.length;
-  const cat = (currentFilters.category || '').toLowerCase();
-  const excludedByCat = onlyActive.filter(p => cat && (String(p.data.category||'').toLowerCase() !== cat)).length;
+  const cat = String(currentFilters.category || '').trim().toLowerCase();
+  const excludedByCat = onlyActive.filter(p => {
+    if (!cat) return false;
+    const pc = String(p.data.category||'').trim().toLowerCase();
+    const ps = String(p.data.subcategory||'').trim().toLowerCase();
+    return !(pc === cat || ps === cat);
+  }).length;
   const q = (currentFilters.q || '').trim().toLowerCase();
   const excludedByQuery = onlyActive.filter(p => {
     if (!q) return false;
