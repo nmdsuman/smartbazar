@@ -82,18 +82,20 @@
       activeEl.querySelector('.icon')?.classList.add('scale-110');
     }
 
-    // Hide header Cart/My Account links on small screens (use bottom nav instead)
+    // Hide header Menu/Cart/My Account links on small screens (use bottom nav instead)
     try {
       const isSmall = window.matchMedia('(max-width: 767px)').matches;
       if (isSmall) {
-        const header = document.querySelector('header nav');
+        const header = document.querySelector('header');
         if (header) {
           const cartLink = header.querySelector('a[href="cart.html"]');
           const profileLink = header.querySelector('a[href="profile.html"]');
-          const compactMenu = header.querySelector('#user-menu');
+          const loginLink = header.querySelector('a#login-link');
+          const menuBtn = header.querySelector('#menu-open');
           if (cartLink) cartLink.classList.add('hidden');
           if (profileLink) profileLink.classList.add('hidden');
-          if (compactMenu) compactMenu.classList.add('hidden');
+          if (loginLink) loginLink.classList.add('hidden');
+          if (menuBtn) menuBtn.classList.add('hidden');
         }
       }
     } catch {}
