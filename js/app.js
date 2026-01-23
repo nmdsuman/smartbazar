@@ -311,63 +311,74 @@ function drawProducts() {
           ${hasOptions ? '<span class="btn-label text-xs font-medium">Select Options</span>' : '<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-5 h-5\"><circle cx=\"9\" cy=\"21\" r=\"1\"/><circle cx=\"20\" cy=\"21\" r=\"1\"/><path d=\"M1 1h4l2.68 12.39a2 2 0 0 0 2 1.61h7.72a2 2 0 0 0 2-1.61L23 6H6\"/></svg>'}
         </button>
       `;
+      // Always append the card first so rendering never breaks
+      frag.appendChild(card);
       if (!out) {
-        const btn = card.querySelector('.add-to-cart');
-        const imgEl = card.querySelector('img');
-        const priceEl = card.querySelector('.price-view');
-        // Inline options selection
-        if (hasOptions){
-          const pills = card.querySelectorAll('.opt-inline-pill');
-          const labelSpan = btn.querySelector('.btn-label');
-          let selectedOpt = null;
-          function refreshPillStyles(){
-            pills.forEach(p=>{
-              const idx = Number(p.getAttribute('data-idx')||'-1');
-              if (selectedOpt === idx){
-                p.classList.remove('border-gray-200');
-                p.classList.add('border-blue-600','bg-blue-50');
-              } else {
-                p.classList.remove('border-blue-600','bg-blue-50');
-                p.classList.add('border-gray-200');
-              }
-            });
-          }
-          pills.forEach(p=>{
-            p.addEventListener('click', ()=>{
-              selectedOpt = Number(p.getAttribute('data-idx')||'0');
-              btn.setAttribute('aria-label','Add to cart');
-              if (labelSpan) labelSpan.textContent = 'Add To Cart';
-              btn.classList.remove('px-3'); btn.classList.add('px-3');
-              // Update the main price to the selected option's price
-              try {
-                const opt = opts[selectedOpt] || {};
-                const selPrice = Number(opt.price ?? d.price);
-                if (priceEl && Number.isFinite(selPrice)) priceEl.textContent = `৳${selPrice.toFixed(2)}`;
-              } catch {}
-              refreshPillStyles();
-            });
-          });
-          btn.addEventListener('click', () => {
-            if (selectedOpt === null){
-              // Require selecting an option first
-              btn.classList.add('ring-2','ring-blue-400');
-              setTimeout(()=>btn.classList.remove('ring-2','ring-blue-400'), 600);
-              return;
+        try {
+          const btn = card.querySelector('.add-to-cart');
+          const imgEl = card.querySelector('img');
+          const priceEl = card.querySelector('.price-view');
+          // Inline options selection
+          if (hasOptions){
+            const pills = card.querySelectorAll('.opt-inline-pill');
+            const labelSpan = btn.querySelector('.btn-label');
+            let selectedOpt = null;
+            function refreshPillStyles(){
+              pills.forEach(p=>{
+                const idx = Number(p.getAttribute('data-idx')||'-1');
+                if (selectedOpt === idx){
+                  p.classList.remove('border-gray-200');
+                  p.classList.add('border-blue-600','bg-blue-50');
+                } else {
+                  p.classList.remove('border-blue-600','bg-blue-50');
+                  p.classList.add('border-gray-200');
+                }
+              });
             }
-            const opt = opts[selectedOpt] || {};
-            addToCart({ id: `${id}__${opt.label||opt.weight||'opt'}`, title: d.title, price: Number((opt.price ?? d.price)), image: d.image, weight: opt.label || opt.weight || d.weight || '', qty: 1 });
+            pills.forEach(p=>{
+              p.addEventListener('click', ()=>{
+                selectedOpt = Number(p.getAttribute('data-idx')||'0');
+                btn.setAttribute('aria-label','Add to cart');
+                if (labelSpan) labelSpan.textContent = 'Add To Cart';
+                btn.classList.remove('px-3'); btn.classList.add('px-3');
+                // Update the main price to the selected option's price
+                try {
+                  const opt = opts[selectedOpt] || {};
+                  const selPrice = Number(opt.price ?? d.price);
+                  if (priceEl && Number.isFinite(selPrice)) priceEl.textContent = `৳${selPrice.toFixed(2)}`;
+                } catch {}
+                refreshPillStyles();
+              });
+            });
+            btn.addEventListener('click', () => {
+              if (selectedOpt === null){
+                // Require selecting an option first
+                btn.classList.add('ring-2','ring-blue-400');
+                setTimeout(()=>btn.classList.remove('ring-2','ring-blue-400'), 600);
+                return;
+              }
+              const opt = opts[selectedOpt] || {};
+              addToCart({ id: `${id}__${opt.label||opt.weight||'opt'}`, title: d.title, price: Number((opt.price ?? d.price)), image: d.image, weight: opt.label || opt.weight || d.weight || '', qty: 1 });
+              bumpCartBadge();
+              flyToCartFrom(imgEl);
+            });
+            return; // skip default
+          }
+          btn.addEventListener('click', () => {
+            addToCart({ id, title: d.title, price: Number(d.price), image: d.image, weight: d.weight || '' });
             bumpCartBadge();
             flyToCartFrom(imgEl);
           });
-          return; // skip default
+        } catch (err) {
+          // Surface a gentle hint in debug panel if available
+          const dbg = document.getElementById('product-debug');
+          if (dbg) {
+            dbg.classList.remove('hidden');
+            const prev = dbg.innerHTML;
+            dbg.innerHTML = prev + `<div class="mt-1">“${d.title}” কার্ড ইন্টারঅ্যাকশন লোডে সমস্যা: ${String(err&&err.message||err).slice(0,120)}</div>`;
+          }
         }
-        btn.addEventListener('click', () => {
-          addToCart({ id, title: d.title, price: Number(d.price), image: d.image, weight: d.weight || '' });
-          bumpCartBadge();
-          flyToCartFrom(imgEl);
-        });
       }
-      frag.appendChild(card);
     });
   grid.appendChild(frag);
 
