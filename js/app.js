@@ -156,10 +156,41 @@ function drawProducts() {
       return hay.includes(q);
     });
 
+  // Build easy debug panel on page (Bangla), so user doesn't need Console
+  let dbg = document.getElementById('product-debug');
+  if (!dbg) {
+    dbg = document.createElement('div');
+    dbg.id = 'product-debug';
+    dbg.className = 'mb-3 text-sm rounded border bg-yellow-50 text-yellow-900 px-3 py-2 hidden';
+    const parent = grid.parentElement;
+    if (parent) parent.insertBefore(dbg, grid);
+  }
+
+  // Summaries
+  const total = allProducts.length;
+  const onlyActive = allProducts.filter(p => (p.data.active === false ? false : true));
+  const activeCount = onlyActive.length;
+  const cat = (currentFilters.category || '').toLowerCase();
+  const excludedByCat = onlyActive.filter(p => cat && (String(p.data.category||'').toLowerCase() !== cat)).length;
+  const q = (currentFilters.q || '').trim().toLowerCase();
+  const excludedByQuery = onlyActive.filter(p => {
+    if (!q) return false;
+    const hay = `${p.data.title} ${p.data.description || ''} ${p.data.category || ''}`.toLowerCase();
+    return !hay.includes(q);
+  }).length;
+
   const frag = document.createDocumentFragment();
   if (list.length === 0) {
     grid.innerHTML = '';
     empty?.classList.remove('hidden');
+    if (dbg) {
+      dbg.classList.remove('hidden');
+      dbg.innerHTML = `
+        <div><strong>নোটিশ:</strong> কোনো প্রোডাক্ট দেখানো যাচ্ছে না।</div>
+        <div class="mt-1">মোট: ${total}, Active: ${activeCount}, ক্যাটাগরিতে বাদ: ${excludedByCat}, সার্চে বাদ: ${excludedByQuery}</div>
+        <div class="mt-1">ফিল্টার ক্লিয়ার করে আবার চেষ্টা করুন।</div>
+      `;
+    }
     if (DEBUG_PRODUCTS) {
       try {
         const info = { query: currentFilters.q, category: currentFilters.category, total: allProducts.length, shown: list.length };
@@ -319,6 +350,28 @@ function drawProducts() {
       frag.appendChild(card);
     });
   grid.appendChild(frag);
+
+  // Show quick hints even when items are shown
+  if (dbg) {
+    const shown = list.length;
+    // Find variant issues for visible items
+    const variantIssues = list
+      .map(p => ({ id: p.id, data: p.data }))
+      .map(({id, data}) => {
+        const optsN = normalizeOptions(data.options);
+        return { id, title: data.title || id, hasRaw: !!data.options, normalized: Array.isArray(optsN) ? optsN.length : 0 };
+      })
+      .filter(x => x.hasRaw && x.normalized === 0)
+      .slice(0,3);
+    const warnHtml = variantIssues.length > 0
+      ? `<div class="mt-1">কিছু প্রোডাক্টের ভ্যারিয়েন্ট ডেটা ঠিক নয় (উদাহরণ: ${variantIssues.map(v=>`“${v.title}”`).join(', ')}).</div>`
+      : '';
+    dbg.classList.remove('hidden');
+    dbg.innerHTML = `
+      <div>দেখানো হয়েছে: ${shown}/${activeCount}. সার্চ/ক্যাটাগরি বদলালে ভিউ বদলাবে।</div>
+      ${warnHtml}
+    `;
+  }
 }
 
 async function loadProducts() {
