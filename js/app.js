@@ -43,7 +43,7 @@ function localizeLabelPrefer(lbl, preferred){
 let cloudSaveTimer = null;
 let allProducts = [];
 let currentFilters = { q: '', category: '' };
-const DEBUG_PRODUCTS = true;
+const DEBUG_PRODUCTS = false;
 
 // Shared cart row template generator (Price / Quantity / Subtotal layout)
 function generateCartRowHTML(item, idx) {
@@ -258,15 +258,8 @@ function drawProducts() {
       return hay.includes(q);
     });
 
-  // Build easy debug panel on page (Bangla), so user doesn't need Console
+  // Debug panel disabled per request
   let dbg = document.getElementById('product-debug');
-  if (!dbg) {
-    dbg = document.createElement('div');
-    dbg.id = 'product-debug';
-    dbg.className = 'mb-3 text-sm rounded border bg-yellow-50 text-yellow-900 px-3 py-2 hidden';
-    const parent = grid.parentElement;
-    if (parent) parent.insertBefore(dbg, grid);
-  }
 
   // Summaries
   const total = allProducts.length;
@@ -819,6 +812,13 @@ export async function renderCartPage() {
     }
     [nameInput, phoneInput, addressInput].forEach(el => el && el.classList.remove('ring-1','ring-red-400'));
 
+    // Persist profile locally for quick checkout from drawer
+    try {
+      localStorage.setItem('profile_name', name);
+      localStorage.setItem('profile_phone', phone);
+      localStorage.setItem('profile_address', address);
+    } catch {}
+
     // Build invoice preview HTML
     const rows = cart.map(i => `
       <tr>
@@ -909,6 +909,15 @@ export async function renderCartPage() {
   await loadShippingSettings();
   refresh();
   loadProfile();
+
+  // If opened with ?quick=1 and profile is present, auto open summary
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('quick') === '1' && checkoutBtn) {
+      const hasProfile = (nameInput && nameInput.value.trim() && phoneInput && phoneInput.value.trim() && addressInput && addressInput.value.trim());
+      if (hasProfile) setTimeout(()=>checkoutBtn.click(), 0);
+    }
+  } catch {}
 }
 
 // Initialize header + home
