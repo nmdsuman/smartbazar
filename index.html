@@ -272,12 +272,13 @@
       }
       // open hooks: header and bottom nav cart links on small screens
       function interceptCartLinks(){
-        const isSmall = window.matchMedia('(max-width: 767px)').matches;
-        document.querySelectorAll('a[href="cart.html"]').forEach(a=>{
-          a.addEventListener('click', (e)=>{
-            if (isSmall){ e.preventDefault(); open(); }
-          });
-        });
+        const mq = window.matchMedia('(max-width: 767px)');
+        // Delegate so links added later (bottom nav) are handled too
+        document.addEventListener('click', (e)=>{
+          const a = e.target.closest && e.target.closest('a[href="cart.html"]');
+          if (!a) return;
+          if (mq.matches){ e.preventDefault(); open(); }
+        }, true);
       }
       closeBtn?.addEventListener('click', close);
       backdrop?.addEventListener('click', ()=>{ close(); });
