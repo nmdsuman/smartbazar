@@ -386,6 +386,15 @@ function drawProducts() {
           </div>
           ` : ''}
         </div>
+        ${hasOptions ? `
+        <div class="qty-inline hidden absolute bottom-2 left-2">
+          <div class="inline-flex items-center rounded-full bg-green-600 text-white overflow-hidden shadow">
+            <button class="qty-dec px-3 h-10 hover:bg-green-700" aria-label="Decrease">−</button>
+            <span class="qty-view px-3 select-none">1</span>
+            <button class="qty-inc px-3 h-10 hover:bg-green-700" aria-label="Increase">+</button>
+          </div>
+        </div>
+        ` : ''}
         <button class="add-to-cart ${out ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white ${hasOptions ? 'px-3' : 'w-10'} h-10 rounded-full shadow-md flex items-center justify-center absolute bottom-2 right-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 active:scale-[0.98] transition" ${out ? 'disabled' : ''} aria-label="${hasOptions ? 'Select options' : 'Add to cart'}">
           ${hasOptions ? '<span class="btn-label text-xs font-medium">Select Options</span>' : '<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"w-5 h-5\"><circle cx=\"9\" cy=\"21\" r=\"1\"/><circle cx=\"20\" cy=\"21\" r=\"1\"/><path d=\"M1 1h4l2.68 12.39a2 2 0 0 0 2 1.61h7.72a2 2 0 0 0 2-1.61L23 6H6\"/></svg>'}
         </button>
@@ -401,15 +410,20 @@ function drawProducts() {
           if (hasOptions){
             const pills = card.querySelectorAll('.opt-inline-pill');
             const labelSpan = btn.querySelector('.btn-label');
+            const qtyWrap = card.querySelector('.qty-inline');
+            const qtyView = card.querySelector('.qty-view');
+            const decBtn = card.querySelector('.qty-dec');
+            const incBtn = card.querySelector('.qty-inc');
             let selectedOpt = null;
+            let qty = 1;
             function refreshPillStyles(){
               pills.forEach(p=>{
                 const idx = Number(p.getAttribute('data-idx')||'-1');
                 if (selectedOpt === idx){
                   p.classList.remove('border-gray-200');
-                  p.classList.add('border-blue-600','bg-blue-50');
+                  p.classList.add('border-green-600','bg-green-600','text-white');
                 } else {
-                  p.classList.remove('border-blue-600','bg-blue-50');
+                  p.classList.remove('border-green-600','bg-green-600','text-white');
                   p.classList.add('border-gray-200');
                 }
               });
@@ -420,6 +434,8 @@ function drawProducts() {
                 btn.setAttribute('aria-label','Add to cart');
                 if (labelSpan) labelSpan.textContent = 'Add To Cart';
                 btn.classList.remove('px-3'); btn.classList.add('px-3');
+                if (qtyWrap) qtyWrap.classList.remove('hidden');
+                qty = 1; if (qtyView) qtyView.textContent = '1';
                 // Update the main price to the selected option's price
                 try {
                   const opt = opts[selectedOpt] || {};
@@ -429,6 +445,9 @@ function drawProducts() {
                 refreshPillStyles();
               });
             });
+            // Qty listeners
+            if (decBtn) decBtn.addEventListener('click', ()=>{ qty = Math.max(1, qty-1); if (qtyView) qtyView.textContent = String(qty); });
+            if (incBtn) incBtn.addEventListener('click', ()=>{ qty = Math.max(1, qty+1); if (qtyView) qtyView.textContent = String(qty); });
             btn.addEventListener('click', () => {
               if (selectedOpt === null){
                 // Require selecting an option first
@@ -438,7 +457,7 @@ function drawProducts() {
               }
               const opt = opts[selectedOpt] || {};
               const weightDisp = formatVariantLabel(opt.label || opt.weight || d.weight || '');
-              addToCart({ id: `${id}__${opt.label||opt.weight||'opt'}`, title: d.title, price: Number((opt.price ?? d.price)), image: d.image, weight: weightDisp, qty: 1 });
+              addToCart({ id: `${id}__${opt.label||opt.weight||'opt'}`, title: d.title, price: Number((opt.price ?? d.price)), image: d.image, weight: weightDisp, qty });
               bumpCartBadge();
               flyToCartFrom(imgEl);
             });
