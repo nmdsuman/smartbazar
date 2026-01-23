@@ -107,6 +107,75 @@ function readCart() {
   }
 }
 
+// Full Cart Page renderer
+export function renderCartPage(){
+  const itemsHost = document.getElementById('cart-items');
+  const emptyHost = document.getElementById('cart-empty');
+  const summaryHost = document.getElementById('cart-summary');
+  const totalEl = document.getElementById('cart-total');
+  const cartBadge = document.getElementById('cart-count');
+  if (!itemsHost || !emptyHost || !summaryHost || !totalEl) return;
+
+  function money(n){ return '৳' + (Number(n)||0).toFixed(2); }
+  function updateBadge(){
+    try {
+      const items = readCart();
+      const totalQty = items.reduce((s,it)=> s + Math.max(1, Number(it.qty||1)||1), 0);
+      if (cartBadge) cartBadge.textContent = String(totalQty);
+    } catch {}
+  }
+  function render(){
+    const items = readCart();
+    if (!Array.isArray(items) || items.length === 0){
+      itemsHost.innerHTML = '';
+      emptyHost.innerHTML = '<div class="text-gray-600 text-sm">Your cart is empty.</div>\n<div class="mt-4"><a href="index.html" class="inline-flex items-center px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700">Continue Shopping</a></div>';
+      emptyHost.classList.remove('hidden');
+      summaryHost.classList.add('hidden');
+      if (totalEl) totalEl.textContent = money(0);
+      updateBadge();
+      return;
+    }
+    emptyHost.classList.add('hidden');
+    summaryHost.classList.remove('hidden');
+    let subtotal = 0;
+    itemsHost.innerHTML = items.map((it,idx)=>{
+      const p = Number(it.price)||0; const q = Math.max(1, Number(it.qty||1)||1); const line = p*q; subtotal += line;
+      const wt = it.weight ? `<span class="inline-block px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-[11px]">${it.weight}</span>` : '';
+      return `
+        <div class="flex items-center gap-3 p-3 rounded-lg border border-gray-100 bg-white shadow-sm" data-idx="${idx}">
+          <img src="${it.image||''}" alt="" class="w-16 h-16 object-contain rounded bg-white"/>
+          <div class="flex-1 min-w-0">
+            <div class="text-[14px] font-medium truncate">${it.title||'Item'}</div>
+            <div class="flex items-center gap-2 mt-0.5">${wt}<span class="text-[12px] text-gray-500">${money(p)}</span></div>
+          </div>
+          <div class="flex flex-col items-end gap-1">
+            <div class="inline-flex items-center rounded-full bg-green-600 text-white overflow-hidden">
+              <button class="cp-dec px-2 h-8 hover:bg-green-700">−</button>
+              <span class="cp-qty px-2 select-none">${q}</span>
+              <button class="cp-inc px-2 h-8 hover:bg-green-700">+</button>
+            </div>
+            <div class="text-[13px] font-semibold text-green-700">${money(line)}</div>
+          </div>
+          <button class="cp-del ml-1 text-gray-400 hover:text-red-600 self-start" title="Remove">✕</button>
+        </div>`;
+    }).join('');
+    totalEl.textContent = money(subtotal);
+    // wire controls
+    itemsHost.querySelectorAll('[data-idx]').forEach(row=>{
+      const idx = Number(row.getAttribute('data-idx')||'-1');
+      const dec = row.querySelector('.cp-dec');
+      const inc = row.querySelector('.cp-inc');
+      const del = row.querySelector('.cp-del');
+      if (dec) dec.addEventListener('click', ()=>{ const list = readCart(); const it = list[idx]; if (!it) return; it.qty = Math.max(1, (Number(it.qty)||1)-1); writeCart(list); render(); updateBadge(); });
+      if (inc) inc.addEventListener('click', ()=>{ const list = readCart(); const it = list[idx]; if (!it) return; it.qty = Math.max(1, (Number(it.qty)||1)+1); writeCart(list); render(); updateBadge(); });
+      if (del) del.addEventListener('click', ()=>{ const list = readCart(); list.splice(idx,1); writeCart(list); render(); updateBadge(); });
+    });
+    updateBadge();
+  }
+  render();
+  window.addEventListener('storage', (e)=>{ if (e.key==='cart'){ render(); }});
+}
+
 function writeCart(cart) {
   localStorage.setItem(CART_KEY, JSON.stringify(cart));
   updateCartBadge();
