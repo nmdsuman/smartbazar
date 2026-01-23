@@ -440,8 +440,23 @@ async function loadProducts() {
   const grid = document.getElementById('products-grid');
   if (!grid) return;
   try {
-    const qy = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
-    const snap = await getDocs(qy);
+    let snap = null;
+    try {
+      const qy = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
+      snap = await getDocs(qy);
+    } catch (e1) {
+      // Fallback without orderBy (some docs may not have createdAt or rules might block ordering)
+      try {
+        snap = await getDocs(collection(db, 'products'));
+        const dbg = document.getElementById('product-debug');
+        if (dbg) {
+          dbg.classList.remove('hidden');
+          dbg.innerHTML = `<div class="text-sm">নোটিশ: createdAt দিয়ে সাজানো যায়নি, তাই সাধারণভাবে লোড করা হয়েছে। কারণ: ${String(e1&&e1.message||e1).slice(0,140)}</div>`;
+        }
+      } catch (e2) {
+        throw e2;
+      }
+    }
     allProducts = snap.docs.map(d => ({ id: d.id, data: d.data() }));
     populateCategories();
     drawProducts();
@@ -450,6 +465,11 @@ async function loadProducts() {
     console.error('Failed to load products', e);
     empty?.classList.remove('hidden');
     if (empty) empty.textContent = 'Failed to load products.';
+    const dbg = document.getElementById('product-debug');
+    if (dbg) {
+      dbg.classList.remove('hidden');
+      dbg.innerHTML = `<div class="text-sm">প্রোডাক্ট লোড করা যায়নি: ${String(e&&e.message||e).slice(0,200)}</div>`;
+    }
   }
 }
 
