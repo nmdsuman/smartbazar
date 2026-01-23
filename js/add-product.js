@@ -395,7 +395,12 @@ window.AddProduct = {
         clearVariants();
         const opts = Array.isArray(data.options) ? data.options : [];
         if (opts.length > 0) {
-          opts.slice(0,20).forEach(o => addVariant(o.label || '', o.price ?? ''));
+          opts.slice(0,20).forEach(o => {
+            const raw = String(o.label || '').trim();
+            const m = raw.toLowerCase().replace(/\s+/g,'').match(/^([0-9]*\.?[0-9]+)(kg|g|l|liter|ltr|ml)?$/);
+            const display = m ? m[1] : raw; // only number in the box
+            addVariant(display, o.price ?? '');
+          });
         }
       } catch {}
     }
