@@ -20,6 +20,7 @@ let shippingSettings = null; // { baseFee, extraPerBlock, blockGrams, fallbackFe
 let cloudSaveTimer = null;
 let allProducts = [];
 let currentFilters = { q: '', category: '' };
+const DEBUG_PRODUCTS = true;
 
 // Inject minimal CSS for cart animations once
 let cartAnimStylesInjected = false;
@@ -139,6 +140,9 @@ function drawProducts() {
   const empty = document.getElementById('empty-state');
   if (!grid) return;
 
+  if (DEBUG_PRODUCTS) {
+    try { console.debug('[Products] total loaded:', allProducts.length); } catch {}
+  }
   const list = allProducts
     .filter(p => (p.data.active === false ? false : true))
     .filter(p => {
@@ -156,6 +160,13 @@ function drawProducts() {
   if (list.length === 0) {
     grid.innerHTML = '';
     empty?.classList.remove('hidden');
+    if (DEBUG_PRODUCTS) {
+      try {
+        const info = { query: currentFilters.q, category: currentFilters.category, total: allProducts.length, shown: list.length };
+        console.warn('[Products] nothing to show after filters', info);
+        if (empty) empty.textContent = `No products available (filters applied).`;
+      } catch {}
+    }
     return;
   }
   empty?.classList.add('hidden');
@@ -201,6 +212,12 @@ function drawProducts() {
       const out = stock <= 0;
       const opts = normalizeOptions(d.options);
       const hasOptions = Array.isArray(opts) && opts.length > 0;
+      if (DEBUG_PRODUCTS) {
+        try {
+          const rawType = d.options === null ? 'null' : Array.isArray(d.options) ? 'array' : typeof d.options;
+          console.debug('[Product]', { id, title: d.title, active: d.active !== false, rawType, raw: d.options, normalizedCount: opts.length, hasOptions });
+        } catch {}
+      }
       // Compute initial price display: base price or min–max from options
       let priceDisplayHtml = '';
       if (hasOptions) {
