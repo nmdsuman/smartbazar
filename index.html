@@ -238,7 +238,7 @@
       function render(){
         const items = readCart();
         if (!bodyEl) return;
-        if (items.length === 0){ bodyEl.innerHTML = '<div class="text-gray-500 text-sm">Your cart is empty.</div>'; if (subEl) subEl.textContent = money(0); return; }
+        if (items.length === 0){ bodyEl.innerHTML = '<div class="text-gray-500 text-sm">Your cart is empty.</div>'; if (subEl) subEl.textContent = money(0); const freeTxt=document.getElementById('cart-free'); const freeBar=document.getElementById('cart-free-bar'); if (freeTxt) freeTxt.textContent=''; if (freeBar) freeBar.style.width='0%'; return; }
         let subtotal = 0;
         bodyEl.innerHTML = items.map((it,idx)=>{
           const p = Number(it.price)||0; const q = Math.max(1, Number(it.qty||1)||1); const line = p*q; subtotal += line;
@@ -262,6 +262,21 @@
             </div>`;
         }).join('');
         if (subEl) subEl.textContent = money(subtotal);
+        // Free shipping hint
+        const FREE_LIMIT = 2000; // default threshold; can be customized later
+        const freeTxt = document.getElementById('cart-free');
+        const freeBar = document.getElementById('cart-free-bar');
+        if (freeTxt && freeBar){
+          const remain = Math.max(0, FREE_LIMIT - subtotal);
+          if (remain <= 0){
+            freeTxt.textContent = 'You have unlocked free shipping!';
+            freeBar.style.width = '100%';
+          } else {
+            freeTxt.textContent = `Add ${money(remain)} to cart and get free shipping!`;
+            const pct = Math.min(100, Math.round((subtotal / FREE_LIMIT)*100));
+            freeBar.style.width = pct + '%';
+          }
+        }
         // wire controls
         bodyEl.querySelectorAll('[data-idx]').forEach(row=>{
           const idx = Number(row.getAttribute('data-idx')||'-1');
