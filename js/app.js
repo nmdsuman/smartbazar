@@ -365,21 +365,22 @@ function drawProducts() {
       } else {
         priceDisplayHtml = `৳${Number(d.price).toFixed(2)}`;
       }
+      const bodyPad = hasOptions ? 'pb-14' : 'pb-3';
       card.innerHTML = `
         ${out ? '<span class="absolute top-2 left-2 text-[11px] px-2 py-0.5 rounded-full bg-red-600 text-white">Out of stock</span>' : ''}
         <a href="productfullview.html?id=${encodeURIComponent(id)}" class="block bg-white">
           <img src="${d.image}" alt="${d.title}" class="h-56 w-full object-contain">
         </a>
-        <div class="p-2 pb-3 flex-1 flex flex-col">
+        <div class="p-2 ${bodyPad} flex-1 flex flex-col">
           <h3 class="font-semibold text-[15px] mb-0.5 leading-snug line-clamp-2"><a href="productfullview.html?id=${encodeURIComponent(id)}" class="hover:text-blue-700">${d.title}</a></h3>
           <div class="flex items-center justify-between mt-1">
             <div class="price-view text-orange-600 font-bold text-sm">${priceDisplayHtml}</div>
             <span></span>
           </div>
           ${hasOptions ? `
-          <div class="mt-2 grid gap-1" data-opt-inline>
+          <div class="mt-2 flex flex-wrap gap-1" data-opt-inline>
             ${opts.map((o,i)=>`
-              <button type="button" data-idx="${i}" class="opt-inline-pill text-xs border border-gray-200 rounded px-2 py-1 text-left hover:border-blue-400">
+              <button type="button" data-idx="${i}" class="opt-inline-pill inline-flex items-center text-xs border border-gray-200 rounded px-2 py-1 hover:border-blue-400">
                 <span>${formatVariantLabel(o.label || o.weight || '')}</span>
               </button>
             `).join('')}
