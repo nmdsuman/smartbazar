@@ -43,6 +43,35 @@ function readCart() {
   } catch {
     return [];
   }
+
+  // Localize unit labels to Bangla (kg/g/l/ml) and convert digits if possible
+  function toBnDigits(str){
+    const map = { '0':'০','1':'১','2':'২','3':'৩','4':'৪','5':'৫','6':'৬','7':'৭','8':'৮','9':'৯','.':'․' };
+    return String(str).replace(/[0-9.]/g, ch => map[ch] ?? ch);
+  }
+  function localizeLabel(lbl){
+    const s = String(lbl||'').trim();
+    if (!s) return '';
+    // Extract number and unit (e.g., 1kg, 500 g, 1 L, 250ml)
+    const m = s.toLowerCase().replace(/\s+/g,'').match(/^([0-9]*\.?[0-9]+)(kg|g|l|liter|ltr|ml|milliliter|millilitre)?$/);
+    if (m){
+      const num = m[1];
+      const unit = m[2] || '';
+      const bnNum = toBnDigits(num);
+      let bnUnit = '';
+      if (unit === 'kg') bnUnit = 'কেজি';
+      else if (unit === 'g') bnUnit = 'গ্রাম';
+      else if (unit === 'l' || unit === 'liter' || unit === 'ltr') bnUnit = 'লিটার';
+      else if (unit === 'ml' || unit === 'milliliter' || unit === 'millilitre') bnUnit = 'মিলি';
+      return bnUnit ? `${bnNum} ${bnUnit}` : toBnDigits(s);
+    }
+    // Fallback simple replacements
+    return toBnDigits(s)
+      .replace(/\bkg\b/gi,'কেজি')
+      .replace(/\bg\b/gi,'গ্রাম')
+      .replace(/\b(l|liter|ltr)\b/gi,'লিটার')
+      .replace(/\bml\b/gi,'মিলি');
+  }
 }
 
 function writeCart(cart) {
@@ -277,8 +306,10 @@ function drawProducts() {
           .filter(v => Number.isFinite(v));
         if (priceList.length > 0) {
           const minP = Math.min(...priceList);
-          // Show only the lowest price initially for optioned products
-          priceDisplayHtml = `৳${minP.toFixed(2)}`;
+          const maxP = Math.max(...priceList);
+          priceDisplayHtml = (minP === maxP)
+            ? `৳${minP.toFixed(2)}`
+            : `৳${minP.toFixed(2)} - ৳${maxP.toFixed(2)}`;
         } else {
           priceDisplayHtml = `৳${Number(d.price).toFixed(2)}`;
         }
@@ -300,7 +331,7 @@ function drawProducts() {
           <div class="mt-2 grid gap-1" data-opt-inline>
             ${opts.map((o,i)=>`
               <button type="button" data-idx="${i}" class="opt-inline-pill text-xs border border-gray-200 rounded px-2 py-1 text-left hover:border-blue-400">
-                <span>${o.label || o.weight || ''}</span>
+                <span>${localizeLabel(o.label || o.weight || '')}</span>
                 <span class="ml-2 text-[11px] text-gray-600">৳${Number(o.price ?? d.price).toFixed(2)}</span>
               </button>
             `).join('')}
@@ -358,7 +389,7 @@ function drawProducts() {
                 return;
               }
               const opt = opts[selectedOpt] || {};
-              addToCart({ id: `${id}__${opt.label||opt.weight||'opt'}`, title: d.title, price: Number((opt.price ?? d.price)), image: d.image, weight: opt.label || opt.weight || d.weight || '', qty: 1 });
+              addToCart({ id: `${id}__${opt.label||opt.weight||'opt'}`, title: d.title, price: Number((opt.price ?? d.price)), image: d.image, weight: localizeLabel(opt.label || opt.weight || d.weight || ''), qty: 1 });
               bumpCartBadge();
               flyToCartFrom(imgEl);
             });
