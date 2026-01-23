@@ -32,9 +32,21 @@ function localizeLabel(lbl){
   if (!s) return '';
   const m = s.toLowerCase().replace(/\s+/g,'').match(/^([0-9]*\.?[0-9]+)(kg|g|l|liter|ltr|ml|milliliter|millilitre)?$/);
   if (m){
-    const num = m[1];
+    const numStr = m[1];
     const unit = m[2] || '';
-    const bnNum = toBnDigits(num);
+    const val = parseFloat(numStr);
+    // Auto-convert: if <1 kg -> grams, if <1 liter -> ml
+    if ((unit === 'kg') && val > 0 && val < 1){
+      const grams = Math.round(val * 1000);
+      return `${toBnDigits(String(grams))} গ্রাম`;
+    }
+    if ((unit === 'l' || unit === 'liter' || unit === 'ltr') && val > 0 && val < 1){
+      const ml = Math.round(val * 1000);
+      return `${toBnDigits(String(ml))} মিলি`;
+    }
+    // Keep original unit, render number nicely
+    const pretty = Number.isFinite(val) && Math.abs(val - Math.round(val)) < 1e-9 ? String(Math.round(val)) : String(val);
+    const bnNum = toBnDigits(pretty);
     let bnUnit = '';
     if (unit === 'kg') bnUnit = 'কেজি';
     else if (unit === 'g') bnUnit = 'গ্রাম';
@@ -330,7 +342,6 @@ function drawProducts() {
             ${opts.map((o,i)=>`
               <button type="button" data-idx="${i}" class="opt-inline-pill text-xs border border-gray-200 rounded px-2 py-1 text-left hover:border-blue-400">
                 <span>${localizeLabel(o.label || o.weight || '')}</span>
-                <span class="ml-2 text-[11px] text-gray-600">৳${Number(o.price ?? d.price).toFixed(2)}</span>
               </button>
             `).join('')}
           </div>
