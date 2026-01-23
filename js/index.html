@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bazar — Home</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="data:,">
+  <script type="importmap">
+  {
+    "imports": {
+      "firebase/app": "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js",
+      "firebase/auth": "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js",
+      "firebase/firestore": "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js",
+      "firebase/analytics": "https://www.gstatic.com/firebasejs/10.13.1/firebase-analytics.js"
+    }
+  }
+  </script>
+</head>
+<body class="bg-gray-50 text-gray-900">
+  <header class="bg-white border-b">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <button id="menu-open" class="flex items-center gap-2 px-3 py-2 rounded-full bg-green-600 text-white hover:bg-green-700">
+          <span class="inline-block w-4 h-0.5 bg-white"></span>
+          <span class="inline-block w-4 h-0.5 bg-white -mt-1"></span>
+          <span class="inline-block w-4 h-0.5 bg-white -mt-1"></span>
+          <span class="ml-1">Menu</span>
+        </button>
+        <a href="index.html" class="text-xl font-bold">Bazar</a>
+      </div>
+      <nav class="flex items-center gap-4">
+        <a href="index.html" class="hover:text-blue-600">Home</a>
+        <a href="admin.html" class="hover:text-blue-600">Admin</a>
+        <a href="profile.html" class="hover:text-blue-600">Profile</a>
+        <a href="orders.html" class="hover:text-blue-600">Orders</a>
+        <a href="cart.html" class="relative hover:text-blue-600">
+          Cart
+          <span id="cart-count" class="ml-1 inline-flex items-center justify-center text-xs rounded-full bg-blue-600 text-white w-5 h-5">0</span>
+        </a>
+        <a href="login.html" id="login-link" class="hover:text-blue-600">Login</a>
+        <button id="logout-btn" data-logout class="hidden px-3 py-1 rounded bg-gray-100 hover:bg-gray-200">Logout</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Category Drawer -->
+  <div id="cat-drawer" class="fixed inset-y-0 left-0 w-1/2 max-w-[50vw] sm:w-80 sm:max-w-[85vw] bg-white shadow-2xl translate-x-[-100%] transition-transform duration-300 z-50">
+    <div class="flex items-center justify-between px-4 py-3 border-b">
+      <div class="font-semibold">Menu</div>
+      <button id="menu-close" class="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200">Close</button>
+    </div>
+    <div id="cat-menu" class="p-2 overflow-y-auto h-[calc(100%-52px)]"></div>
+  </div>
+  <div id="cat-backdrop" class="fixed inset-0 bg-black/40 hidden z-40"></div>
+
+  <main class="max-w-6xl mx-auto px-4 py-8">
+    <div class="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3 items-stretch">
+      <div class="flex">
+        <input id="search-input" type="search" placeholder="Search products..." class="border border-r-0 rounded-l px-3 py-2 flex-1" />
+        <button id="search-btn" class="border rounded-r px-3 py-2 bg-blue-600 text-white hover:bg-blue-700">Search</button>
+      </div>
+      <select id="category-filter" class="border rounded px-3 py-2">
+        <option value="">All Categories</option>
+      </select>
+    </div>
+    <div id="products-grid" class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
+    <div id="empty-state" class="hidden text-gray-500">No products available.</div>
+  </main>
+
+  <footer class="border-t bg-white">
+    <div class="max-w-6xl mx-auto px-4 py-10 grid grid-cols-1 sm:grid-cols-3 gap-6 text-sm text-gray-700">
+      <div>
+        <div class="font-semibold mb-2">Bazar</div>
+        <p class="text-gray-600">Smart Bazar is a demo ecommerce site for showcasing products and simple ordering.</p>
+      </div>
+      <div>
+        <div class="font-semibold mb-2">About</div>
+        <ul class="space-y-1 text-gray-600">
+          <li><a href="about.html" class="hover:text-blue-600">Our Story</a></li>
+          <li><a href="about.html" class="hover:text-blue-600">Privacy Policy</a></li>
+          <li><a href="about.html" class="hover:text-blue-600">Terms of Service</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="font-semibold mb-2">Contact</div>
+        <ul class="space-y-1 text-gray-600">
+          <li><a href="about.html#contact" class="hover:text-blue-600">Contact details</a></li>
+          <li>Email: <a id="contact-email" href="mailto:demo@example.com" class="hover:text-blue-600">demo@example.com</a></li>
+          <li>Phone: <a id="contact-phone" href="tel:+8801234567890" class="hover:text-blue-600">+880 1234-567890</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="bg-gray-50 text-center text-xs text-gray-500 py-3">© <span id="year"></span> Bazar. All rights reserved.</div>
+  </footer>
+
+  <!-- Cart Drawer -->
+  <div id="cart-drawer" class="fixed inset-y-0 right-0 w-4/5 max-w-[85vw] sm:w-96 bg-white shadow-2xl translate-x-[100%] transition-transform duration-300 z-50">
+    <div class="flex items-center justify-between px-4 py-3 border-b">
+      <div class="font-semibold">Shopping cart</div>
+      <button id="cart-close" class="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200">Close</button>
+    </div>
+    <div id="cart-body" class="p-3 overflow-y-auto h-[calc(100%-120px)] space-y-2 text-sm"></div>
+    <div class="px-4 py-3 border-t bg-white sticky bottom-0">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-gray-600">Subtotal</span>
+        <span id="cart-subtotal" class="font-semibold">৳0.00</span>
+      </div>
+      <div id="cart-free" class="mb-2 text-xs text-gray-600"></div>
+      <div class="w-full h-2 rounded bg-gray-200 overflow-hidden mb-3"><div id="cart-free-bar" class="h-full bg-green-500 w-0"></div></div>
+      <div class="flex gap-2">
+        <a href="cart.html" class="flex-1 px-4 py-2 rounded bg-gray-100 hover:bg-gray-200 text-center">View Cart</a>
+        <a href="checkout.html" class="flex-1 px-4 py-2 rounded bg-green-600 hover:bg-green-700 text-white text-center">Checkout</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Options Modal -->
+  <div id="opt-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+    <div class="bg-white w-full max-w-md rounded shadow-lg overflow-hidden flex flex-col max-h-[90vh] m-4">
+      <div class="px-4 py-3 border-b flex items-center justify-between">
+        <h3 class="font-semibold">Select Options</h3>
+        <button id="opt-close" class="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200">Close</button>
+      </div>
+      <div id="opt-body" class="p-4 space-y-3 flex-1 overflow-y-auto">
+        <!-- Filled by JS -->
+      </div>
+      <div class="px-4 py-3 border-t sticky bottom-0 bg-white">
+        <div class="flex items-center gap-2">
+          <div class="flex items-center rounded overflow-hidden bg-green-600 text-white">
+            <button id="opt-minus" class="px-3 py-2 hover:bg-green-700">-</button>
+            <span id="opt-qty-view" class="px-4 py-2 border-x border-white/20 select-none">1</span>
+            <button id="opt-plus" class="px-3 py-2 hover:bg-green-700">+</button>
+          </div>
+          <button id="opt-add" class="flex-1 px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700">Add To Cart</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/firebase-config.js"></script>
+  <script type="module" src="js/auth.js"></script>
+  <script type="module" src="js/app.js"></script>
+  <script type="module" src="js/categories.js"></script>
+  <script type="module" src="js/chat.js"></script>
+  <script src="js/mobile-nav.js"></script>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+    // Drawer controls
+    (function(){
+      const openBtn = document.getElementById('menu-open');
+      const closeBtn = document.getElementById('menu-close');
+      const drawer = document.getElementById('cat-drawer');
+      const backdrop = document.getElementById('cat-backdrop');
+      function open(){ drawer.style.transform = 'translateX(0)'; backdrop.classList.remove('hidden'); }
+      function close(){ drawer.style.transform = 'translateX(-100%)'; backdrop.classList.add('hidden'); }
+      openBtn?.addEventListener('click', open);
+      closeBtn?.addEventListener('click', close);
+      backdrop?.addEventListener('click', close);
+      // Render category menu
+      function renderCatMenu(){
+        const host = document.getElementById('cat-menu'); if (!host) return;
+        const cats = (window.categoriesCache || []).slice();
+        host.innerHTML = cats.map(c=>{
+          const hasSubs = Array.isArray(c.subcategories) && c.subcategories.length>0;
+          const arrow = hasSubs ? '<span class="ml-auto text-gray-400">›</span>' : '';
+          const subs = hasSubs ? `<div class="sub-list hidden pl-6">
+            ${c.subcategories.map(s=>`<button class="sub w-full text-left px-3 py-2 rounded hover:bg-gray-100" data-sub="${s}" data-cat="${c.name}">${s}</button>`).join('')}
+          </div>` : '';
+          return `<div class="cat-item">
+            <button class="cat w-full flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-100" data-cat="${c.name}">
+              <span>${c.name}</span>${arrow}
+            </button>
+            ${subs}
+          </div>`;
+        }).join('');
+        // Wire cats
+        host.querySelectorAll('.cat').forEach(btn=>{
+          btn.addEventListener('click', ()=>{
+            const name = btn.getAttribute('data-cat')||'';
+            const wrap = btn.parentElement; const sub = wrap?.querySelector('.sub-list');
+            if (sub){ sub.classList.toggle('hidden'); }
+            // If no subs: filter directly
+            if (!sub){
+              const select = document.getElementById('category-filter');
+              if (select){ select.value = name; select.dispatchEvent(new Event('change',{bubbles:true})); }
+              close();
+            }
+          });
+        });
+        // Wire subs
+        host.querySelectorAll('.sub').forEach(btn=>{
+          btn.addEventListener('click', ()=>{
+            const sub = btn.getAttribute('data-sub')||'';
+            const select = document.getElementById('category-filter');
+            if (select){
+              // ensure the sub exists as an option for filtering logic (our filter matches sub too)
+              if (!Array.from(select.options).some(o=>o.value===sub)){
+                const opt = document.createElement('option'); opt.value=sub; opt.textContent=sub; select.appendChild(opt);
+              }
+              select.value = sub; select.dispatchEvent(new Event('change',{bubbles:true}));
+            }
+            close();
+          });
+        });
+      }
+      // Populate when categories ready
+      if (window.categoriesCache) renderCatMenu();
+      window.addEventListener('CategoriesUpdated', renderCatMenu);
+    })();
+  </script>
+  <script>
+    // Cart drawer controls and rendering (no module imports, uses localStorage directly)
+    (function(){
+      const drawer = document.getElementById('cart-drawer');
+      const backdrop = document.getElementById('cat-backdrop'); // reuse same backdrop
+      const closeBtn = document.getElementById('cart-close');
+      const bodyEl = document.getElementById('cart-body');
+      const subEl = document.getElementById('cart-subtotal');
+      const cartBadge = document.getElementById('cart-count');
+      const CART_KEY = 'bazar_cart';
+      function readCart(){
+        try { return JSON.parse(localStorage.getItem(CART_KEY)||'[]'); } catch { return []; }
+      }
+      function writeCart(arr){
+        localStorage.setItem(CART_KEY, JSON.stringify(arr));
+      }
+      function updateBadge(){
+        try {
+          const items = readCart();
+          const totalQty = items.reduce((s,it)=> s + Math.max(1, Number(it.qty||1)||1), 0);
+          if (cartBadge) cartBadge.textContent = String(totalQty);
+        } catch {}
+      }
+      function open(){ drawer.style.transform = 'translateX(0)'; backdrop.classList.remove('hidden'); render(); }
+      function close(){ drawer.style.transform = 'translateX(100%)'; backdrop.classList.add('hidden'); }
+      function money(n){ return '৳' + (Number(n)||0).toFixed(2); }
+      function render(){
+        const items = readCart();
+        if (!bodyEl) return;
+        if (items.length === 0){ bodyEl.innerHTML = '<div class="text-gray-500 text-sm">Your cart is empty.</div>'; if (subEl) subEl.textContent = money(0); const freeTxt=document.getElementById('cart-free'); const freeBar=document.getElementById('cart-free-bar'); if (freeTxt) freeTxt.textContent=''; if (freeBar) freeBar.style.width='0%'; return; }
+        let subtotal = 0;
+        // Prefer shared template from app.js for identical layout
+        if (window.CartTemplates && typeof window.CartTemplates.row === 'function') {
+          bodyEl.innerHTML = items.map((it, idx) => {
+            subtotal += (Number(it.price)||0) * Math.max(1, Number(it.qty||1)||1);
+            return window.CartTemplates.row(it, idx);
+          }).join('');
+        } else {
+          // Fallback minimal layout if template unavailable
+          bodyEl.innerHTML = items.map((it,idx)=>{
+            const p = Number(it.price)||0; const q = Math.max(1, Number(it.qty||1)||1); const line = p*q; subtotal += line;
+            return `<div class=\"flex items-center justify-between gap-3 p-2 border rounded\" data-idx=\"${idx}\">${it.title||'Item'} <span>${money(line)}</span></div>`;
+          }).join('');
+        }
+        if (subEl) subEl.textContent = money(subtotal);
+        // Free shipping hint
+        const FREE_LIMIT = 2000; // default threshold; can be customized later
+        const freeTxt = document.getElementById('cart-free');
+        const freeBar = document.getElementById('cart-free-bar');
+        if (freeTxt && freeBar){
+          const remain = Math.max(0, FREE_LIMIT - subtotal);
+          if (remain <= 0){
+            freeTxt.textContent = 'You have unlocked free shipping!';
+            freeBar.style.width = '100%';
+          } else {
+            freeTxt.textContent = `Add ${money(remain)} to cart and get free shipping!`;
+            const pct = Math.min(100, Math.round((subtotal / FREE_LIMIT)*100));
+            freeBar.style.width = pct + '%';
+          }
+        }
+        // wire controls
+        bodyEl.querySelectorAll('[data-idx]').forEach(row=>{
+          const idx = Number(row.getAttribute('data-idx')||'-1');
+          // Support new shared template selectors and legacy ones
+          const dec = row.querySelector('.qty-dec') || row.querySelector('.cd-dec');
+          const inc = row.querySelector('.qty-inc') || row.querySelector('.cd-inc');
+          const del = row.querySelector('.remove') || row.querySelector('.cd-del');
+          if (dec) dec.addEventListener('click', ()=>{ const list = readCart(); const it = list[idx]; if (!it) return; it.qty = Math.max(1, (Number(it.qty)||1)-1); writeCart(list); render(); updateBadge(); });
+          if (inc) inc.addEventListener('click', ()=>{ const list = readCart(); const it = list[idx]; if (!it) return; it.qty = Math.max(1, (Number(it.qty)||1)+1); writeCart(list); render(); updateBadge(); });
+          if (del) del.addEventListener('click', ()=>{ const list = readCart(); list.splice(idx,1); writeCart(list); render(); updateBadge(); });
+        });
+      }
+      // open hooks: header and bottom nav cart links on small screens
+      function interceptCartLinks(){
+        const mq = window.matchMedia('(max-width: 767px)');
+        // Delegate so links added later (bottom nav) are handled too
+        document.addEventListener('click', (e)=>{
+          const a = e.target.closest && e.target.closest('a[href="cart.html"]');
+          if (!a) return;
+          // Allow clicks inside the drawer (e.g., View Cart button) to navigate normally
+          if (a.closest && a.closest('#cart-drawer')) return;
+          if (mq.matches){ e.preventDefault(); open(); }
+        }, true);
+      }
+      closeBtn?.addEventListener('click', close);
+      backdrop?.addEventListener('click', ()=>{ close(); });
+      interceptCartLinks();
+      updateBadge();
+      window.addEventListener('storage', (e)=>{ if (e.key===CART_KEY){ updateBadge(); if (drawer.style.transform==='translateX(0)') render(); }});
+    })();
+  </script>
+</body>
+</html>
