@@ -73,11 +73,21 @@ function getVariantsFromForm(){
   const out = [];
   const labels = variantsList.querySelectorAll('.variant-label');
   const prices = variantsList.querySelectorAll('.variant-price');
+  // Detect selected weight unit from the main form to build labels automatically
+  let unitOut = '';
+  try {
+    const wuSel = document.querySelector('[name="weightUnit"]');
+    const wu = (wuSel && wuSel.value) ? String(wuSel.value).trim() : '';
+    unitOut = wu === 'l' ? 'L' : (wu === 'ml' ? 'ml' : (wu === 'kg' ? 'kg' : (wu === 'g' ? 'g' : '')));
+  } catch {}
   for (let i=0;i<labels.length;i++){
-    const label = String(labels[i].value||'').trim();
+    let label = String(labels[i].value||'').trim();
     const price = Number(prices[i]?.value || NaN);
     if (!label) continue;
     if (!Number.isFinite(price)) continue;
+    // If user typed only a number and selected a unit above, auto-append unit (e.g., 0.5 + L => 0.5L)
+    const numericOnly = /^\d*\.?\d+$/.test(label);
+    if (numericOnly && unitOut){ label = `${label}${unitOut}`; }
     out.push({ label, price });
   }
   return out.slice(0,20);
