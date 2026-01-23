@@ -366,7 +366,8 @@ function drawProducts() {
       } else {
         priceDisplayHtml = `৳${Number(d.price).toFixed(2)}`;
       }
-      const bodyPad = hasOptions ? 'pb-14' : 'pb-3';
+      // Reserve space for the bottom action bar on all cards to prevent overlap on mobile
+      const bodyPad = 'pb-14';
       card.innerHTML = `
         ${out ? '<span class="absolute top-2 left-2 text-[11px] px-2 py-0.5 rounded-full bg-red-600 text-white">Out of stock</span>' : ''}
         <a href="productfullview.html?id=${encodeURIComponent(id)}" class="block bg-white">
