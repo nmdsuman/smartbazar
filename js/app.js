@@ -160,14 +160,47 @@ function drawProducts() {
   }
   empty?.classList.add('hidden');
   grid.innerHTML = '';
+  // helper to normalize options in case they are saved as object map or JSON string
+  function normalizeOptions(raw){
+    try {
+      if (Array.isArray(raw)) {
+        return raw.filter(o=> o && (o.label || o.weight) && (o.price !== undefined && o.price !== null));
+      }
+      if (typeof raw === 'string') {
+        const parsed = JSON.parse(raw);
+        return normalizeOptions(parsed);
+      }
+      if (raw && typeof raw === 'object'){
+        // If it looks like a single option object
+        if ((raw.label || raw.weight) && (raw.price !== undefined && raw.price !== null)){
+          return [ { label: raw.label || raw.weight || '', price: raw.price } ];
+        }
+        // Object map of label -> price or index -> {label, price}
+        const out = [];
+        Object.keys(raw).forEach(k=>{
+          const v = raw[k];
+          if (v && typeof v === 'object'){
+            const lbl = v.label || v.weight || '';
+            const pr = v.price;
+            if (lbl && pr !== undefined && pr !== null) out.push({ label: lbl, price: pr });
+          } else if (typeof v === 'number') {
+            out.push({ label: k, price: v });
+          }
+        });
+        return out;
+      }
+    } catch {}
+    return [];
+  }
+
   list.forEach(({ id, data: d }) => {
       if (d.active === false) return; // hide inactive
       const card = document.createElement('div');
       card.className = 'relative border border-gray-200 rounded-lg bg-white overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-shadow';
       const stock = Number(d.stock || 0);
       const out = stock <= 0;
-      const hasOptions = Array.isArray(d.options) && d.options.length > 0;
-      const opts = hasOptions ? d.options : [];
+      const opts = normalizeOptions(d.options);
+      const hasOptions = Array.isArray(opts) && opts.length > 0;
       // Compute initial price display: base price or min–max from options
       let priceDisplayHtml = '';
       if (hasOptions) {
