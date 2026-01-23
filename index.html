@@ -20,7 +20,15 @@
 <body class="bg-gray-50 text-gray-900">
   <header class="bg-white border-b">
     <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-      <a href="index.html" class="text-xl font-bold">Bazar</a>
+      <div class="flex items-center gap-3">
+        <button id="menu-open" class="flex items-center gap-2 px-3 py-2 rounded-full bg-green-600 text-white hover:bg-green-700">
+          <span class="inline-block w-4 h-0.5 bg-white"></span>
+          <span class="inline-block w-4 h-0.5 bg-white -mt-1"></span>
+          <span class="inline-block w-4 h-0.5 bg-white -mt-1"></span>
+          <span class="ml-1">Menu</span>
+        </button>
+        <a href="index.html" class="text-xl font-bold">Bazar</a>
+      </div>
       <nav class="flex items-center gap-4">
         <a href="index.html" class="hover:text-blue-600">Home</a>
         <a href="admin.html" class="hover:text-blue-600">Admin</a>
@@ -35,6 +43,16 @@
       </nav>
     </div>
   </header>
+
+  <!-- Category Drawer -->
+  <div id="cat-drawer" class="fixed inset-y-0 left-0 w-80 max-w-[85vw] bg-white shadow-2xl translate-x-[-100%] transition-transform duration-300 z-50">
+    <div class="flex items-center justify-between px-4 py-3 border-b">
+      <div class="font-semibold">Menu</div>
+      <button id="menu-close" class="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200">Close</button>
+    </div>
+    <div id="cat-menu" class="p-2 overflow-y-auto h-[calc(100%-52px)]"></div>
+  </div>
+  <div id="cat-backdrop" class="fixed inset-0 bg-black/40 hidden z-40"></div>
 
   <main class="max-w-6xl mx-auto px-4 py-8">
     <div class="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3 items-stretch">
@@ -106,6 +124,68 @@
   <script src="js/mobile-nav.js"></script>
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();
+    // Drawer controls
+    (function(){
+      const openBtn = document.getElementById('menu-open');
+      const closeBtn = document.getElementById('menu-close');
+      const drawer = document.getElementById('cat-drawer');
+      const backdrop = document.getElementById('cat-backdrop');
+      function open(){ drawer.style.transform = 'translateX(0)'; backdrop.classList.remove('hidden'); }
+      function close(){ drawer.style.transform = 'translateX(-100%)'; backdrop.classList.add('hidden'); }
+      openBtn?.addEventListener('click', open);
+      closeBtn?.addEventListener('click', close);
+      backdrop?.addEventListener('click', close);
+      // Render category menu
+      function renderCatMenu(){
+        const host = document.getElementById('cat-menu'); if (!host) return;
+        const cats = (window.categoriesCache || []).slice();
+        host.innerHTML = cats.map(c=>{
+          const hasSubs = Array.isArray(c.subcategories) && c.subcategories.length>0;
+          const arrow = hasSubs ? '<span class="ml-auto text-gray-400">›</span>' : '';
+          const subs = hasSubs ? `<div class="sub-list hidden pl-6">
+            ${c.subcategories.map(s=>`<button class="sub w-full text-left px-3 py-2 rounded hover:bg-gray-100" data-sub="${s}" data-cat="${c.name}">${s}</button>`).join('')}
+          </div>` : '';
+          return `<div class="cat-item">
+            <button class="cat w-full flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-100" data-cat="${c.name}">
+              <span>${c.name}</span>${arrow}
+            </button>
+            ${subs}
+          </div>`;
+        }).join('');
+        // Wire cats
+        host.querySelectorAll('.cat').forEach(btn=>{
+          btn.addEventListener('click', ()=>{
+            const name = btn.getAttribute('data-cat')||'';
+            const wrap = btn.parentElement; const sub = wrap?.querySelector('.sub-list');
+            if (sub){ sub.classList.toggle('hidden'); }
+            // If no subs: filter directly
+            if (!sub){
+              const select = document.getElementById('category-filter');
+              if (select){ select.value = name; select.dispatchEvent(new Event('change',{bubbles:true})); }
+              close();
+            }
+          });
+        });
+        // Wire subs
+        host.querySelectorAll('.sub').forEach(btn=>{
+          btn.addEventListener('click', ()=>{
+            const sub = btn.getAttribute('data-sub')||'';
+            const select = document.getElementById('category-filter');
+            if (select){
+              // ensure the sub exists as an option for filtering logic (our filter matches sub too)
+              if (!Array.from(select.options).some(o=>o.value===sub)){
+                const opt = document.createElement('option'); opt.value=sub; opt.textContent=sub; select.appendChild(opt);
+              }
+              select.value = sub; select.dispatchEvent(new Event('change',{bubbles:true}));
+            }
+            close();
+          });
+        });
+      }
+      // Populate when categories ready
+      if (window.categoriesCache) renderCatMenu();
+      window.addEventListener('CategoriesUpdated', renderCatMenu);
+    })();
   </script>
 </body>
 </html>
