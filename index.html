@@ -244,21 +244,26 @@
           const p = Number(it.price)||0; const q = Math.max(1, Number(it.qty||1)||1); const line = p*q; subtotal += line;
           const wt = it.weight ? `<span class=\"inline-block px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-[11px]\">${it.weight}</span>` : '';
           return `
-            <div class=\"flex items-center gap-3 p-2 rounded-lg border border-gray-100 bg-white shadow-sm\" data-idx=\"${idx}\">
-              <img src=\"${it.image||''}\" alt=\"\" class=\"w-14 h-14 object-contain rounded bg-white\"/>
-              <div class=\"flex-1 min-w-0\">
-                <div class=\"text-[13px] font-medium truncate\">${it.title||'Item'}</div>
-                <div class=\"flex items-center gap-2 mt-0.5\">${wt}<span class=\"text-[12px] text-gray-500\">${money(p)}</span></div>
-              </div>
-              <div class=\"flex flex-col items-end gap-1\">
-                <div class=\"inline-flex items-center rounded-full bg-green-600 text-white overflow-hidden\">
-                  <button class=\"cd-dec px-2 h-8 hover:bg-green-700\">−</button>
-                  <span class=\"cd-qty px-2 select-none\">${q}</span>
-                  <button class=\"cd-inc px-2 h-8 hover:bg-green-700\">+</button>
+            <div class=\"relative p-3 rounded-xl border border-gray-100 bg-white shadow-sm\" data-idx=\"${idx}\">
+              <button class=\"cd-del w-8 h-8 flex items-center justify-center rounded-full bg-red-600 text-white hover:bg-red-700 absolute top-2 right-2\" title=\"Remove\">✕</button>
+              <div class=\"flex items-start gap-3 pr-10\">
+                <img src=\"${it.image||''}\" alt=\"\" class=\"w-16 h-16 object-contain rounded bg-white\"/>
+                <div class=\"flex-1 min-w-0\">
+                  <div class=\"text-[14px] font-medium leading-snug truncate\">${it.title||'Item'} ${wt}</div>
+                  <div class=\"mt-2 space-y-2 text-[13px]\">
+                    <div class=\"flex items-center justify-between\"><span class=\"text-gray-500\">Price</span><span>${money(p)}</span></div>
+                    <div class=\"flex items-center justify-between\">
+                      <span class=\"text-gray-500\">Quantity</span>
+                      <div class=\"inline-flex items-center rounded-md border border-gray-200 overflow-hidden\">
+                        <button class=\"cd-dec px-3 h-8 hover:bg-gray-50\">−</button>
+                        <span class=\"cd-qty px-3 select-none\">${q}</span>
+                        <button class=\"cd-inc px-3 h-8 hover:bg-gray-50\">+</button>
+                      </div>
+                    </div>
+                    <div class=\"flex items-center justify-between\"><span class=\"text-gray-500\">Subtotal</span><span class=\"font-semibold text-green-700\">${money(line)}</span></div>
+                  </div>
                 </div>
-                <div class=\"text-[12px] font-semibold text-green-700\">${money(line)}</div>
               </div>
-              <button class=\"cd-del ml-1 text-gray-400 hover:text-red-600 self-start\" title=\"Remove\">✕</button>
             </div>`;
         }).join('');
         if (subEl) subEl.textContent = money(subtotal);
