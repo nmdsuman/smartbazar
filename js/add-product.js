@@ -26,6 +26,8 @@ const prevGallery = document.getElementById('add-preview-gallery');
 // Variants elements
 const variantsList = document.getElementById('variants-list');
 const variantAddBtn = document.getElementById('variant-add');
+// Piece-weight UI
+const pieceWeightWrap = document.getElementById('piece-weight');
 
 // Media Library elements
 const mediaModal = document.getElementById('media-modal');
@@ -80,6 +82,19 @@ function getVariantsFromForm(){
     const wu = (wuSel && wuSel.value) ? String(wuSel.value).trim() : '';
     unitOut = wu === 'l' ? 'L' : (wu === 'ml' ? 'ml' : (wu === 'kg' ? 'kg' : (wu === 'g' ? 'g' : (wu === 'pc' ? 'pc' : ''))));
   } catch {}
+  // Piece weight per unit (grams) for 'pc'
+  let perPieceGrams = 0;
+  try {
+    if (unitOut === 'pc' && form) {
+      const pwv = form.querySelector('[name="pieceWeightValue"]');
+      const pwu = form.querySelector('[name="pieceWeightUnit"]');
+      const v = Number(pwv && pwv.value ? pwv.value : NaN);
+      const u = pwu && pwu.value ? String(pwu.value).trim() : 'g';
+      if (Number.isFinite(v) && v > 0) {
+        perPieceGrams = u === 'kg' ? v * 1000 : v;
+      }
+    }
+  } catch {}
   for (let i=0;i<labels.length;i++){
     let label = String(labels[i].value||'').trim();
     const price = Number(prices[i]?.value || NaN);
@@ -88,7 +103,22 @@ function getVariantsFromForm(){
     // If user typed only a number and selected a unit above, auto-append unit (e.g., 0.5 + L => 0.5L)
     const numericOnly = /^\d*\.?\d+$/.test(label);
     if (numericOnly && unitOut){ label = `${label}${unitOut}`; }
-    out.push({ label, price });
+    const opt = { label, price };
+    // If unit is pieces and per-piece weight known, compute variant total weight in grams
+    if (unitOut === 'pc' && perPieceGrams > 0) {
+      let count = 0;
+      try {
+        if (numericOnly) { count = Number(label.replace(/pc$/i,'').trim()); }
+        else {
+          const m = label.toLowerCase().replace(/\s+/g,'').match(/^([0-9]*\.?[0-9]+)pc$/);
+          if (m) count = Number(m[1]);
+        }
+      } catch {}
+      if (Number.isFinite(count) && count > 0) {
+        opt.weightGrams = Math.round(count * perPieceGrams);
+      }
+    }
+    out.push(opt);
   }
   return out.slice(0,20);
 }
@@ -237,6 +267,21 @@ function updateAddPreviewGallery(){ if (!form || !prevGallery) return; const inp
 
 // Wire preview listeners
 if (form){ ['title','price','weightValue','weightUnit','size','description'].forEach(name=>{ const el = form.querySelector(`[name="${name}"]`); if (el) el.addEventListener('input', updateAddPreview); }); const imgInput = form.querySelector('[name="image"]'); if (imgInput) imgInput.addEventListener('change', (e)=>{ const f = e.target.files && e.target.files[0] ? e.target.files[0] : null; if (f) { openCropper(f); } updateAddPreviewImage(); }); const imgUrl = form.querySelector('[name="imageUrl"]'); if (imgUrl) imgUrl.addEventListener('input', ()=>{ selectedMainUrl = imgUrl.value.trim(); updateAddPreviewImage(); }); const galInput = form.querySelector('[name="gallery"]'); if (galInput) galInput.addEventListener('change', updateAddPreviewGallery); const galUrls = form.querySelector('[name="galleryUrls"]'); if (galUrls) galUrls.addEventListener('input', updateAddPreviewGallery); try { window.Categories && window.Categories.populateSelects && window.Categories.populateSelects('', ''); } catch {} updateAddPreview(); }
+
+// Toggle piece-weight UI based on unit selection
+function togglePieceWeight(){
+  try {
+    const wu = form && form.weightUnit ? String(form.weightUnit.value||'').trim() : '';
+    if (pieceWeightWrap){ if (wu === 'pc') pieceWeightWrap.classList.remove('hidden'); else pieceWeightWrap.classList.add('hidden'); }
+  } catch {}
+}
+try {
+  const wuEl = form ? form.weightUnit : null;
+  if (wuEl){ wuEl.addEventListener('change', ()=>{ togglePieceWeight(); }); togglePieceWeight(); }
+  const pwv = form?.querySelector('[name="pieceWeightValue"]'); const pwu = form?.querySelector('[name="pieceWeightUnit"]');
+  pwv?.addEventListener('input', ()=>{});
+  pwu?.addEventListener('change', ()=>{});
+} catch {}
 
 // Cancel edit mode
 addCancelEditBtn?.addEventListener('click', ()=>{ editUsingAdd = { active:false, productId:null, original:null }; if (addSectionTitle) addSectionTitle.textContent = 'Add Product'; if (addSubmitBtn) addSubmitBtn.textContent = 'Add Product'; addCancelEditBtn.classList.add('hidden'); if (form) form.reset(); updateAddPreview(); updateAddPreviewImage(); updateAddPreviewGallery(); });
