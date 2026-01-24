@@ -296,12 +296,6 @@ form?.addEventListener('submit', async (e)=>{
   const data = new FormData(form);
   const title = (data.get('title') || '').toString().trim();
   const price = Number(data.get('price'));
-  let imageFile = data.get('image');
-  const imageUrlTyped = (data.get('imageUrl') || '').toString().trim();
-  const galleryInput = form.querySelector('[name="gallery"]');
-  const galleryFiles = galleryInput && galleryInput.files ? galleryInput.files : [];
-  const galleryUrlsTyped = (data.get('galleryUrls') || '').toString();
-  const galleryUrls = galleryUrlsTyped.split(/[\n,]/).map(s=>s.trim()).filter(Boolean).slice(0,5);
   const description = (data.get('description') || '').toString().trim();
   const category = (data.get('category') || '').toString().trim();
   const subcategory = (data.get('subcategory') || '').toString().trim();
@@ -319,30 +313,11 @@ form?.addEventListener('submit', async (e)=>{
     const prevDisabled = submitBtn?.disabled;
     if (submitBtn) submitBtn.disabled = true;
     if (!editUsingAdd.active){
-      let image = '';
-      if (imageUrlTyped){ image = imageUrlTyped; selectedMainUrl = image; }
-      else if (selectedMainUrl){ image = selectedMainUrl; }
-      else {
-        const mainFile = (croppedMainImageFile instanceof File) ? croppedMainImageFile : imageFile;
-        if (!(mainFile instanceof File) || mainFile.size === 0) throw new Error('Please select a product image.');
-        setMessage('Uploading image...', true);
-        try { image = await uploadToGithubAdmin(mainFile); } catch { image = await uploadToImgbb(mainFile); }
-      }
-      const images = [];
-      // typed gallery URLs first
-      galleryUrls.forEach(u=>{ if (images.length<5) images.push(u); });
-      // then selected from library
-      const remainingSlots = Math.max(0, 5 - images.length);
-      if (remainingSlots>0 && Array.isArray(selectedGalleryUrls)){
-        selectedGalleryUrls.slice(0, remainingSlots).forEach(u=> images.push(u));
-      }
-      try {
-        const left = Math.max(0, 5 - images.length);
-        const max = Math.min(left, galleryFiles.length);
-        for (let i=0;i<max;i++){
-          const f = galleryFiles[i]; if (f && f.size>0){ let url=''; try { url = await uploadToGithubAdmin(f); } catch { url = await uploadToImgbb(f); } if (url) images.push(url); }
-        }
-      } catch {}
+      // Require image selected from library
+      const image = selectedMainUrl ? selectedMainUrl : '';
+      if (!image) { setMessage('Please select a product image from the library.', false); if (submitBtn) submitBtn.disabled = prevDisabled ?? false; return; }
+      // Gallery only from library selections
+      const images = Array.isArray(selectedGalleryUrls) ? selectedGalleryUrls.slice(0,5) : [];
       if (!image) throw new Error('Image upload returned empty URL');
       await addDoc(collection(db,'products'), {
         title,
@@ -368,23 +343,11 @@ form?.addEventListener('submit', async (e)=>{
     } else {
       const payload = { title, price, category: category || null, subcategory: subcategory || null, description, weight: weight || null, size: size || null, stock: Number.isFinite(stock) ? stock : 0, active: !!active };
       if (Array.isArray(options) && options.length>0) payload.options = options; else payload.options = null;
-      if (imageUrlTyped) { payload.image = imageUrlTyped; selectedMainUrl = imageUrlTyped; }
-      else if (selectedMainUrl) { payload.image = selectedMainUrl; }
-      else {
-        const mainFileUpd = (croppedMainImageFile instanceof File) ? croppedMainImageFile : (imageFile instanceof File ? imageFile : null);
-        if (mainFileUpd instanceof File && mainFileUpd.size>0){ setMessage('Uploading image...', true); let uploaded=''; try { uploaded = await uploadToGithubAdmin(mainFileUpd); } catch { uploaded = await uploadToImgbb(mainFileUpd); } if (uploaded) payload.image = uploaded; }
-      }
+      if (selectedMainUrl) { payload.image = selectedMainUrl; }
+      // Gallery only from library
       try {
-        // Combine typed URLs, selected gallery, and uploaded files
-        const base = galleryUrls.slice(0,5);
-        let imagesNew = base.slice(0,5);
-        const leftSlots = Math.max(0, 5 - imagesNew.length);
-        const fromLib = Array.isArray(selectedGalleryUrls) ? selectedGalleryUrls.slice(0,leftSlots) : [];
-        imagesNew = imagesNew.concat(fromLib).slice(0,5);
-        const leftAfterLib = Math.max(0, 5 - imagesNew.length);
-        const max = Math.min(leftAfterLib, galleryFiles.length);
-        for (let i=0;i<max;i++){ const f = galleryFiles[i]; if (f && f.size>0){ let url=''; try { url = await uploadToGithubAdmin(f); } catch { url = await uploadToImgbb(f); } if (url) imagesNew.push(url); } }
-        if (imagesNew.length>0) payload.images = imagesNew.slice(0,5);
+        const fromLib = Array.isArray(selectedGalleryUrls) ? selectedGalleryUrls.slice(0,5) : [];
+        if (fromLib.length>0) payload.images = fromLib;
       } catch {}
       await updateDoc(doc(db,'products', editUsingAdd.productId), payload);
       setMessage('Product updated.');
