@@ -217,27 +217,18 @@
         <div class="md:col-span-2">
           <label class="block text-sm mb-1">Product Image</label>
           <div class="flex items-center gap-2">
-            <input type="file" name="image" accept="image/*" class="flex-1 border rounded px-2 py-1 text-xs"/>
             <button type="button" id="btn-image-library" class="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200">From Library</button>
             <button type="button" id="btn-image-clear" class="px-3 py-2 rounded bg-red-50 text-red-700 hover:bg-red-100">Remove</button>
           </div>
-          <div class="mt-2">
-            <label class="block text-xs text-gray-600 mb-1">Or paste image URL</label>
-            <input type="url" name="imageUrl" placeholder="https://..." class="w-full border rounded px-3 py-2 text-sm"/>
-          </div>
+          <p class="text-xs text-gray-500 mt-1">Select the main image from the Image Library.</p>
         </div>
         <div class="md:col-span-2">
           <label class="block text-sm mb-1">Gallery Images (optional, up to 5)</label>
           <div class="flex items-center gap-2">
-            <input type="file" name="gallery" accept="image/*" multiple class="flex-1 border rounded px-2 py-1 text-xs"/>
             <button type="button" id="btn-gallery-library" class="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200">From Library</button>
             <button type="button" id="btn-gallery-clear" class="px-3 py-2 rounded bg-red-50 text-red-700 hover:bg-red-100">Clear Gallery</button>
           </div>
-          <div class="mt-2">
-            <label class="block text-xs text-gray-600 mb-1">Or paste gallery image URLs (comma or newline separated)</label>
-            <textarea name="galleryUrls" rows="2" placeholder="https://...\nhttps://..." class="w-full border rounded px-3 py-2 text-sm"></textarea>
-          </div>
-          <p class="text-xs text-gray-500 mt-1">You can select multiple images. The first image above is used as the main image.</p>
+          <p class="text-xs text-gray-500 mt-1">Pick multiple images from the Image Library. The first becomes the main image.</p>
         </div>
         <div class="md:col-span-2">
           <label class="block text-sm mb-1">Description</label>
