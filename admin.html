@@ -159,13 +159,13 @@
     </nav>
   </aside>
 
-  <main class="max-w-7xl px-3 py-6 md:ml-64 transition-all duration-300">
+  <main class="w-full px-3 py-6 md:ml-64 transition-all duration-300">
     <h1 class="text-2xl font-semibold mb-6">Admin Dashboard</h1>
 
     <section id="add" class="bg-white border rounded-lg p-3 mb-4">
       <h2 class="text-lg font-semibold mb-4" id="add-section-title">Add Product</h2>
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-start">
-      <form id="add-product-form" class="grid grid-cols-1 md:grid-cols-3 gap-2">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <form id="add-product-form" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3 lg:col-span-8">
         <div>
           <label class="block text-sm mb-1">Title</label>
           <input type="text" name="title" required class="w-full border rounded px-3 py-2"/>
@@ -206,7 +206,7 @@
           <label class="block text-sm mb-1">Size</label>
           <input type="text" name="size" placeholder="e.g., Small, Medium, Large" class="w-full border rounded px-3 py-2"/>
         </div>
-        <div class="md:col-span-3">
+        <div class="md:col-span-3 lg:col-span-4">
           <label class="block text-sm mb-1">Variants (optional)</label>
           <div id="variants-list" class="space-y-2"></div>
           <div class="mt-2 flex items-center gap-2">
@@ -214,7 +214,7 @@
             <span class="text-xs text-gray-500">Example: 250g — 25, 500g — 50, 1kg — 100</span>
           </div>
         </div>
-        <div class="md:col-span-1">
+        <div class="md:col-span-1 lg:col-span-1">
           <label class="block text-sm mb-1">Product Image</label>
           <div class="flex items-center gap-2">
             <button type="button" id="btn-image-library" class="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200">From Library</button>
@@ -222,7 +222,7 @@
           </div>
           <p class="text-xs text-gray-500 mt-1">Select the main image from the Image Library.</p>
         </div>
-        <div class="md:col-span-2">
+        <div class="md:col-span-2 lg:col-span-3">
           <label class="block text-sm mb-1">Gallery Images (optional, up to 5)</label>
           <div class="flex items-center gap-2">
             <button type="button" id="btn-gallery-library" class="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200">From Library</button>
@@ -230,7 +230,7 @@
           </div>
           <p class="text-xs text-gray-500 mt-1">Pick multiple images from the Image Library. The first becomes the main image.</p>
         </div>
-        <div class="md:col-span-3">
+        <div class="md:col-span-3 lg:col-span-4">
           <label class="block text-sm mb-1">Description</label>
           <textarea name="description" rows="2" class="w-full border rounded px-3 py-2"></textarea>
         </div>
@@ -242,16 +242,16 @@
           <input id="add-active" type="checkbox" name="active" checked class="border rounded"/>
           <label for="add-active" class="text-sm">Active (visible in shop)</label>
         </div>
-        <div class="md:col-span-2 flex items-center gap-2">
+        <div class="md:col-span-2 lg:col-span-3 flex items-center gap-2">
           <button type="submit" id="add-submit-btn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Add Product</button>
           <button type="button" id="add-cancel-edit" class="hidden bg-gray-100 text-gray-800 px-4 py-2 rounded hover:bg-gray-200">Cancel Edit</button>
         </div>
       </form>
-      <div>
+      <div class="lg:col-span-4">
         <div class="md:sticky md:top-12">
           <h3 class="font-semibold mb-3">Live Preview</h3>
-          <div class="border rounded-lg bg-white overflow-hidden w-full max-w-xs">
-            <img id="add-preview-image" src="" alt="Preview" class="h-36 w-full object-contain bg-white hidden">
+          <div class="border rounded-lg bg-white overflow-hidden w-full max-w-md">
+            <img id="add-preview-image" src="" alt="Preview" class="h-48 w-full object-contain bg-white hidden">
             <div class="p-4">
               <div class="flex items-center justify-between mb-2">
                 <h4 id="add-preview-title" class="font-semibold text-lg">—</h4>
