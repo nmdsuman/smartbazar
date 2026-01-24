@@ -72,7 +72,6 @@ function renderProductsList(){
     card.innerHTML = `
       <div class="relative bg-white">
         <img src="${d.image}" alt="${d.title}" class="h-44 w-full object-contain bg-white">
-        <a href="${d.image}" target="_blank" rel="noopener" class="absolute inset-x-0 top-0 z-10 bg-black/60 text-white text-[11px] px-2 py-1 truncate">${d.image || ''}</a>
       </div>
       <div class="p-4 flex-1 flex flex-col">
         <h3 class="font-semibold text-lg mb-1">${d.title}</h3>
