@@ -151,8 +151,6 @@ function readCart() {
   }
 }
 
- 
-
 function writeCart(cart) {
   localStorage.setItem(CART_KEY, JSON.stringify(cart));
   updateCartBadge();
@@ -413,12 +411,7 @@ function drawProducts() {
         }
         return localizeLabelPrefer(s, preferredUnit);
       }
-      if (DEBUG_PRODUCTS) {
-        try {
-          const rawType = d.options === null ? 'null' : Array.isArray(d.options) ? 'array' : typeof d.options;
-          console.debug('[Product]', { id, title: d.title, active: d.active !== false, rawType, raw: d.options, normalizedCount: opts.length, hasOptions });
-        } catch {}
-      }
+      
       // Compute initial price display: base price or min–max from options
       let priceDisplayHtml = '';
       if (hasOptions) {
@@ -439,6 +432,13 @@ function drawProducts() {
       }
       // Reserve space for the bottom action bar on all cards to prevent overlap on mobile
       const bodyPad = 'pb-14';
+
+      // Determine initial visual state of the Add/Select button labels
+      // For multi-option: Select Text Visible, Add Text Hidden
+      // For single-option: Select Text Hidden, Add Text Visible
+      const initSelectStyle = hasSingleOption ? 'display:none' : ''; 
+      const initAddStyle = hasSingleOption ? '' : 'display:none';
+
       card.innerHTML = `
         ${out ? '<span class="absolute top-2 left-2 text-[11px] px-2 py-0.5 rounded-full bg-red-600 text-white">Out of stock</span>' : ''}
         <a href="productfullview.html?id=${encodeURIComponent(id)}" class="block bg-white">
@@ -463,7 +463,7 @@ function drawProducts() {
         <div class="action-bar absolute bottom-2 left-2 right-2 z-10">
           ${hasOptions ? `
           <div class="bar flex items-center gap-1 w-full rounded-full bg-green-600 text-white overflow-hidden shadow">
-            <div class="qty-inline shrink-0">
+            <div class="qty-inline shrink-0 ${hasSingleOption ? '' : 'hidden'}">
               <div class="inline-flex items-center">
                 <button class="qty-dec px-2 h-9 hover:bg-green-700" aria-label="Decrease">−</button>
                 <span class="qty-view px-2 select-none">1</span>
@@ -471,9 +471,16 @@ function drawProducts() {
               </div>
             </div>
             <div class="separator w-1.5 h-5 bg-white/20 rounded-sm"></div>
-            <button class="add-to-cart flex-1 h-9 flex items-center justify-center text-white px-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 active:scale-[0.98] transition min-w-0" aria-label="Add to cart">
-              <span class="btn-label text-[12px] font-medium whitespace-nowrap truncate sm:hidden">Add</span>
-              <span class="btn-label hidden sm:inline text-[13px] font-medium whitespace-nowrap">Add To Cart</span>
+            <button class="add-to-cart flex-1 h-9 flex items-center justify-center text-white px-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 active:scale-[0.98] transition min-w-0" aria-label="Select option">
+              
+              <!-- Select Option Labels (Visible by default for multi-variant) -->
+              <span class="btn-label select-text text-[12px] font-medium whitespace-nowrap truncate sm:hidden" style="${initSelectStyle}">Select</span>
+              <span class="btn-label select-text hidden sm:inline text-[13px] font-medium whitespace-nowrap" style="${initSelectStyle}">Select Option</span>
+              
+              <!-- Add To Cart Labels (Hidden by default for multi-variant) -->
+              <span class="btn-label add-text text-[12px] font-medium whitespace-nowrap truncate sm:hidden" style="${initAddStyle}">Add</span>
+              <span class="btn-label add-text hidden sm:inline text-[13px] font-medium whitespace-nowrap" style="${initAddStyle}">Add To Cart</span>
+            
             </button>
           </div>
           ` : `
@@ -486,9 +493,11 @@ function drawProducts() {
               </div>
             </div>
             <div class="separator w-1.5 h-5 bg-white/20 rounded-sm"></div>
-            <button class="add-to-cart flex-1 h-9 flex items-center justify-center text-white px-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 active:scale-[0.98] transition min-w-0" aria-label="Add to cart">
-              <span class="btn-label text-[12px] font-medium whitespace-nowrap truncate sm:hidden">Add</span>
-              <span class="btn-label hidden sm:inline text-[13px] font-medium whitespace-nowrap">Add To Cart</span>
+            <button class="add-to-cart flex-1 h-9 flex items-center justify-center text-white px-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 active:scale-[0.98] transition min-w-0" aria-label="Select option">
+              <span class="btn-label select-text text-[12px] font-medium whitespace-nowrap truncate sm:hidden" style="display:none">Select</span>
+              <span class="btn-label select-text hidden sm:inline text-[13px] font-medium whitespace-nowrap" style="display:none">Select Option</span>
+              <span class="btn-label add-text text-[12px] font-medium whitespace-nowrap truncate sm:hidden">Add</span>
+              <span class="btn-label add-text hidden sm:inline text-[13px] font-medium whitespace-nowrap">Add To Cart</span>
             </button>
           </div>
           `}
@@ -501,30 +510,37 @@ function drawProducts() {
           const btn = card.querySelector('.add-to-cart');
           const imgEl = card.querySelector('img');
           const priceEl = card.querySelector('.price-view');
-          // Inline options selection
+          
+          // Inline options selection logic
           if (hasOptions){
             const pills = card.querySelectorAll('.opt-inline-pill');
-            const labelSpan = btn.querySelector('.btn-label');
             const qtyWrap = card.querySelector('.qty-inline');
             const qtyView = card.querySelector('.qty-view');
             const decBtn = card.querySelector('.qty-dec');
             const incBtn = card.querySelector('.qty-inc');
+            const selectTexts = btn.querySelectorAll('.select-text');
+            const addTexts = btn.querySelectorAll('.add-text');
+
             let selectedOpt = null;
             let qty = 1;
-            
-            // Auto-select single option only
-            if (hasSingleOption) {
-              selectedOpt = 0; // Auto-select the first (and only) option
-              // Update price to show single option price
-              try {
-                const opt = opts[selectedOpt] || {};
-                const selPrice = Number(opt.price ?? d.price);
-                if (priceEl && Number.isFinite(selPrice)) priceEl.textContent = `৳${selPrice.toFixed(2)}`;
-              } catch {}
-              // Show quantity selector immediately
-              if (qtyWrap) qtyWrap.classList.remove('hidden');
-            }
-            
+
+            // Helper to toggle Button state (Select Option <-> Add To Cart)
+            const updateBtnUI = () => {
+              if (selectedOpt === null) {
+                // Show "Select Option", Hide "Add to Cart"
+                selectTexts.forEach(el => el.style.display = '');
+                addTexts.forEach(el => el.style.display = 'none');
+                if (qtyWrap) qtyWrap.classList.add('hidden');
+                btn.setAttribute('aria-label', 'Select option');
+              } else {
+                // Show "Add to Cart", Hide "Select Option"
+                selectTexts.forEach(el => el.style.display = 'none');
+                addTexts.forEach(el => el.style.display = '');
+                if (qtyWrap) qtyWrap.classList.remove('hidden');
+                btn.setAttribute('aria-label', 'Add to cart');
+              }
+            };
+
             function refreshPillStyles(){
               pills.forEach(p=>{
                 const idx = Number(p.getAttribute('data-idx')||'-1');
@@ -537,18 +553,28 @@ function drawProducts() {
                 }
               });
             }
-            
-            // Initialize pill styles only for single option products
+
+            // Auto-select single option only
             if (hasSingleOption) {
+              selectedOpt = 0; // Auto-select the first (and only) option
+              // Update price to show single option price
+              try {
+                const opt = opts[selectedOpt] || {};
+                const selPrice = Number(opt.price ?? d.price);
+                if (priceEl && Number.isFinite(selPrice)) priceEl.textContent = `৳${selPrice.toFixed(2)}`;
+              } catch {}
+              // Ensure UI reflects "Add to Cart" state
+              updateBtnUI();
               refreshPillStyles();
+            } else {
+               // Ensure UI reflects "Select Option" state
+               updateBtnUI();
             }
             
             pills.forEach(p=>{
               p.addEventListener('click', ()=>{
                 selectedOpt = Number(p.getAttribute('data-idx')||'0');
-                btn.setAttribute('aria-label','Add to cart');
-                // Remove button text changes - keep consistent "Add to Cart"
-                if (qtyWrap) qtyWrap.classList.remove('hidden');
+                
                 qty = 1; if (qtyView) qtyView.textContent = '1';
                 // Update the main price to the selected option's price
                 try {
@@ -557,16 +583,24 @@ function drawProducts() {
                   if (priceEl && Number.isFinite(selPrice)) priceEl.textContent = `৳${selPrice.toFixed(2)}`;
                 } catch {}
                 refreshPillStyles();
+                updateBtnUI(); // Update button text to "Add to Cart"
               });
             });
+
             // Qty listeners
             if (decBtn) decBtn.addEventListener('click', ()=>{ qty = Math.max(1, qty-1); if (qtyView) qtyView.textContent = String(qty); });
             if (incBtn) incBtn.addEventListener('click', ()=>{ qty = Math.max(1, qty+1); if (qtyView) qtyView.textContent = String(qty); });
+            
             btn.addEventListener('click', () => {
               // For single option, selectedOpt is already set to 0
               // For multi-variant, require selection first
               if (selectedOpt === null){
-                // Show visual feedback that selection is required
+                // Shake pills or button to indicate selection needed
+                const pillContainer = card.querySelector('[data-opt-inline]');
+                if (pillContainer) {
+                    pillContainer.classList.add('animate-pulse');
+                    setTimeout(() => pillContainer.classList.remove('animate-pulse'), 500);
+                }
                 btn.classList.add('ring-2','ring-blue-400');
                 setTimeout(()=>btn.classList.remove('ring-2','ring-blue-400'), 600);
                 return;
@@ -577,9 +611,10 @@ function drawProducts() {
               bumpCartBadge();
               flyToCartFrom(imgEl);
             });
-            return; // skip default
+            return; // skip default simple handling
           }
-          // Simple product qty handling
+
+          // Simple product qty handling (No Variants)
           let qty = 1;
           const qtyView = card.querySelector('.qty-view');
           const decBtn = card.querySelector('.qty-dec');
