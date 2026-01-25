@@ -547,8 +547,7 @@ function drawProducts() {
               p.addEventListener('click', ()=>{
                 selectedOpt = Number(p.getAttribute('data-idx')||'0');
                 btn.setAttribute('aria-label','Add to cart');
-                if (labelSpan) labelSpan.textContent = 'Add To Cart';
-                btn.classList.remove('px-3'); btn.classList.add('px-3');
+                // Remove button text changes - keep consistent "Add to Cart"
                 if (qtyWrap) qtyWrap.classList.remove('hidden');
                 qty = 1; if (qtyView) qtyView.textContent = '1';
                 // Update the main price to the selected option's price
