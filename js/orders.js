@@ -1,6 +1,67 @@
 import { auth, db } from './firebase-config.js';
 import { initAuthHeader } from './auth.js';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, doc, updateDoc, runTransaction } from 'firebase/firestore';
+
+// Cancel order function
+async function cancelOrder(orderId, orderData) {
+  if (!confirm('Are you sure you want to cancel this order? This action cannot be undone.')) {
+    return;
+  }
+  
+  try {
+    await runTransaction(db, async (tx) => {
+      const orderRef = doc(db, 'orders', orderId);
+      const ordSnap = await tx.get(orderRef);
+      if (!ordSnap.exists()) throw new Error('Order not found');
+      
+      const ord = ordSnap.data() || {};
+      const prevStatus = ord.status || 'Pending';
+      
+      // Only allow cancellation if order is still pending
+      if (prevStatus !== 'Pending') {
+        throw new Error('Only pending orders can be cancelled');
+      }
+      
+      // Add items back to stock
+      const items = Array.isArray(ord.items) ? ord.items : [];
+      for (const it of items) {
+        const pid = it.id;
+        const qty = Number(it.qty || 0);
+        if (!pid || !Number.isFinite(qty) || qty <= 0) continue;
+        
+        const prodRef = doc(db, 'products', pid);
+        const prodSnap = await tx.get(prodRef);
+        if (!prodSnap.exists()) continue;
+        
+        const cur = Number(prodSnap.data().stock || 0);
+        tx.update(prodRef, { stock: cur + qty });
+      }
+      
+      // Update order status
+      tx.update(orderRef, { 
+        status: 'Cancelled',
+        cancelledAt: new Date(),
+        cancelledBy: 'customer'
+      });
+    });
+    
+    // Show success message
+    const successBanner = document.createElement('div');
+    successBanner.className = 'mb-4 p-3 rounded bg-red-50 border border-red-200 text-red-800';
+    successBanner.textContent = 'Order cancelled successfully.';
+    listEl.parentElement.insertBefore(successBanner, listEl);
+    
+    // Remove banner after 5 seconds
+    setTimeout(() => {
+      if (successBanner.parentNode) {
+        successBanner.parentNode.removeChild(successBanner);
+      }
+    }, 5000);
+    
+  } catch (err) {
+    alert('Failed to cancel order: ' + err.message);
+  }
+}
 
 (function init() {
   initAuthHeader();
@@ -87,13 +148,23 @@ import { collection, onSnapshot, query, where } from 'firebase/firestore';
               <div class="text-right min-w-[140px]">
                 <div class="text-sm text-gray-500 mb-1">Total</div>
                 <div class="text-2xl font-bold text-gray-900 mb-3 order-price">৳${Number(o.total || 0).toFixed(2)}</div>
-                <a class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors" href="view.html?id=${d.id}">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                  </svg>
-                  View Details
-                </a>
+                <div class="flex flex-col gap-2">
+                  <a class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors" href="view.html?id=${d.id}">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                    </svg>
+                    View Details
+                  </a>
+                  ${status === 'Pending' ? `
+                    <button class="cancel-order-btn inline-flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors" data-order-id="${d.id}" data-order-data='${JSON.stringify(o)}'>
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                      </svg>
+                      Cancel Order
+                    </button>
+                  ` : ''}
+                </div>
               </div>
             </div>
           </div>
@@ -101,6 +172,16 @@ import { collection, onSnapshot, query, where } from 'firebase/firestore';
         frag.appendChild(div);
       });
       listEl.appendChild(frag);
+      
+      // Add event listeners for cancel buttons
+      listEl.querySelectorAll('.cancel-order-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.preventDefault();
+          const orderId = btn.getAttribute('data-order-id');
+          const orderData = JSON.parse(btn.getAttribute('data-order-data'));
+          await cancelOrder(orderId, orderData);
+        });
+      });
     });
   });
 })();
