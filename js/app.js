@@ -400,7 +400,8 @@ function drawProducts() {
         const numericOnly = /^\d*\.?\d+$/.test(s);
         // If preferred is pieces, coerce any numeric(+foreign unit) to pieces for display
         if (preferredUnit === 'pc'){
-          const m = s.toLowerCase().replace(/\s+/g,'').match(/^([0-9]*\.?[0-9]+)(kg|g|l|liter|ltr|ml)?$/);
+          // Match numeric + (English or Bangla) units and coerce to pieces for display
+          const m = s.toLowerCase().replace(/\s+/g,'').match(/^([0-9]*\.?[0-9]+)(kg|g|l|liter|ltr|ml|কেজি|গ্রাম|লিটার|মিলি|পিস|পিচ|পিছ)?$/);
           if (numericOnly || m){
             const val = numericOnly ? s : (m ? m[1] : s);
             return localizeLabelPrefer(`${val}pc`, 'pc');
