@@ -120,8 +120,8 @@ async function cancelOrder(orderId, orderData) {
         // thumbnails preview (first 3)
         const thumbs = (o.items||[]).slice(0,3).map(i => `<img src="${i.image||''}" alt="" class="w-12 h-12 object-contain bg-gray-50 rounded-lg border border-gray-200"/>`).join('');
         div.innerHTML = `
-          <div class="p-6">
-            <div class="flex items-start justify-between gap-4">
+          <div class="p-4 sm:p-6">
+            <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-3 flex-wrap mb-3">
                   <div class="text-lg font-bold text-gray-900 order-title">Order #${d.id.slice(-6)}</div>
@@ -145,23 +145,25 @@ async function cancelOrder(orderId, orderData) {
                 </div>
               </div>
               
-              <div class="text-right min-w-[140px]">
+              <div class="text-left lg:text-right min-w-[140px]">
                 <div class="text-sm text-gray-500 mb-1">Total</div>
                 <div class="text-2xl font-bold text-gray-900 mb-3 order-price">৳${Number(o.total || 0).toFixed(2)}</div>
-                <div class="flex flex-col gap-2">
-                  <a class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors" href="view.html?id=${d.id}">
+                <div class="flex flex-col sm:flex-row gap-2">
+                  <a class="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors" href="view.html?id=${d.id}">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                     </svg>
-                    View Details
+                    <span class="hidden xs:inline">View Details</span>
+                    <span class="xs:hidden">View</span>
                   </a>
                   ${status === 'Pending' ? `
-                    <button class="cancel-order-btn inline-flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors" data-order-id="${d.id}" data-order-data='${JSON.stringify(o)}'>
+                    <button class="cancel-order-btn inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors" data-order-id="${d.id}" data-order-data='${JSON.stringify(o)}'>
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                       </svg>
-                      Cancel Order
+                      <span class="hidden xs:inline">Cancel Order</span>
+                      <span class="xs:hidden">Cancel</span>
                     </button>
                   ` : ''}
                 </div>
