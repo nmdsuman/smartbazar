@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Bazar — Admin</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts for better typography -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css"/>
   <link rel="icon" href="data:,">
   <script type="importmap">
@@ -17,559 +19,498 @@
     }
   }
   </script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    /* Smooth fade in for new variants */
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+  </style>
 </head>
-<body class="bg-gray-50 overflow-x-hidden">
-  <header class="bg-white border-b sticky top-0 z-50">
-    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-      <a href="index.html" class="text-xl font-bold">Bazar</a>
-      <nav class="flex items-center gap-4">
-        <a href="index.html" class="hover:text-blue-600">Home</a>
-        <a href="orders.html" class="hover:text-blue-600">Orders</a>
-        <a href="profile.html" class="hover:text-blue-600">Profile</a>
-        <a href="cart.html" class="hover:text-blue-600">Cart</a>
-        <button id="logout-btn" data-logout class="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200">Logout</button>
+<body class="bg-gray-100 text-gray-800 overflow-x-hidden">
+  
+  <!-- Header -->
+  <header class="bg-white border-b sticky top-0 z-50 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <a href="index.html" class="text-xl font-bold text-blue-600 tracking-tight">Bazar<span class="text-gray-400 font-normal">.Admin</span></a>
+      </div>
+      <nav class="flex items-center gap-2 text-sm font-medium text-gray-600">
+        <a href="index.html" class="hover:text-blue-600 px-2 py-1">Store</a>
+        <a href="orders.html" class="hover:text-blue-600 px-2 py-1">Orders</a>
+        <button id="logout-btn" data-logout class="ml-2 px-3 py-1.5 rounded bg-gray-100 hover:bg-red-50 hover:text-red-600 transition-colors">Logout</button>
       </nav>
     </div>
-
-  <div id="edit-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
-    <div class="bg-white w-full max-w-xl rounded shadow-lg overflow-hidden m-4">
-      <div class="px-4 py-3 border-b flex items-center justify-between">
-        <h3 class="font-semibold">Edit Product</h3>
-        <button id="edit-close" class="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200">Close</button>
-      </div>
-      <form id="edit-form" class="p-4 grid grid-cols-1 gap-3 max-h-[80vh] overflow-y-auto">
-        <div>
-          <label class="block text-sm mb-1">Title</label>
-          <input type="text" name="title" class="w-full border rounded px-3 py-2"/>
-        </div>
-        <div>
-          <label class="block text-sm mb-1">Price (BDT)</label>
-          <input type="number" step="0.01" min="0" name="price" class="w-full border rounded px-3 py-2"/>
-        </div>
-        <div>
-          <label class="block text-sm mb-1">Category</label>
-          <input type="text" name="category" class="w-full border rounded px-3 py-2"/>
-        </div>
-        <div>
-          <label class="block text-sm mb-1">Weight</label>
-          <div class="flex items-center gap-2">
-            <input type="number" step="0.01" min="0" name="weightValue" class="w-full border rounded px-3 py-2" placeholder="e.g., 1"/>
-            <select name="weightUnit" class="border rounded px-2 py-2">
-              <option value="kg">kg</option>
-              <option value="l">L</option>
-              <option value="pc">pc</option>
-            </select>
-          </div>
-          <div id="piece-weight" class="hidden flex items-center gap-2 mt-2">
-            <input type="number" step="0.01" min="0" name="pieceWeightValue" class="w-full border rounded px-3 py-2" placeholder="Weight per piece e.g., 50"/>
-            <select name="pieceWeightUnit" class="border rounded px-2 py-2">
-              <option value="g">g</option>
-              <option value="kg">kg</option>
-            </select>
-          </div>
-        </div>
-        <div>
-          <label class="block text-sm mb-1">Size</label>
-          <input type="text" name="size" class="w-full border rounded px-3 py-2"/>
-        </div>
-        <div>
-          <label class="block text-sm mb-1">Image URL</label>
-          <input type="url" name="image" class="w-full border rounded px-3 py-2"/>
-        </div>
-        <div>
-          <label class="block text-sm mb-1">Replace Image (optional)</label>
-          <input type="file" name="imageFile" accept="image/*" class="w-full border rounded px-3 py-2"/>
-        </div>
-        <div>
-          <label class="block text-sm mb-1">Optional Gallery Images (up to 5)</label>
-          <div class="grid grid-cols-1 gap-2">
-            <input type="file" name="g1" accept="image/*" class="w-full border rounded px-3 py-2"/>
-            <input type="file" name="g2" accept="image/*" class="w-full border rounded px-3 py-2"/>
-            <input type="file" name="g3" accept="image/*" class="w-full border rounded px-3 py-2"/>
-            <input type="file" name="g4" accept="image/*" class="w-full border rounded px-3 py-2"/>
-            <input type="file" name="g5" accept="image/*" class="w-full border rounded px-3 py-2"/>
-          </div>
-        </div>
-        <div>
-          <label class="block text-sm mb-1">Description</label>
-          <textarea name="description" rows="3" class="w-full border rounded px-3 py-2"></textarea>
-        </div>
-        <div>
-          <label class="block text-sm mb-1">Gallery Image URLs (comma or newline separated)</label>
-          <textarea name="images" rows="3" class="w-full border rounded px-3 py-2" placeholder="https://...\nhttps://..."></textarea>
-        </div>
-        <div>
-          <div class="text-sm text-gray-600 mb-1">Preview</div>
-          <img id="edit-preview-image" src="" alt="Preview" class="w-full h-48 object-contain bg-white border rounded">
-          <div id="edit-preview-thumbs" class="mt-2 grid grid-cols-5 gap-2"></div>
-        </div>
-        <div>
-          <label class="block text-sm mb-1">Stock</label>
-          <input type="number" name="stock" min="0" step="1" class="w-full border rounded px-3 py-2"/>
-        </div>
-        <div class="flex items-center gap-2">
-          <input id="edit-active" type="checkbox" name="active" class="border rounded"/>
-          <label for="edit-active" class="text-sm">Active (visible in shop)</label>
-        </div>
-        <div class="flex items-center justify-end gap-2">
-          <button type="submit" class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">Save</button>
-        </div>
-        <div id="edit-message" class="text-sm"></div>
-      </form>
-    </div>
-  </div>
   </header>
 
-  <!-- Fixed left gutter to reserve space for sidebar on all sections -->
-  <div class="hidden md:block fixed left-0 top-24 h-[calc(100vh-7rem)] w-64 bg-white border-r z-40"></div>
-
-  <aside class="hidden md:block fixed left-0 top-24 z-50 w-56 h-[calc(100vh-7rem)] overflow-y-auto bg-white border-r p-2">
-    <nav class="bg-white w-full h-full p-3 space-y-1 admin-nav border rounded-lg shadow-sm">
-      <a href="#add" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
-        <span>Add Product</span>
-      </a>
-      <a href="#products" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
-        <span>All Products</span>
-      </a>
-      <a href="#orders-section" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
-        <span>Orders</span>
-        <span id="orders-badge" class="hidden ml-2 inline-flex items-center justify-center text-xs rounded-full bg-blue-600 text-white min-w-5 h-5 px-1">0</span>
-      </a>
-      <a href="#shipping" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
-        <span>Delivery Settings</span>
-      </a>
-      <a href="#site" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
-        <span>Site Settings</span>
-      </a>
-      <a href="#categories" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
-        <span>Categories</span>
-      </a>
-      <a href="#notes" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
-        <span>Notes</span>
-      </a>
-      <a href="#files" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
-        <span>File Manager</span>
-      </a>
-      <a href="#chat" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
-        <span>Live Chat</span>
-        <span id="chat-badge" class="hidden ml-2 inline-flex items-center justify-center text-xs rounded-full bg-blue-600 text-white min-w-5 h-5 px-1">0</span>
-      </a>
-      <a id="nav-media" href="media.html" class="flex items-center justify-between px-3 py-2 rounded hover:bg-gray-100">
-        <span>Image Library</span>
-      </a>
-    </nav>
-  </aside>
-
-  <main class="w-full px-3 py-6 transition-all duration-300 overflow-x-hidden md:pl-64">
-    <h1 class="text-2xl font-semibold mb-6">Admin Dashboard</h1>
-
-    <section id="add" class="bg-white border rounded-lg p-3 mb-4">
-      <h2 class="text-lg font-semibold mb-4" id="add-section-title">Add Product</h2>
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-      <form id="add-product-form" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3 lg:col-span-8">
-        <div>
-          <label class="block text-sm mb-1">Title</label>
-          <input type="text" name="title" required class="w-full border rounded px-3 py-2"/>
-        </div>
-        <!-- Base Variant card -->
-        <div class="md:col-span-2 lg:col-span-2 border rounded-lg p-3 bg-white">
-          <div class="text-sm font-medium mb-2">Base Variant</div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label class="block text-sm mb-1">Price (BDT)</label>
-              <input type="number" step="0.01" min="0" name="price" required class="w-full border rounded px-3 py-2"/>
-            </div>
-            <div>
-              <label class="block text-sm mb-1">Weight</label>
-              <div class="flex items-center gap-2">
-                <input type="number" step="0.01" min="0" name="weightValue" placeholder="e.g., 1" class="w-full border rounded px-3 py-2"/>
-                <select name="weightUnit" class="border rounded px-2 py-2 bg-white focus:ring-2 focus:ring-blue-200">
-                  <option value="kg">kg</option>
-                  <option value="l">L</option>
-                  <option value="pc">pc</option>
-                </select>
-              </div>
-              <p class="text-xs text-gray-500 mt-1">Choose unit: kg, L, or pc. Example: 0.5 kg → shows as 500 gram.</p>
-              <div id="piece-weight" class="hidden flex items-center gap-2 mt-2">
-                <input type="number" step="0.01" min="0" name="pieceWeightValue" class="w-full border rounded px-3 py-2" placeholder="Weight per piece e.g., 50"/>
-                <select name="pieceWeightUnit" class="border rounded px-2 py-2">
-                  <option value="g">g</option>
-                  <option value="kg">kg</option>
-                </select>
-              </div>
-            </div>
+  <!-- Layout Container -->
+  <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-start pt-6 gap-6 px-4">
+    
+    <!-- Sidebar -->
+    <aside class="w-full md:w-64 flex-shrink-0 sticky top-20">
+      <nav class="bg-white border rounded-xl shadow-sm overflow-hidden p-2 space-y-1 admin-nav">
+        <a href="#add" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-blue-50 hover:text-blue-700 transition-colors group">
+          <svg class="w-5 h-5 text-gray-400 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+          <span class="font-medium">Add Product</span>
+        </a>
+        <a href="#products" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-blue-50 hover:text-blue-700 transition-colors group">
+          <svg class="w-5 h-5 text-gray-400 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+          <span>All Products</span>
+        </a>
+        <a href="#orders-section" class="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-blue-50 hover:text-blue-700 transition-colors group">
+          <div class="flex items-center gap-3">
+            <svg class="w-5 h-5 text-gray-400 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+            <span>Orders</span>
           </div>
-          <div class="mt-3 flex justify-end">
-            <button type="button" id="variant-add-inline" class="inline-flex items-center gap-1 px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200 text-sm">
-              <span>+ Add Variant</span>
-            </button>
+          <span id="orders-badge" class="hidden bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">0</span>
+        </a>
+        <div class="h-px bg-gray-100 my-1"></div>
+        <a href="#categories" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+          <span class="text-gray-400">#</span> <span>Categories</span>
+        </a>
+        <a href="#shipping" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+          <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <span>Delivery</span>
+        </a>
+        <a href="#site" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+          <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+          <span>Site Settings</span>
+        </a>
+        <a href="#files" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+          <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+          <span>Files</span>
+        </a>
+        <a href="#chat" class="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+          <div class="flex items-center gap-3">
+            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+            <span>Chat</span>
           </div>
+          <span id="chat-badge" class="hidden bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">0</span>
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 min-w-0 pb-20">
+      
+      <!-- ADD PRODUCT SECTION (Completely Redesigned) -->
+      <section id="add" class="space-y-6">
+        <div class="flex items-center justify-between">
+          <h1 class="text-2xl font-bold text-gray-800" id="add-section-title">Add New Product</h1>
+          <button type="button" id="add-cancel-edit" class="hidden text-sm px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm text-gray-700">Cancel Editing</button>
         </div>
-        <div>
-          <label class="block text-sm mb-1">Category</label>
-          <select name="category" id="add-category" class="w-full border rounded px-3 py-2"></select>
-        </div>
-        <div>
-          <label class="block text-sm mb-1">Subcategory</label>
-          <select name="subcategory" id="add-subcategory" class="w-full border rounded px-3 py-2"></select>
-        </div>
-        
-        <div>
-          <label class="block text-sm mb-1">Size</label>
-          <input type="text" name="size" placeholder="e.g., Small, Medium, Large" class="w-full border rounded px-3 py-2"/>
-        </div>
-        <div class="md:col-span-3 lg:col-span-4">
-          <div class="flex items-center justify-between">
-            <label class="block text-sm mb-1">Variants (optional)</label>
+
+        <form id="add-product-form" class="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
+          
+          <!-- Left Column: Product Details -->
+          <div class="xl:col-span-2 space-y-6">
             
-          </div>
-          <p class="text-xs text-gray-500 mb-2">Type only the number; the unit follows the Weight unit above (kg/L/pc). Example: unit=kg → values: 0.5, 1; unit=pc → values: 1, 2, 4.</p>
-          <div class="hidden sm:grid grid-cols-6 text-xs text-gray-500 px-1">
-            <div class="col-span-3">Value</div>
-            <div class="col-span-2">Price</div>
-            <div class="col-span-1 text-right">Action</div>
-          </div>
-          <div id="variants-list" class="space-y-2"></div>
-        </div>
-        <div class="md:col-span-1 lg:col-span-1">
-          <label class="block text-sm mb-1">Product Image</label>
-          <div class="flex items-center gap-2">
-            <button type="button" id="btn-image-library" class="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200">From Library</button>
-            <button type="button" id="btn-image-clear" class="px-3 py-2 rounded bg-red-50 text-red-700 hover:bg-red-100">Remove</button>
-          </div>
-          <p class="text-xs text-gray-500 mt-1">Select the main image from the Image Library.</p>
-        </div>
-        <div class="md:col-span-2 lg:col-span-3">
-          <label class="block text-sm mb-1">Gallery Images (optional, up to 5)</label>
-          <div class="flex items-center gap-2">
-            <button type="button" id="btn-gallery-library" class="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200">From Library</button>
-            <button type="button" id="btn-gallery-clear" class="px-3 py-2 rounded bg-red-50 text-red-700 hover:bg-red-100">Clear Gallery</button>
-          </div>
-          <p class="text-xs text-gray-500 mt-1">Pick multiple images from the Image Library. The first becomes the main image.</p>
-        </div>
-        <div class="md:col-span-3 lg:col-span-4">
-          <label class="block text-sm mb-1">Description</label>
-          <textarea name="description" rows="2" class="w-full border rounded px-3 py-2"></textarea>
-        </div>
-        <div>
-          <label class="block text-sm mb-1">Stock</label>
-          <input type="number" name="stock" min="0" step="1" value="10" class="w-full border rounded px-3 py-2"/>
-        </div>
-        <div class="flex items-center gap-2 mt-6">
-          <input id="add-active" type="checkbox" name="active" checked class="border rounded"/>
-          <label for="add-active" class="text-sm">Active (visible in shop)</label>
-        </div>
-        <div class="md:col-span-2 lg:col-span-3 flex items-center gap-2">
-          <button type="submit" id="add-submit-btn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Add Product</button>
-          <button type="button" id="add-cancel-edit" class="hidden bg-gray-100 text-gray-800 px-4 py-2 rounded hover:bg-gray-200">Cancel Edit</button>
-        </div>
-      </form>
-      <div class="lg:col-span-4">
-        <div class="md:sticky md:top-12">
-          <h3 class="font-semibold mb-3">Live Preview</h3>
-          <div class="border rounded-lg bg-white overflow-hidden w-full max-w-md">
-            <img id="add-preview-image" src="" alt="Preview" class="h-48 w-full object-contain bg-white hidden">
-            <div class="p-4">
-              <div class="flex items-center justify-between mb-2">
-                <h4 id="add-preview-title" class="font-semibold text-lg">—</h4>
-                <span id="add-preview-price" class="text-blue-700 font-semibold">৳0.00</span>
+            <!-- Card 1: Basic Info -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div class="bg-gray-50 px-6 py-3 border-b border-gray-200 flex items-center justify-between">
+                <h3 class="font-semibold text-gray-700">Basic Information</h3>
               </div>
-              <div id="add-preview-extra" class="text-sm text-gray-600 mb-2">&nbsp;</div>
-              <p id="add-preview-desc" class="text-sm text-gray-600 line-clamp-2">&nbsp;</p>
+              <div class="p-6 space-y-5">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Product Title</label>
+                  <input type="text" name="title" required class="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-4 py-2.5 text-base" placeholder="e.g. Premium Miniket Rice">
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                    <select name="category" id="add-category" class="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2.5 bg-white"></select>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Subcategory</label>
+                    <select name="subcategory" id="add-subcategory" class="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2.5 bg-white"></select>
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <textarea name="description" rows="3" class="w-full border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring-blue-500 px-4 py-2.5 text-sm" placeholder="Product details..."></textarea>
+                </div>
+              </div>
             </div>
-            <div id="add-preview-gallery" class="px-4 pb-4 grid grid-cols-5 gap-2"></div>
-          </div>
-        </div>
-      </div>
-      </div>
-      <div id="admin-message" class="text-sm mt-4"></div>
-    </section>
 
-    <section id="categories" class="bg-white border rounded-lg p-6 mt-8 hidden">
-      <h2 class="text-lg font-semibold mb-4">Categories</h2>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
-        <div class="md:col-span-1">
-          <label class="block text-sm mb-1">Add New Category</label>
-          <div class="flex items-center gap-2">
-            <input id="cat-name" type="text" class="flex-1 border rounded px-3 py-2" placeholder="e.g., Grocery"/>
-            <button id="cat-add" class="px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">Add</button>
-          </div>
-          <div id="cat-msg" class="text-sm mt-2"></div>
-        </div>
-        <div class="md:col-span-2">
-          <div class="text-sm text-gray-600 mb-2">Manage subcategories for each category.</div>
-          <div id="cat-list" class="space-y-3"></div>
-        </div>
-      </div>
-    </section>
+            <!-- Card 2: Pricing & Variants (The Requested Change) -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div class="bg-gray-50 px-6 py-3 border-b border-gray-200">
+                <h3 class="font-semibold text-gray-700">Pricing & Options</h3>
+              </div>
+              <div class="p-6">
+                <!-- Header Labels -->
+                <div class="hidden sm:grid grid-cols-12 gap-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-1">
+                  <div class="col-span-4">Weight / Size</div>
+                  <div class="col-span-3">Unit</div>
+                  <div class="col-span-3">Price (৳)</div>
+                  <div class="col-span-2 text-right">Action</div>
+                </div>
 
-    <section id="notes" class="bg-white border rounded-lg p-6 mt-8 hidden">
-      <h2 class="text-lg font-semibold mb-4">Notes</h2>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
-        <div class="md:col-span-2">
-          <label class="block text-sm mb-1">Title (optional)</label>
-          <input id="note-title" type="text" class="w-full border rounded px-3 py-2 mb-3" placeholder="e.g., Promo copy, Quick draft"/>
-          <label class="block text-sm mb-1">Content</label>
-          <textarea id="note-content" rows="8" class="w-full border rounded px-3 py-2" placeholder="Write anything you want to save..."></textarea>
-          <div class="mt-3 flex items-center gap-2">
-            <button id="note-save" class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">Save</button>
-            <button id="note-new" class="px-4 py-2 rounded bg-gray-100 hover:bg-gray-200">New</button>
-          </div>
-          <div id="note-message" class="text-sm mt-2"></div>
-        </div>
-        <div>
-          <div class="flex items-center justify-between mb-2">
-            <h3 class="font-semibold">Saved Notes</h3>
-          </div>
-          <div id="notes-list" class="space-y-2 max-h-[60vh] overflow-y-auto"></div>
-        </div>
-      </div>
-    </section>
+                <!-- Base Variant Row (Always Visible) -->
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-start mb-4 bg-blue-50/50 p-3 rounded-lg border border-blue-100">
+                  <div class="sm:col-span-4">
+                    <label class="sm:hidden text-xs font-medium text-gray-500 mb-1 block">Weight Value</label>
+                    <input type="number" step="0.01" min="0" name="weightValue" placeholder="1" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 py-2 px-3">
+                  </div>
+                  <div class="sm:col-span-3">
+                    <label class="sm:hidden text-xs font-medium text-gray-500 mb-1 block">Unit</label>
+                    <select name="weightUnit" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 py-2 px-3 bg-white">
+                      <option value="kg">kg (Weight)</option>
+                      <option value="l">L (Liquid)</option>
+                      <option value="pc">pc (Pieces)</option>
+                    </select>
+                  </div>
+                  <div class="sm:col-span-3">
+                    <label class="sm:hidden text-xs font-medium text-gray-500 mb-1 block">Price</label>
+                    <div class="relative">
+                      <span class="absolute left-3 top-2 text-gray-400">৳</span>
+                      <input type="number" step="0.01" min="0" name="price" required placeholder="0.00" class="w-full pl-7 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 py-2 font-semibold text-gray-700">
+                    </div>
+                  </div>
+                  <div class="sm:col-span-2 flex items-center justify-end h-full pt-1">
+                    <span class="text-xs font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded">Default</span>
+                  </div>
+                </div>
 
-    <section id="files" class="bg-white border rounded-lg p-6 mt-8 hidden">
-      <h2 class="text-lg font-semibold mb-4">File Manager (GitHub)</h2>
-      <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-        <div class="md:col-span-2">
-          <label class="block text-sm mb-1">Select File (HTML/JS/CSS)</label>
-          <input id="fm-file" type="file" accept=".html,.htm,.js,.css,.json,.txt" multiple class="w-full border rounded px-3 py-2"/>
-        </div>
-        <div>
-          <label class="block text-sm mb-1">Folder</label>
-          <div class="flex items-center gap-2">
-            <select id="fm-folder" class="flex-1 border rounded px-3 py-2">
-              <option value="main">main (root)</option>
+                <!-- Additional Variants Container -->
+                <div id="variants-list" class="space-y-3">
+                  <!-- Dynamic rows will appear here, looking exactly like the base row above -->
+                </div>
+
+                <!-- Add Variant Button -->
+                <div class="mt-5 pt-4 border-t border-dashed border-gray-300">
+                  <button type="button" id="variant-add" class="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors">
+                    <div class="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-lg leading-none">+</div>
+                    Add another option (Variant)
+                  </button>
+                </div>
+              </div>
+              
+              <!-- Footer: Stock & Active -->
+              <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row gap-6 items-center">
+                 <div class="w-full sm:w-auto">
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Total Stock</label>
+                    <input type="number" name="stock" value="100" class="w-full sm:w-32 border-gray-300 rounded-md shadow-sm py-1.5 px-3 text-sm">
+                 </div>
+                 <div class="flex items-center gap-2 pt-4 sm:pt-0">
+                    <input id="add-active" type="checkbox" name="active" checked class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                    <label for="add-active" class="text-sm font-medium text-gray-700">Product is Active</label>
+                 </div>
+              </div>
+            </div>
+
+            <!-- Piece Weight (Hidden by default) -->
+            <div id="piece-weight" class="hidden bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+               <h4 class="text-sm font-medium text-yellow-800 mb-2">Piece Configuration</h4>
+               <div class="flex gap-3">
+                 <input type="number" name="pieceWeightValue" class="border-yellow-300 rounded text-sm px-3 py-1.5 w-full" placeholder="Weight per piece (e.g. 50)">
+                 <select name="pieceWeightUnit" class="border-yellow-300 rounded text-sm px-3 py-1.5 bg-white">
+                    <option value="g">gram</option>
+                    <option value="kg">kg</option>
+                 </select>
+               </div>
+               <p class="text-xs text-yellow-700 mt-1">Used to calculate shipping weight if selling by 'piece'.</p>
+            </div>
+
+          </div>
+
+          <!-- Right Column: Media & Preview -->
+          <div class="space-y-6">
+            
+            <!-- Card 3: Media -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+               <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                <h3 class="font-semibold text-gray-700 text-sm">Product Images</h3>
+              </div>
+              <div class="p-4 space-y-4">
+                <!-- Main Image -->
+                <div>
+                  <label class="block text-xs font-medium text-gray-500 mb-2">Main Image</label>
+                  <div class="flex gap-2">
+                    <button type="button" id="btn-image-library" class="flex-1 bg-white border border-gray-300 text-gray-700 px-3 py-2 rounded-lg text-sm hover:bg-gray-50 hover:border-blue-400 transition-all shadow-sm">
+                      Select Image
+                    </button>
+                    <button type="button" id="btn-image-clear" class="px-3 py-2 bg-red-50 text-red-600 rounded-lg border border-red-100 hover:bg-red-100" title="Clear">×</button>
+                  </div>
+                  <input type="hidden" name="image">
+                  <input type="hidden" name="imageUrl">
+                </div>
+                
+                <!-- Gallery -->
+                <div>
+                  <label class="block text-xs font-medium text-gray-500 mb-2">Gallery (Optional)</label>
+                  <div class="flex gap-2">
+                    <button type="button" id="btn-gallery-library" class="flex-1 bg-white border border-gray-300 text-gray-700 px-3 py-2 rounded-lg text-sm hover:bg-gray-50 hover:border-blue-400 transition-all shadow-sm">
+                      Select Gallery
+                    </button>
+                    <button type="button" id="btn-gallery-clear" class="px-3 py-2 bg-red-50 text-red-600 rounded-lg border border-red-100 hover:bg-red-100" title="Clear">×</button>
+                  </div>
+                  <input type="file" name="gallery" multiple class="hidden">
+                  <textarea name="galleryUrls" class="hidden"></textarea>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 4: Live Preview -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden sticky top-24">
+              <div class="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="font-semibold text-gray-700 text-sm">Preview</h3>
+                <span class="text-[10px] uppercase bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold tracking-wide">Live</span>
+              </div>
+              <div class="p-4">
+                <div class="border border-gray-100 rounded-lg overflow-hidden bg-white shadow-sm">
+                  <div class="aspect-square bg-gray-50 flex items-center justify-center relative overflow-hidden group">
+                     <img id="add-preview-image" src="" class="w-full h-full object-contain mix-blend-multiply hidden" alt="Preview">
+                     <div class="absolute inset-0 flex items-center justify-center text-gray-300 text-sm pointer-events-none" id="preview-placeholder">No Image</div>
+                  </div>
+                  <div class="p-3">
+                    <div class="flex justify-between items-start">
+                       <h4 id="add-preview-title" class="text-sm font-semibold text-gray-800 line-clamp-2 leading-tight min-h-[1.25rem]">Product Name</h4>
+                       <span id="add-preview-price" class="text-sm font-bold text-orange-600 whitespace-nowrap ml-2">৳0.00</span>
+                    </div>
+                    <div class="mt-1 flex items-center gap-2 text-xs text-gray-500">
+                      <span id="add-preview-extra">Weight</span>
+                    </div>
+                  </div>
+                </div>
+                <!-- Gallery Preview Thumbnails -->
+                <div id="add-preview-gallery" class="mt-3 grid grid-cols-4 gap-2"></div>
+              </div>
+              
+              <!-- Submit Button Area -->
+              <div class="p-4 bg-gray-50 border-t border-gray-200">
+                 <button type="submit" id="add-submit-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg shadow-md transition-all transform active:scale-[0.98]">
+                   Add Product
+                 </button>
+                 <div id="admin-message" class="text-center mt-3 text-sm"></div>
+              </div>
+            </div>
+
+          </div>
+        </form>
+      </section>
+
+      <!-- Placeholder for other sections (hidden by default) -->
+      <section id="products" class="hidden space-y-4">
+         <div class="flex items-center justify-between">
+           <h2 class="text-xl font-bold">Product Inventory</h2>
+         </div>
+         <div id="admin-products" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+         <div id="admin-empty" class="text-center py-10 text-gray-500 hidden">No products found.</div>
+      </section>
+
+      <!-- Orders Section -->
+      <section id="orders-section" class="hidden bg-white border rounded-xl shadow-sm p-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+          <h2 class="text-xl font-bold">Orders</h2>
+          <div class="flex items-center gap-3">
+            <span class="text-sm text-gray-600">Filter by:</span>
+            <select id="orders-filter" class="border-gray-300 rounded-lg text-sm py-1.5 px-3 focus:ring-blue-500 focus:border-blue-500">
+              <option value="All">All Status</option>
+              <option value="Pending">Pending</option>
+              <option value="Processing">Processing</option>
+              <option value="Shipped">Shipped</option>
+              <option value="Delivered">Delivered</option>
+              <option value="Cancelled">Cancelled</option>
             </select>
-            <button id="fm-folder-refresh" class="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200" title="Reload folders">Refresh</button>
           </div>
         </div>
-        <div>
-          <label class="block text-sm mb-1">Destination Path (optional)</label>
-          <input id="fm-path" type="text" placeholder="e.g., index.html or js/app.js" class="w-full border rounded px-3 py-2"/>
-        </div>
-        <div>
-          <button id="fm-upload" class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Upload</button>
-        </div>
-      </div>
-      <div class="mt-3">
-        <label class="block text-sm mb-1">Commit Message (optional)</label>
-        <input id="fm-message" type="text" placeholder="Update via admin" class="w-full border rounded px-3 py-2"/>
-      </div>
-      <div id="fm-msg" class="text-sm mt-3"></div>
-      <p class="text-xs text-gray-500 mt-2">Tip: You may be asked once for your GitHub token. It is stored only in this browser (localStorage) for convenience.</p>
-    </section>
+        <div id="orders-list" class="space-y-4"></div>
+        <div id="orders-empty" class="text-center py-10 text-gray-500">No orders placed yet.</div>
+      </section>
 
-    <section id="products" class="bg-white border rounded-lg p-6">
-      <h2 class="text-lg font-semibold mb-4">All Products</h2>
-      <div id="admin-products" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-      <div id="admin-empty" class="text-gray-500 hidden">No products found.</div>
-    </section>
-
-    <section id="orders-section" class="bg-white border rounded-lg p-6 mt-8">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-semibold">Recent Orders</h2>
-        <div class="flex items-center gap-2">
-          <label class="text-sm text-gray-600">Filter</label>
-          <select id="orders-filter" class="border rounded px-2 py-1 text-sm">
-            <option value="All">All</option>
-            <option value="Pending">Pending</option>
-            <option value="Processing">Processing</option>
-            <option value="Shipped">Shipped</option>
-            <option value="Delivered">Delivered</option>
-            <option value="Cancelled">Cancelled</option>
-          </select>
-        </div>
-      </div>
-      <div id="orders-list" class="space-y-3"></div>
-      <div id="orders-empty" class="text-gray-500">No orders yet.</div>
-    </section>
-
-    <section id="shipping" class="bg-white border rounded-lg p-6 mt-8">
-      <h2 class="text-lg font-semibold mb-4">Delivery Settings</h2>
-      <form id="shipping-form" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div>
-          <label class="block text-sm mb-1">Fixed Fee (BDT)</label>
-          <input type="number" step="1" min="0" name="fixedFee" class="w-full border rounded px-3 py-2"/>
-        </div>
-        <div>
-          <label class="block text-sm mb-1">Fixed Up To (grams)</label>
-          <input type="number" step="1" min="0" name="fixedUpToGrams" class="w-full border rounded px-3 py-2"/>
-        </div>
-        <div>
-          <label class="block text-sm mb-1">Extra Per Kg After</label>
-          <input type="number" step="1" min="0" name="extraPerKg" class="w-full border rounded px-3 py-2"/>
-        </div>
-        <div>
-          <label class="block text-sm mb-1">Fallback Fee (unknown weight)</label>
-          <input type="number" step="1" min="0" name="fallbackFee" class="w-full border rounded px-3 py-2"/>
-        </div>
-        <div class="md:col-span-4">
-          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Save Settings</button>
-        </div>
-      </form>
-      <div id="shipping-message" class="text-sm mt-3"></div>
-    </section>
-
-    <section id="site" class="bg-white border rounded-lg p-6 mt-8 hidden">
-      <h2 class="text-lg font-semibold mb-4">Site Settings</h2>
-      <form id="site-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm mb-1">Site Title</label>
-          <input type="text" name="title" class="w-full border rounded px-3 py-2" placeholder="e.g., Smart Bazar"/>
-        </div>
-        <div>
-          <label class="block text-sm mb-1">Logo URL</label>
-          <input type="url" name="logo" class="w-full border rounded px-3 py-2" placeholder="https://..."/>
-          <div class="text-xs text-gray-500 mt-1">Or upload a new logo image:</div>
-          <input type="file" name="logoFile" accept="image/*" class="w-full border rounded px-3 py-2 mt-1"/>
-          <div class="mt-2">
-            <div class="text-xs text-gray-600 mb-1">Logo preview</div>
-            <img id="site-logo-preview" src="" alt="Logo preview" class="h-12 max-w-full object-contain border rounded bg-white hidden"/>
+      <!-- Shipping Section -->
+      <section id="shipping" class="hidden bg-white border rounded-xl shadow-sm p-6 max-w-2xl">
+        <h2 class="text-xl font-bold mb-6">Delivery Configuration</h2>
+        <form id="shipping-form" class="space-y-5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Base Fee (৳)</label>
+              <input type="number" name="fixedFee" class="w-full border-gray-300 rounded-lg px-3 py-2">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Up to Weight (grams)</label>
+              <input type="number" name="fixedUpToGrams" class="w-full border-gray-300 rounded-lg px-3 py-2">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Extra per Kg (৳)</label>
+              <input type="number" name="extraPerKg" class="w-full border-gray-300 rounded-lg px-3 py-2">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Fallback Fee (৳)</label>
+              <input type="number" name="fallbackFee" class="w-full border-gray-300 rounded-lg px-3 py-2">
+            </div>
           </div>
-        </div>
-        <div>
-          <label class="block text-sm mb-1">Favicon URL</label>
-          <input type="url" name="favicon" class="w-full border rounded px-3 py-2" placeholder="https://.../favicon.ico"/>
-          <div class="text-xs text-gray-500 mt-1">Or upload a new favicon image:</div>
-          <input type="file" name="faviconFile" accept="image/*" class="w-full border rounded px-3 py-2 mt-1"/>
-          <div class="mt-2">
-            <div class="text-xs text-gray-600 mb-1">Favicon preview</div>
-            <img id="site-favicon-preview" src="" alt="Favicon preview" class="h-8 w-8 object-contain border rounded bg-white hidden"/>
+          <button type="submit" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700">Save Changes</button>
+          <div id="shipping-message"></div>
+        </form>
+      </section>
+
+      <!-- Site Settings -->
+      <section id="site" class="hidden bg-white border rounded-xl shadow-sm p-6 max-w-3xl">
+        <h2 class="text-xl font-bold mb-6">Site Settings</h2>
+        <form id="site-form" class="grid grid-cols-1 gap-6">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Site Title</label>
+            <input type="text" name="title" class="w-full border-gray-300 rounded-lg px-3 py-2">
           </div>
-        </div>
-        <div>
-          <label class="block text-sm mb-1">Contact Email</label>
-          <input type="email" name="email" class="w-full border rounded px-3 py-2" placeholder="admin@example.com"/>
-        </div>
-        <div>
-          <label class="block text-sm mb-1">Contact Phone</label>
-          <input type="text" name="phone" class="w-full border rounded px-3 py-2" placeholder="01XXXXXXXXX"/>
-        </div>
-        <div class="md:col-span-2">
-          <label class="inline-flex items-center gap-2 text-sm font-medium">
-            <input type="checkbox" name="marqueeEnabled" class="rounded border-gray-300"/>
-            Enable Announcement Marquee
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+             <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Logo</label>
+                <div class="flex gap-2">
+                   <input type="text" name="logo" placeholder="URL" class="flex-1 border-gray-300 rounded-lg px-3 py-2 text-sm">
+                   <input type="file" name="logoFile" class="hidden" id="logo-upload-trigger">
+                   <button type="button" onclick="document.getElementById('logo-upload-trigger').click()" class="bg-gray-100 border border-gray-300 px-3 py-2 rounded-lg hover:bg-gray-200">Up</button>
+                </div>
+                <img id="site-logo-preview" class="h-10 mt-2 object-contain hidden">
+             </div>
+             <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Favicon</label>
+                <div class="flex gap-2">
+                   <input type="text" name="favicon" placeholder="URL" class="flex-1 border-gray-300 rounded-lg px-3 py-2 text-sm">
+                   <input type="file" name="faviconFile" class="hidden" id="fav-upload-trigger">
+                   <button type="button" onclick="document.getElementById('fav-upload-trigger').click()" class="bg-gray-100 border border-gray-300 px-3 py-2 rounded-lg hover:bg-gray-200">Up</button>
+                </div>
+                <img id="site-favicon-preview" class="h-6 w-6 mt-2 object-contain hidden">
+             </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+             <div>
+               <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+               <input type="text" name="phone" class="w-full border-gray-300 rounded-lg px-3 py-2">
+             </div>
+             <div>
+               <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+               <input type="text" name="email" class="w-full border-gray-300 rounded-lg px-3 py-2">
+             </div>
+          </div>
+          <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+             <label class="flex items-center gap-2 mb-2 font-medium text-gray-700">
+               <input type="checkbox" name="marqueeEnabled" class="rounded text-blue-600 focus:ring-blue-500">
+               Enable Announcement Bar
+             </label>
+             <textarea name="marqueeText" rows="2" class="w-full border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Write your announcement here..."></textarea>
+          </div>
+          <div>
+            <button type="submit" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700">Save Site Settings</button>
+            <div id="site-message"></div>
+          </div>
+        </form>
+      </section>
+
+      <!-- Categories Section -->
+      <section id="categories" class="hidden bg-white border rounded-xl shadow-sm p-6 max-w-3xl">
+         <h2 class="text-xl font-bold mb-6">Manage Categories</h2>
+         <div class="flex gap-3 mb-6">
+           <input id="cat-name" type="text" placeholder="New Category Name" class="flex-1 border-gray-300 rounded-lg px-3 py-2">
+           <button id="cat-add" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Add</button>
+         </div>
+         <div id="cat-msg" class="mb-2"></div>
+         <div id="cat-list" class="space-y-2"></div>
+      </section>
+
+      <!-- Files Section -->
+      <section id="files" class="hidden bg-white border rounded-xl shadow-sm p-6">
+         <h2 class="text-xl font-bold mb-6">File Manager</h2>
+         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <input id="fm-file" type="file" multiple class="border rounded px-3 py-2">
+            <select id="fm-folder" class="border rounded px-3 py-2"><option value="main">main</option></select>
+            <button id="fm-upload" class="bg-blue-600 text-white rounded px-4 py-2">Upload</button>
+         </div>
+         <div id="fm-msg"></div>
+      </section>
+      
+      <!-- Chat Section -->
+      <section id="chat" class="hidden bg-white border rounded-xl shadow-sm overflow-hidden h-[600px] flex">
+         <div class="w-1/3 border-r flex flex-col">
+            <div class="p-3 border-b font-medium bg-gray-50">Chats</div>
+            <div id="chat-sessions" class="flex-1 overflow-y-auto"></div>
+         </div>
+         <div class="w-2/3 flex flex-col">
+            <div id="chat-meta" class="p-3 border-b bg-gray-50 text-sm">Select a chat</div>
+            <div id="chat-messages-admin" class="flex-1 p-4 overflow-y-auto space-y-3"></div>
+            <div class="p-3 border-t flex gap-2">
+               <input id="chat-reply" type="text" class="flex-1 border rounded-lg px-3 py-2" placeholder="Reply...">
+               <button id="chat-send" class="bg-blue-600 text-white px-4 py-2 rounded-lg">Send</button>
+            </div>
+         </div>
+      </section>
+      
+      <!-- Notes Section (Hidden but preserved) -->
+      <section id="notes" class="hidden"><h2 class="text-xl font-bold">Notes</h2><div id="notes-list"></div></section>
+
+    </main>
+  </div>
+
+  <!-- Media Modal (Popup) -->
+  <div id="media-modal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-[60] backdrop-blur-sm">
+    <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden m-4 flex flex-col max-h-[90vh]">
+      <div class="px-6 py-4 border-b flex items-center justify-between bg-gray-50">
+        <h3 class="font-bold text-gray-800">Media Library</h3>
+        <button id="media-close" class="text-gray-500 hover:text-gray-800 bg-white border rounded-full p-1 w-8 h-8 flex items-center justify-center">×</button>
+      </div>
+      <div class="p-6 flex-1 overflow-hidden flex flex-col">
+        <div class="flex items-center gap-3 mb-4">
+          <label class="flex-1 cursor-pointer border-2 border-dashed border-blue-200 rounded-xl bg-blue-50 hover:bg-blue-100 flex items-center justify-center h-16 transition-colors group">
+             <span class="text-blue-600 font-medium group-hover:text-blue-700">Click to Upload Images</span>
+             <input id="media-upload" type="file" accept="image/*" multiple class="hidden"/>
           </label>
-          <textarea name="marqueeText" class="mt-2 w-full border rounded px-3 py-2" rows="2" placeholder="Big New Year Sale • 50% OFF on selected items • Free delivery over ৳1000"></textarea>
-          <p class="text-xs text-gray-500 mt-1">Shown as a scrolling announcement bar across the site when enabled.</p>
+          <button id="media-upload-btn" class="hidden">Upload</button> <!-- Triggered automatically or via JS logic -->
         </div>
-        <div class="md:col-span-2">
-          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Save Site Settings</button>
-        </div>
-      </form>
-      <div id="site-message" class="text-sm mt-3"></div>
-    </section>
-
-    <section id="chat" class="bg-white border rounded-lg p-6 mt-8 hidden">
-      <h2 class="text-lg font-semibold mb-4">Live Chat</h2>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="md:col-span-1 border rounded">
-          <div class="px-3 py-2 border-b flex items-center justify-between">
-            <div class="font-medium">Sessions</div>
-            <span id="chat-count" class="text-xs text-gray-500"></span>
-          </div>
-          <div id="chat-sessions" class="max-h-[60vh] overflow-y-auto divide-y"></div>
-        </div>
-        <div class="md:col-span-2 border rounded flex flex-col">
-          <div class="px-3 py-2 border-b text-sm text-gray-700" id="chat-meta">Select a session</div>
-          <div id="chat-messages-admin" class="flex-1 p-3 overflow-y-auto bg-gray-50 space-y-2"></div>
-          <div class="p-3 border-t flex items-center gap-2">
-            <textarea id="chat-reply" placeholder="Type a reply" class="flex-1 border rounded px-3 py-2" rows="2"></textarea>
-            <button id="chat-send" class="px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">Send</button>
-          </div>
-        </div>
+        <div id="media-grid" class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3 overflow-y-auto p-1"></div>
       </div>
-    </section>
-  </main>
-
-  <!-- Image Cropper Modal -->
-  <div id="cropper-modal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-[70]">
-    <div class="bg-white w-full max-w-2xl rounded shadow-lg overflow-hidden m-4">
-      <div class="px-4 py-3 border-b flex items-center justify-between">
-        <h3 class="font-semibold">Crop Image</h3>
-        <button id="cropper-close" class="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200">Close</button>
-      </div>
-      <div class="p-4">
-        <div class="w-full max-h-[70vh] overflow-auto">
-          <img id="cropper-image" src="" alt="Crop" class="max-w-full">
-        </div>
-        <div class="mt-4 flex items-center justify-end gap-2">
-          <button id="cropper-cancel" class="px-3 py-2 rounded bg-gray-100 hover:bg-gray-200">Cancel</button>
-          <button id="cropper-apply" class="px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">Apply Crop</button>
-        </div>
+      <div class="px-6 py-4 border-t bg-gray-50 flex justify-end gap-3">
+        <div id="media-message" class="mr-auto text-sm self-center"></div>
+        <button id="media-crop-main" class="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 text-sm font-medium">Crop & Use</button>
+        <button id="media-use-main" class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm font-medium">Use Selected</button>
+        <button id="media-use-gallery" class="px-4 py-2 rounded-lg bg-gray-800 text-white hover:bg-gray-900 text-sm font-medium">Add to Gallery</button>
       </div>
     </div>
   </div>
 
-  <!-- Media Library Modal -->
-  <div id="media-modal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50">
-    <div class="bg-white w-full max-w-4xl rounded shadow-lg overflow-hidden m-4">
-      <div class="px-4 py-3 border-b flex items-center justify-between">
-        <h3 class="font-semibold">Media Library</h3>
-        <button id="media-close" class="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200">Close</button>
+  <!-- Cropper Modal -->
+  <div id="cropper-modal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[70]">
+    <div class="bg-white w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden m-4">
+      <div class="flex justify-between items-center p-4 border-b">
+         <h3 class="font-bold">Crop Image</h3>
+         <button id="cropper-close" class="text-gray-500 hover:text-red-500">✕</button>
       </div>
-      <div class="p-4 space-y-3">
-        <div class="flex items-center gap-2">
-          <input id="media-upload" type="file" accept="image/*" multiple class="border rounded px-3 py-2"/>
-          <button id="media-upload-btn" class="px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">Upload</button>
-        </div>
-        <div id="media-grid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 max-h-[60vh] overflow-y-auto"></div>
-        <div class="flex items-center justify-end gap-2">
-          <button id="media-crop-main" class="px-3 py-2 rounded bg-amber-500 text-white hover:bg-amber-600">Crop & Use as Main</button>
-          <button id="media-use-main" class="px-3 py-2 rounded bg-green-600 text-white hover:bg-green-700">Use as Main</button>
-          <button id="media-use-gallery" class="px-3 py-2 rounded bg-gray-800 text-white hover:bg-black">Add to Gallery</button>
-        </div>
-        <div id="media-message" class="text-sm"></div>
+      <div class="p-4 bg-black/5 h-[60vh]">
+         <img id="cropper-image" class="max-w-full max-h-full mx-auto block">
+      </div>
+      <div class="p-4 border-t flex justify-end gap-2">
+         <button id="cropper-cancel" class="px-4 py-2 rounded border hover:bg-gray-50">Cancel</button>
+         <button id="cropper-apply" class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">Apply Crop</button>
       </div>
     </div>
   </div>
 
-  <div id="order-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
-    <div class="bg-white w-full max-w-3xl rounded shadow-lg overflow-hidden m-4">
-      <div class="px-4 py-3 border-b flex items-center justify-between">
-        <h3 class="font-semibold">Order Details</h3>
-        <button id="order-close" class="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200">Close</button>
-      </div>
-      <div class="p-4 space-y-4 max-h-[80vh] overflow-y-auto">
-        <div class="text-sm text-gray-700" id="order-meta"></div>
-        <div>
-          <table class="w-full text-sm border">
-            <thead class="bg-gray-50">
-              <tr>
-                <th class="text-left p-2 border">Product</th>
-                <th class="text-right p-2 border">Price</th>
-                <th class="text-right p-2 border">Qty</th>
-                <th class="text-right p-2 border">Total</th>
-                <th class="p-2 border"></th>
-              </tr>
-            </thead>
-            <tbody id="order-items"></tbody>
+  <!-- Order Details Modal (Hidden) -->
+  <div id="order-modal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50">
+    <div class="bg-white w-full max-w-2xl m-4 rounded-xl shadow-lg flex flex-col max-h-[90vh]">
+       <div class="p-4 border-b flex justify-between items-center">
+         <h3 class="font-bold">Order Details</h3>
+         <button id="order-close">✕</button>
+       </div>
+       <div class="p-4 overflow-y-auto flex-1 space-y-4">
+          <div id="order-meta" class="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg border"></div>
+          <table class="w-full text-sm">
+             <thead class="bg-gray-100 text-gray-700"><tr><th class="p-2 text-left">Item</th><th class="p-2 text-right">Qty</th><th class="p-2 text-right">Total</th><th class="p-2"></th></tr></thead>
+             <tbody id="order-items" class="divide-y"></tbody>
           </table>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
-          <div class="md:col-span-2">
-            <label class="block text-sm mb-1">Add product</label>
-            <select id="order-add-select" class="w-full border rounded px-3 py-2"></select>
+          <div class="flex items-center gap-2 mt-4 pt-4 border-t">
+             <select id="order-add-select" class="flex-1 border rounded px-2 py-1.5 text-sm"></select>
+             <input id="order-add-qty" type="number" value="1" class="w-16 border rounded px-2 py-1.5 text-sm">
+             <button id="order-add-btn" class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm">Add Item</button>
           </div>
-          <div>
-            <label class="block text-sm mb-1">Qty</label>
-            <input id="order-add-qty" type="number" min="1" value="1" class="w-full border rounded px-3 py-2"/>
+          <div class="flex justify-between items-center text-lg font-bold pt-2">
+             <span>Total</span>
+             <span id="order-total">৳0.00</span>
           </div>
-          <div>
-            <button id="order-add-btn" class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Add</button>
-          </div>
-        </div>
-
-        <div class="text-right space-y-1">
-          <div>Subtotal: <span id="order-subtotal" class="font-semibold">৳0.00</span></div>
-          <div>Delivery: <span id="order-delivery" class="font-semibold">৳0.00</span></div>
-          <div class="text-lg">Total: <span id="order-total" class="font-semibold">৳0.00</span></div>
-        </div>
-      </div>
-      <div class="px-4 py-3 border-t flex items-center justify-end gap-2">
-        <button id="order-print" class="px-4 py-2 rounded bg-gray-100 hover:bg-gray-200">Print</button>
-        <button id="order-save" class="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700">Save Changes</button>
-      </div>
+       </div>
+       <div class="p-4 border-t bg-gray-50 flex justify-end gap-2">
+         <button id="order-print" class="px-4 py-2 border bg-white rounded hover:bg-gray-50">Print Invoice</button>
+         <button id="order-save" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Save Changes</button>
+       </div>
     </div>
   </div>
 
@@ -577,22 +518,35 @@
   <script type="module" src="js/auth.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
   <script>
-    // Fallback: ensure the correct section is shown even if module JS is cached or errors
-    document.addEventListener('DOMContentLoaded', function(){
-      try{
-        const ids = ['add','products','orders-section','shipping','site','files','chat'];
-        function show(id){
-          const key = ids.includes(id) ? id : 'products';
-          ids.forEach(k=>{
-            const el = document.getElementById(k);
-            if (!el) return;
-            if (k===key) el.classList.remove('hidden'); else el.classList.add('hidden');
-          });
-        }
-        function sync(){ show(location.hash.replace('#','')); }
-        window.addEventListener('hashchange', sync);
-        sync();
-      } catch {}
+    // Tab switching logic fallback
+    document.addEventListener('DOMContentLoaded', () => {
+      const ids = ['add', 'products', 'orders-section', 'shipping', 'site', 'categories', 'files', 'chat'];
+      function showSection(id) {
+        const key = ids.includes(id) ? id : 'products'; // Default to products if unsure, or add if preferred
+        ids.forEach(k => {
+          const el = document.getElementById(k);
+          if (el) {
+            if (k === key) el.classList.remove('hidden'); else el.classList.add('hidden');
+          }
+        });
+        // Update sidebar active states
+        document.querySelectorAll('.admin-nav a').forEach(a => {
+           const href = a.getAttribute('href').replace('#', '');
+           if (href === key) {
+             a.classList.add('bg-blue-50', 'text-blue-700');
+             a.querySelector('svg')?.classList.add('text-blue-600');
+           } else {
+             a.classList.remove('bg-blue-50', 'text-blue-700');
+             a.querySelector('svg')?.classList.remove('text-blue-600');
+           }
+        });
+      }
+      function sync() { 
+        const hash = location.hash.replace('#', '');
+        showSection(hash || 'add'); // Default to Add Product screen for better UX
+      }
+      window.addEventListener('hashchange', sync);
+      sync();
     });
   </script>
   <script src="js/file-manager.js"></script>
