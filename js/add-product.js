@@ -53,12 +53,20 @@ let selectedMainUrl = '';
 let selectedGalleryUrls = [];
 
 // ===== Variants helpers =====
+function currentUnitLabel(){
+  try { const wu = form && form.weightUnit ? String(form.weightUnit.value||'').trim() : 'kg'; return wu === 'l' ? 'L' : (wu === 'kg' ? 'kg' : (wu === 'pc' ? 'pc' : 'kg')); } catch { return 'kg'; }
+}
+
 function makeVariantRow(labelValue = '', priceValue = ''){
   const row = document.createElement('div');
-  row.className = 'grid grid-cols-5 gap-2';
+  row.className = 'grid grid-cols-6 gap-2 items-center';
+  const unit = currentUnitLabel();
   row.innerHTML = `
-    <input type="text" placeholder="Label (e.g., 500g, 1kg)" class="col-span-3 border rounded px-3 py-2 text-sm variant-label" value="${labelValue ? String(labelValue).replace(/"/g,'&quot;') : ''}">
-    <input type="number" placeholder="Price" step="0.01" min="0" class="col-span-1 border rounded px-3 py-2 text-sm variant-price" value="${priceValue !== '' && priceValue !== null && priceValue !== undefined ? String(priceValue) : ''}">
+    <div class="col-span-3 flex items-center gap-2">
+      <input type="text" inputmode="decimal" placeholder="e.g., 0.5 or 1" class="flex-1 border rounded px-3 py-2 text-sm variant-label" value="${labelValue ? String(labelValue).replace(/"/g,'&quot;') : ''}">
+      <span class="variant-unit inline-block text-xs px-2 py-1 rounded bg-gray-100 text-gray-700">${unit}</span>
+    </div>
+    <input type="number" placeholder="Price" step="0.01" min="0" class="col-span-2 border rounded px-3 py-2 text-sm variant-price" value="${priceValue !== '' && priceValue !== null && priceValue !== undefined ? String(priceValue) : ''}">
     <button type="button" class="col-span-1 px-3 py-2 rounded bg-red-50 text-red-700 hover:bg-red-100 variant-del">Remove</button>
   `;
   row.querySelector('.variant-del').addEventListener('click', ()=>{ row.remove(); });
@@ -273,6 +281,11 @@ function togglePieceWeight(){
   try {
     const wu = form && form.weightUnit ? String(form.weightUnit.value||'').trim() : '';
     if (pieceWeightWrap){ if (wu === 'pc') pieceWeightWrap.classList.remove('hidden'); else pieceWeightWrap.classList.add('hidden'); }
+    try {
+      const unitText = wu === 'l' ? 'L' : (wu === 'kg' ? 'kg' : (wu === 'pc' ? 'pc' : 'kg'));
+      const badges = document.querySelectorAll('.variant-unit');
+      badges.forEach(b=>{ b.textContent = unitText; });
+    } catch {}
   } catch {}
 }
 try {
