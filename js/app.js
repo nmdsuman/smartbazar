@@ -512,21 +512,10 @@ function drawProducts() {
             let selectedOpt = null;
             let qty = 1;
             
-            // Auto-select single option or first option for multi-variant
+            // Auto-select single option only
             if (hasSingleOption) {
               selectedOpt = 0; // Auto-select the first (and only) option
               // Update price to show single option price
-              try {
-                const opt = opts[selectedOpt] || {};
-                const selPrice = Number(opt.price ?? d.price);
-                if (priceEl && Number.isFinite(selPrice)) priceEl.textContent = `৳${selPrice.toFixed(2)}`;
-              } catch {}
-              // Show quantity selector immediately
-              if (qtyWrap) qtyWrap.classList.remove('hidden');
-            } else {
-              // For multi-variant products, auto-select the first option
-              selectedOpt = 0;
-              // Update price to show first option price
               try {
                 const opt = opts[selectedOpt] || {};
                 const selPrice = Number(opt.price ?? d.price);
@@ -549,8 +538,10 @@ function drawProducts() {
               });
             }
             
-            // Initialize pill styles for all products with variants
-            refreshPillStyles();
+            // Initialize pill styles only for single option products
+            if (hasSingleOption) {
+              refreshPillStyles();
+            }
             
             pills.forEach(p=>{
               p.addEventListener('click', ()=>{
@@ -573,9 +564,13 @@ function drawProducts() {
             if (decBtn) decBtn.addEventListener('click', ()=>{ qty = Math.max(1, qty-1); if (qtyView) qtyView.textContent = String(qty); });
             if (incBtn) incBtn.addEventListener('click', ()=>{ qty = Math.max(1, qty+1); if (qtyView) qtyView.textContent = String(qty); });
             btn.addEventListener('click', () => {
-              // For all variant products, selectedOpt should be set (auto-selected to 0 initially)
+              // For single option, selectedOpt is already set to 0
+              // For multi-variant, require selection first
               if (selectedOpt === null){
-                selectedOpt = 0; // Fallback to first option
+                // Show visual feedback that selection is required
+                btn.classList.add('ring-2','ring-blue-400');
+                setTimeout(()=>btn.classList.remove('ring-2','ring-blue-400'), 600);
+                return;
               }
               const opt = opts[selectedOpt] || {};
               const weightDisp = formatVariantLabel(opt.label || opt.weight || d.weight || '');
