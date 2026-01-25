@@ -7,9 +7,10 @@ import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firesto
 function toBnDigits(str){ const map = { '0':'০','1':'১','2':'২','3':'৩','4':'৪','5':'৫','6':'৬','7':'৭','8':'৮','9':'৯','.':'․' }; return String(str).replace(/[0-9.]/g, ch => map[ch] ?? ch); }
 function localizeLabel(lbl){
   const s = String(lbl||'').trim(); if (!s) return '';
-  const m = s.toLowerCase().replace(/\s+/g,'').match(/^([0-9]*\.?[0-9]+)(kg|g|l|liter|ltr|ml|milliliter|millilitre|pc)?$/);
+  const m = s.toLowerCase().replace(/\s+/g,'').match(/^([0-9]*\.?[0-9]+)(kg|g|l|liter|ltr|ml|milliliter|millilitre|pc|পিস)?$/);
   if (m){
-    const numStr = m[1]; const unit = m[2] || ''; const val = parseFloat(numStr);
+    const numStr = m[1]; let unit = m[2] || ''; const val = parseFloat(numStr);
+    if (unit === 'পিস') unit = 'pc';
     if ((unit === 'kg') && val > 0 && val < 1){ const grams = Math.round(val * 1000); return `${toBnDigits(String(grams))} গ্রাম`; }
     if ((unit === 'l' || unit === 'liter' || unit === 'ltr') && val > 0 && val < 1){ const ml = Math.round(val * 1000); return `${toBnDigits(String(ml))} মিলি`; }
     const pretty = Number.isFinite(val) && Math.abs(val - Math.round(val)) < 1e-9 ? String(Math.round(val)) : String(val);
@@ -21,8 +22,9 @@ function localizeLabel(lbl){
 }
 function localizeLabelPrefer(lbl, preferred){
   const s = String(lbl||'').trim(); const pref = String(preferred||'').toLowerCase(); if (!s) return '';
-  const m = s.toLowerCase().replace(/\s+/g,'').match(/^([0-9]*\.?[0-9]+)(kg|g|l|liter|ltr|ml|pc)?$/); if (!m) return localizeLabel(s);
+  const m = s.toLowerCase().replace(/\s+/g,'').match(/^([0-9]*\.?[0-9]+)(kg|g|l|liter|ltr|ml|pc|পিস)?$/); if (!m) return localizeLabel(s);
   let val = parseFloat(m[1]); let unit = m[2] || '';
+  if (unit === 'পিস') unit = 'pc';
   if (pref === 'pc'){ if (!unit) unit = 'pc'; return localizeLabel(`${val}${unit}`); }
   if (pref === 'l'){ if (unit === 'g'){ val = val/1000; unit = 'l'; } else if (unit === 'kg'){ unit = 'l'; } }
   else if (pref === 'kg'){ if (unit === 'ml'){ val = val/1000; unit = 'kg'; } else if (unit === 'l' || unit === 'liter' || unit === 'ltr'){ unit = 'kg'; } }
@@ -167,8 +169,8 @@ async function main() {
     const hasOptions = Array.isArray(opts) && opts.length > 0;
     // Preferred unit
     let preferredUnit = '';
-    try { const mPref = String(p.weight||'').toLowerCase().match(/(kg|g|l|liter|ltr|ml|pc)/); if (mPref){ preferredUnit = (mPref[1] === 'liter' || mPref[1] === 'ltr') ? 'l' : mPref[1]; } } catch {}
-    try { const anyPc = Array.isArray(opts) && opts.some(o => /pc$/i.test(String(o.label||o.weight||'').trim())); if (anyPc) preferredUnit = 'pc'; } catch {}
+    try { const mPref = String(p.weight||'').toLowerCase().match(/(kg|g|l|liter|ltr|ml|pc|পিস)/); if (mPref){ const hit = mPref[1]; preferredUnit = (hit === 'liter' || hit === 'ltr') ? 'l' : (hit === 'পিস' ? 'pc' : hit); } } catch {}
+    try { const anyPc = Array.isArray(opts) && opts.some(o => { const s = String(o.label||o.weight||'').trim(); return /pc$/i.test(s) || /পিস$/.test(s); }); if (anyPc) preferredUnit = 'pc'; } catch {}
     // Heuristic: if multiple option labels are numeric-only (no unit), treat as pieces
     try {
       if ((!preferredUnit || preferredUnit === 'kg') && Array.isArray(opts)){
