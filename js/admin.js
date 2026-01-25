@@ -260,24 +260,91 @@ function drawOrders() {
   const frag = document.createDocumentFragment();
   subset.forEach(({ id, data: o }) => {
     const div = document.createElement('div');
-    div.className = 'border rounded p-3 grid grid-cols-1 md:grid-cols-4 gap-3 items-center';
+    div.className = 'bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden';
     const count = Array.isArray(o.items) ? o.items.reduce((s,i)=>s+i.qty,0) : 0;
-    const when = o.createdAt?.toDate ? o.createdAt.toDate().toLocaleString() : '';
+    const when = o.createdAt?.toDate ? o.createdAt.toDate().toLocaleString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    }) : '';
+    const status = (o.status || 'Pending');
+    const statusColors = {
+      'Pending': 'bg-amber-100 text-amber-800 border-amber-200',
+      'Processing': 'bg-blue-100 text-blue-800 border-blue-200',
+      'Shipped': 'bg-indigo-100 text-indigo-800 border-indigo-200',
+      'Delivered': 'bg-emerald-100 text-emerald-800 border-emerald-200',
+      'Cancelled': 'bg-red-100 text-red-800 border-red-200'
+    };
+    const statusColor = statusColors[status] || 'bg-gray-100 text-gray-800 border-gray-200';
+    
     div.innerHTML = `
-      <div>
-        <div class="font-medium">Order #${id.slice(-6)}</div>
-        <div class="text-sm text-gray-600">Items: ${count} Â· User: ${o.userId || 'guest'} Â· ${when}</div>
-        <div class="text-sm text-gray-600">${o.customer?.name || ''} Â· ${o.customer?.phone || ''}</div>
-      </div>
-      <div class="font-semibold">à§³${Number(o.total || 0).toFixed(2)}</div>
-      <div class="flex items-center gap-2">
-        <label class="text-sm">Status</label>
-        <select class="border rounded px-2 py-1 admin-status">
-          ${['Pending','Processing','Shipped','Delivered','Cancelled'].map(s=>`<option ${o.status===s?'selected':''}>${s}</option>`).join('')}
-        </select>
-      </div>
-      <div class="text-right">
-        <button class="view px-3 py-1 rounded bg-gray-100 hover:bg-gray-200">View</button>
+      <div class="p-5">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <!-- Order Info -->
+          <div class="flex-1">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="text-lg font-bold text-gray-900">Order #${id.slice(-6)}</div>
+              <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${statusColor}">
+                ${status}
+              </span>
+            </div>
+            
+            <div class="space-y-2 text-sm text-gray-600">
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                </svg>
+                <span>${count} items</span>
+                <span class="text-gray-400">•</span>
+                <span>${when}</span>
+              </div>
+              
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                </svg>
+                <span>${o.customer?.name || 'Guest'}</span>
+                ${o.customer?.phone ? `
+                  <span class="text-gray-400">•</span>
+                  <span>${o.customer?.phone}</span>
+                ` : ''}
+              </div>
+              
+              <div class="flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"></path>
+                </svg>
+                <span class="text-xs font-mono bg-gray-100 px-2 py-1 rounded">${o.userId || 'guest'}</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Price & Actions -->
+          <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div class="text-center sm:text-right">
+              <div class="text-sm text-gray-500 mb-1">Total Amount</div>
+              <div class="text-2xl font-bold text-gray-900">৳${Number(o.total || 0).toFixed(2)}</div>
+            </div>
+            
+            <div class="flex flex-col gap-2">
+              <div class="flex items-center gap-2">
+                <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Status</label>
+                <select class="admin-status border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm">
+                  ${['Pending','Processing','Shipped','Delivered','Cancelled'].map(s=>`<option ${o.status===s?'selected':''}>${s}</option>`).join('')}
+                </select>
+              </div>
+              
+              <button class="view px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                </svg>
+                View Order
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     `;
     div.querySelector('.admin-status').addEventListener('change', async (e)=>{
