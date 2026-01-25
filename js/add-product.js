@@ -62,11 +62,34 @@ function currentUnitLabel(){
 function makeVariantRow(labelValue = '', priceValue = ''){
   const row = document.createElement('div');
   row.className = 'grid grid-cols-6 gap-2 items-center';
-  const unit = currentUnitLabel();
+  // Parse incoming label like '500g', '0.5kg', '1L', '2pc'
+  let initVal = '';
+  let initUnit = (currentUnitLabel() === 'L' ? 'l' : (currentUnitLabel() || 'kg'));
+  try {
+    const s = String(labelValue||'').trim().toLowerCase().replace(/\s+/g,'');
+    if (s){
+      const m = s.match(/^([0-9]*\.?[0-9]+)(kg|g|l|liter|ltr|ml|pc)?$/);
+      if (m){
+        let v = parseFloat(m[1]);
+        let u = m[2] || initUnit;
+        if (u === 'liter' || u === 'ltr') u = 'l';
+        if (u === 'g'){ v = v/1000; u = 'kg'; }
+        if (u === 'ml'){ v = v/1000; u = 'l'; }
+        initVal = Number.isFinite(v) ? String(v) : '';
+        initUnit = u;
+      } else {
+        initVal = s;
+      }
+    }
+  } catch {}
   row.innerHTML = `
     <div class="col-span-3 flex items-center gap-2">
-      <input type="text" inputmode="decimal" placeholder="e.g., 0.5 or 1" class="flex-1 border rounded px-3 py-2 text-sm variant-label" value="${labelValue ? String(labelValue).replace(/"/g,'&quot;') : ''}">
-      <span class="variant-unit inline-block text-xs px-2 py-1 rounded bg-gray-100 text-gray-700">${unit}</span>
+      <input type="text" inputmode="decimal" placeholder="e.g., 0.5 or 1" class="flex-1 border rounded px-3 py-2 text-sm variant-weight" value="${initVal ? String(initVal).replace(/"/g,'&quot;') : ''}">
+      <select class="variant-unit-select border rounded px-2 py-2 text-sm bg-white">
+        <option value="kg" ${initUnit==='kg'?'selected':''}>kg</option>
+        <option value="l" ${initUnit==='l'?'selected':''}>L</option>
+        <option value="pc" ${initUnit==='pc'?'selected':''}>pc</option>
+      </select>
     </div>
     <input type="number" placeholder="Price" step="0.01" min="0" class="col-span-2 border rounded px-3 py-2 text-sm variant-price" value="${priceValue !== '' && priceValue !== null && priceValue !== undefined ? String(priceValue) : ''}">
     <button type="button" class="col-span-1 px-3 py-2 rounded bg-red-50 text-red-700 hover:bg-red-100 variant-del">Remove</button>
@@ -81,21 +104,15 @@ function addVariant(label='', price=''){ if (!variantsList) return; variantsList
 
 function getVariantsFromForm(){
   if (!variantsList) return [];
-  const rows = Array.from(variantsList.querySelectorAll('.variant-label')).map((_,i)=> i);
+  const rows = Array.from(variantsList.querySelectorAll('.variant-price')).map((_,i)=> i);
   const out = [];
-  const labels = variantsList.querySelectorAll('.variant-label');
+  const weights = variantsList.querySelectorAll('.variant-weight');
+  const unitSelects = variantsList.querySelectorAll('.variant-unit-select');
   const prices = variantsList.querySelectorAll('.variant-price');
-  // Detect selected weight unit from the main form to build labels automatically
-  let unitOut = '';
-  try {
-    const wuSel = document.querySelector('[name="weightUnit"]');
-    const wu = (wuSel && wuSel.value) ? String(wuSel.value).trim() : '';
-    unitOut = wu === 'l' ? 'L' : (wu === 'kg' ? 'kg' : (wu === 'pc' ? 'pc' : ''));
-  } catch {}
   // Piece weight per unit (grams) for 'pc'
   let perPieceGrams = 0;
   try {
-    if (unitOut === 'pc' && form) {
+    if (form) {
       const pwv = form.querySelector('[name="pieceWeightValue"]');
       const pwu = form.querySelector('[name="pieceWeightUnit"]');
       const v = Number(pwv && pwv.value ? pwv.value : NaN);
@@ -105,25 +122,18 @@ function getVariantsFromForm(){
       }
     }
   } catch {}
-  for (let i=0;i<labels.length;i++){
-    let label = String(labels[i].value||'').trim();
+  for (let i=0;i<rows.length;i++){
+    const wv = String(weights[i]?.value||'').trim();
+    const wu = String(unitSelects[i]?.value||'').trim();
     const price = Number(prices[i]?.value || NaN);
-    if (!label) continue;
+    if (!wv) continue;
     if (!Number.isFinite(price)) continue;
-    // If user typed only a number and selected a unit above, auto-append unit (e.g., 0.5 + L => 0.5L)
-    const numericOnly = /^\d*\.?\d+$/.test(label);
-    if (numericOnly && unitOut){ label = `${label}${unitOut}`; }
+    const unitOut = wu === 'l' ? 'L' : (wu === 'kg' ? 'kg' : (wu === 'pc' ? 'pc' : 'kg'));
+    const label = `${wv}${unitOut}`;
     const opt = { label, price };
     // If unit is pieces and per-piece weight known, compute variant total weight in grams
-    if (unitOut === 'pc' && perPieceGrams > 0) {
-      let count = 0;
-      try {
-        if (numericOnly) { count = Number(label.replace(/pc$/i,'').trim()); }
-        else {
-          const m = label.toLowerCase().replace(/\s+/g,'').match(/^([0-9]*\.?[0-9]+)pc$/);
-          if (m) count = Number(m[1]);
-        }
-      } catch {}
+    if (wu === 'pc' && perPieceGrams > 0) {
+      let count = Number(wv);
       if (Number.isFinite(count) && count > 0) {
         opt.weightGrams = Math.round(count * perPieceGrams);
       }
@@ -285,9 +295,15 @@ function togglePieceWeight(){
     const wu = form && form.weightUnit ? String(form.weightUnit.value||'').trim() : '';
     if (pieceWeightWrap){ if (wu === 'pc') pieceWeightWrap.classList.remove('hidden'); else pieceWeightWrap.classList.add('hidden'); }
     try {
-      const unitText = wu === 'l' ? 'L' : (wu === 'kg' ? 'kg' : (wu === 'pc' ? 'pc' : 'kg'));
-      const badges = document.querySelectorAll('.variant-unit');
-      badges.forEach(b=>{ b.textContent = unitText; });
+      // Newly added rows will pick unit from currentUnitLabel; we won't override existing rows.
+      // Optionally, update empty unit selects to match base selection if needed.
+      const unitText = wu === 'l' ? 'l' : (wu === 'kg' ? 'kg' : (wu === 'pc' ? 'pc' : 'kg'));
+      const selects = document.querySelectorAll('.variant-unit-select');
+      selects.forEach(s=>{
+        if (s && (s.value === '' || s.value === 'kg' || s.value === 'l' || s.value === 'pc')){
+          // leave as user chose; do nothing
+        }
+      });
     } catch {}
   } catch {}
 }
