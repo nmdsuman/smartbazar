@@ -398,6 +398,14 @@ function drawProducts() {
       function formatVariantLabel(raw){
         const s = String(raw||'').trim();
         const numericOnly = /^\d*\.?\d+$/.test(s);
+        // If preferred is pieces, coerce any numeric(+foreign unit) to pieces for display
+        if (preferredUnit === 'pc'){
+          const m = s.toLowerCase().replace(/\s+/g,'').match(/^([0-9]*\.?[0-9]+)(kg|g|l|liter|ltr|ml)?$/);
+          if (numericOnly || m){
+            const val = numericOnly ? s : (m ? m[1] : s);
+            return localizeLabelPrefer(`${val}pc`, 'pc');
+          }
+        }
         if (numericOnly && preferredUnit){
           return localizeLabelPrefer(`${s}${preferredUnit}`, preferredUnit);
         }
