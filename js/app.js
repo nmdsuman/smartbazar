@@ -383,6 +383,15 @@ function drawProducts() {
         });
         if (anyPc) preferredUnit = 'pc';
       } catch {}
+      // Heuristic: if multiple option labels are numeric-only (no unit), and none have weight units, assume pieces
+      try {
+        if (!preferredUnit || preferredUnit === 'kg'){
+          const labels = Array.isArray(opts) ? opts.map(o => String(o.label||o.weight||'').trim()) : [];
+          const numOnly = labels.filter(s => /^\d+(?:\.\d+)?$/.test(s)).length;
+          const withUnits = labels.filter(s => /(kg|g|l|liter|ltr|ml)$/i.test(s)).length;
+          if (numOnly >= 2 && withUnits === 0) preferredUnit = 'pc';
+        }
+      } catch {}
       // Heuristic improvement: if we have mixed labeled 'pc' and unlabeled numeric-only, still treat numeric-only as pc
       // Also count withUnits including 'pc' and Bangla piece words
       // Helper to format a raw option label into preferred-unit Bangla label
