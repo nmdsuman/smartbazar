@@ -6,6 +6,20 @@
   <title>Bazar — My Orders</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="icon" href="data:,">
+  <style>
+    /* Custom responsive improvements */
+    @media (max-width: 640px) {
+      .order-card {
+        padding: 1rem !important;
+      }
+      .order-price {
+        font-size: 1.25rem !important;
+      }
+      .order-title {
+        font-size: 1rem !important;
+      }
+    }
+  </style>
   <script type="importmap">
   {
     "imports": {
@@ -34,10 +48,40 @@
     </div>
   </header>
 
-  <main class="max-w-4xl mx-auto px-4 py-8">
-    <h1 class="text-2xl font-semibold mb-6">My Orders</h1>
-    <div id="orders-list" class="space-y-4"></div>
-    <div id="orders-empty" class="text-gray-500">You haven't placed any orders yet.</div>
+  <main class="max-w-6xl mx-auto px-4 py-8">
+    <!-- Page Header -->
+    <div class="mb-8">
+      <div class="flex items-center justify-between mb-2">
+        <h1 class="text-3xl font-bold text-gray-900">My Orders</h1>
+        <div class="flex items-center gap-2 text-sm text-gray-500">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+          </svg>
+          Order History
+        </div>
+      </div>
+      <p class="text-gray-600">Track and manage all your orders in one place</p>
+    </div>
+
+    <!-- Orders List -->
+    <div id="orders-list" class="space-y-6"></div>
+    
+    <!-- Empty State -->
+    <div id="orders-empty" class="text-center py-16">
+      <div class="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+        </svg>
+      </div>
+      <h3 class="text-lg font-medium text-gray-900 mb-2">No orders yet</h3>
+      <p class="text-gray-500 mb-6">You haven't placed any orders yet. Start shopping to see your orders here.</p>
+      <a href="index.html" class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+        </svg>
+        Start Shopping
+      </a>
+    </div>
   </main>
 
   <script type="module" src="js/firebase-config.js"></script>
