@@ -26,6 +26,8 @@ const prevGallery = document.getElementById('add-preview-gallery');
 // Variants elements
 const variantsList = document.getElementById('variants-list');
 const variantAddBtn = document.getElementById('variant-add');
+// Also support inline Add Variant button inside Base Variant card
+const variantAddBtnInline = document.getElementById('variant-add-inline');
 // Piece-weight UI
 const pieceWeightWrap = document.getElementById('piece-weight');
 
@@ -132,6 +134,7 @@ function getVariantsFromForm(){
 }
 
 variantAddBtn?.addEventListener('click', ()=> addVariant());
+variantAddBtnInline?.addEventListener('click', ()=> addVariant());
 
 // Simple message helper (scoped here)
 function setMessage(text, ok = true) {
