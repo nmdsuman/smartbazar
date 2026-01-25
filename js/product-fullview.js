@@ -169,6 +169,15 @@ async function main() {
     let preferredUnit = '';
     try { const mPref = String(p.weight||'').toLowerCase().match(/(kg|g|l|liter|ltr|ml|pc)/); if (mPref){ preferredUnit = (mPref[1] === 'liter' || mPref[1] === 'ltr') ? 'l' : mPref[1]; } } catch {}
     try { const anyPc = Array.isArray(opts) && opts.some(o => /pc$/i.test(String(o.label||o.weight||'').trim())); if (anyPc) preferredUnit = 'pc'; } catch {}
+    // Heuristic: if multiple option labels are numeric-only (no unit), treat as pieces
+    try {
+      if ((!preferredUnit || preferredUnit === 'kg') && Array.isArray(opts)){
+        const labels = opts.map(o => String(o.label||o.weight||'').trim());
+        const numOnly = labels.filter(s => /^\d+(?:\.\d+)?$/.test(s)).length;
+        const withUnits = labels.filter(s => /(kg|g|l|liter|ltr|ml)$/i.test(s)).length;
+        if (numOnly >= 2 && withUnits === 0) preferredUnit = 'pc';
+      }
+    } catch {}
     function fmt(raw){ const s = String(raw||'').trim(); const numOnly = /^\d*\.?\d+$/.test(s); return numOnly && preferredUnit ? localizeLabelPrefer(`${s}${preferredUnit}`, preferredUnit) : localizeLabelPrefer(s, preferredUnit); }
     // Initial price display (min-max)
     if (hasOptions && price){ const listP = opts.map(o=> Number(o.price ?? p.price)).filter(Number.isFinite); if (listP.length){ const minP = Math.min(...listP); const maxP = Math.max(...listP); price.textContent = (minP===maxP)? minP.toFixed(2) : `${minP.toFixed(2)} - ${maxP.toFixed(2)}`; } }
