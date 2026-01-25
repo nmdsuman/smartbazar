@@ -31,11 +31,11 @@ function localizeLabelPrefer(lbl, preferred){
 
 function normalizeOptions(raw){
   try {
-    if (Array.isArray(raw)) return raw.filter(o=> o && (o.label || o.weight) && (o.price !== undefined && o.price !== null));
+    if (Array.isArray(raw)) return raw.filter(o=> o && (o.label || o.weight) && (o.price !== undefined && o.price !== null)).map(o=>({ label:o.label||o.weight||'', price:o.price, weightGrams: (typeof o.weightGrams==='number'? o.weightGrams: undefined) }));
     if (typeof raw === 'string'){ const parsed = JSON.parse(raw); return normalizeOptions(parsed); }
     if (raw && typeof raw === 'object'){
-      if ((raw.label || raw.weight) && (raw.price !== undefined && raw.price !== null)) return [ { label: raw.label || raw.weight || '', price: raw.price } ];
-      const out = []; Object.keys(raw).forEach(k=>{ const v = raw[k]; if (v && typeof v === 'object'){ const lbl = v.label || v.weight || ''; const pr = v.price; if (lbl && pr !== undefined && pr !== null) out.push({ label: lbl, price: pr }); } else if (typeof v === 'number') { out.push({ label: k, price: v }); } }); return out;
+      if ((raw.label || raw.weight) && (raw.price !== undefined && raw.price !== null)) return [ { label: raw.label || raw.weight || '', price: raw.price, weightGrams: (typeof raw.weightGrams==='number'? raw.weightGrams: undefined) } ];
+      const out = []; Object.keys(raw).forEach(k=>{ const v = raw[k]; if (v && typeof v === 'object'){ const lbl = v.label || v.weight || ''; const pr = v.price; if (lbl && pr !== undefined && pr !== null) out.push({ label: lbl, price: pr, weightGrams: (typeof v.weightGrams==='number'? v.weightGrams: undefined) }); } else if (typeof v === 'number') { out.push({ label: k, price: v }); } }); return out;
     }
   } catch {}
   return [];
