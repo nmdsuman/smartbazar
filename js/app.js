@@ -366,6 +366,7 @@ function drawProducts() {
       } catch {}
       // Do not mutate original labels; we'll render using preferred unit dynamically
       const hasOptions = Array.isArray(opts) && opts.length > 0;
+      const hasSingleOption = Array.isArray(opts) && opts.length === 1;
       // Derive preferred unit from base weight for consistent rendering
       let preferredUnit = '';
       try {
@@ -449,7 +450,7 @@ function drawProducts() {
             <div class="price-view text-orange-600 font-bold text-sm">${priceDisplayHtml}</div>
             <span></span>
           </div>
-          ${hasOptions ? `
+          ${hasOptions && !hasSingleOption ? `
           <div class="mt-2 flex flex-wrap gap-1" data-opt-inline>
             ${opts.map((o,i)=>`
               <button type="button" data-idx="${i}" class="opt-inline-pill inline-flex items-center text-xs border border-gray-200 rounded px-2 py-1 hover:border-blue-400">
@@ -460,7 +461,7 @@ function drawProducts() {
           ` : ''}
         </div>
         <div class="action-bar absolute bottom-2 left-2 right-2 z-10">
-          ${hasOptions ? `
+          ${hasOptions && !hasSingleOption ? `
           <div class="bar flex items-center gap-1 w-full rounded-full bg-green-600 text-white overflow-hidden shadow">
             <div class="qty-inline hidden shrink-0">
               <div class="inline-flex items-center">
@@ -510,6 +511,20 @@ function drawProducts() {
             const incBtn = card.querySelector('.qty-inc');
             let selectedOpt = null;
             let qty = 1;
+            
+            // Auto-select single option
+            if (hasSingleOption) {
+              selectedOpt = 0; // Auto-select the first (and only) option
+              // Update price to show single option price
+              try {
+                const opt = opts[selectedOpt] || {};
+                const selPrice = Number(opt.price ?? d.price);
+                if (priceEl && Number.isFinite(selPrice)) priceEl.textContent = `৳${selPrice.toFixed(2)}`;
+              } catch {}
+              // Show quantity selector immediately
+              if (qtyWrap) qtyWrap.classList.remove('hidden');
+            }
+            
             function refreshPillStyles(){
               pills.forEach(p=>{
                 const idx = Number(p.getAttribute('data-idx')||'-1');
@@ -522,6 +537,12 @@ function drawProducts() {
                 }
               });
             }
+            
+            // Initialize pill styles if there are multiple options
+            if (!hasSingleOption) {
+              refreshPillStyles();
+            }
+            
             pills.forEach(p=>{
               p.addEventListener('click', ()=>{
                 selectedOpt = Number(p.getAttribute('data-idx')||'0');
@@ -543,13 +564,15 @@ function drawProducts() {
             if (decBtn) decBtn.addEventListener('click', ()=>{ qty = Math.max(1, qty-1); if (qtyView) qtyView.textContent = String(qty); });
             if (incBtn) incBtn.addEventListener('click', ()=>{ qty = Math.max(1, qty+1); if (qtyView) qtyView.textContent = String(qty); });
             btn.addEventListener('click', () => {
-              if (selectedOpt === null){
-                // Require selecting an option first
+              // For single option, selectedOpt is already set to 0
+              if (selectedOpt === null && !hasSingleOption){
+                // Require selecting an option first for multiple options
                 btn.classList.add('ring-2','ring-blue-400');
                 setTimeout(()=>btn.classList.remove('ring-2','ring-blue-400'), 600);
                 return;
               }
-              const opt = opts[selectedOpt] || {};
+              const optIndex = hasSingleOption ? 0 : selectedOpt;
+              const opt = opts[optIndex] || {};
               const weightDisp = formatVariantLabel(opt.label || opt.weight || d.weight || '');
               addToCart({ id: `${id}__${opt.label||opt.weight||'opt'}`, title: d.title, price: Number((opt.price ?? d.price)), image: d.image, weight: weightDisp, qty });
               bumpCartBadge();
