@@ -24,12 +24,12 @@ function localizeLabelPrefer(lbl, preferred){
   const s = String(lbl||'').trim();
   const pref = String(preferred||'').toLowerCase();
   if (!s) return '';
-  const m = s.toLowerCase().replace(/\s+/g,'').match(/^([0-9]*\.?[0-9]+)(kg|g|l|liter|ltr|ml|pc|পিস)?$/);
+  const m = s.toLowerCase().replace(/\s+/g,'').match(/^([0-9]*\.?[0-9]+)(kg|g|l|liter|ltr|ml|pc|pcs|piece|pieces|পিস|পিচ|পিছ)?$/);
   if (!m) return localizeLabel(s);
   let val = parseFloat(m[1]);
   let unit = m[2] || '';
   // Normalize Bangla piece unit to 'pc'
-  if (unit === 'পিস') unit = 'pc';
+  if (unit === 'পিস' || unit === 'পিচ' || unit === 'পিছ' || unit === 'pcs' || unit === 'piece' || unit === 'pieces') unit = 'pc';
   // If preferred is pieces, force unit to pc for numeric labels
   if (pref === 'pc'){
     if (!unit) unit = 'pc';
@@ -94,11 +94,11 @@ function toBnDigits(str){
 function localizeLabel(lbl){
   const s = String(lbl||'').trim();
   if (!s) return '';
-  const m = s.toLowerCase().replace(/\s+/g,'').match(/^([0-9]*\.?[0-9]+)(kg|g|l|liter|ltr|ml|milliliter|millilitre|pc|পিস)?$/);
+  const m = s.toLowerCase().replace(/\s+/g,'').match(/^([0-9]*\.?[0-9]+)(kg|g|l|liter|ltr|ml|milliliter|millilitre|pc|pcs|piece|pieces|পিস|পিচ|পিছ)?$/);
   if (m){
     const numStr = m[1];
     let unit = m[2] || '';
-    if (unit === 'পিস') unit = 'pc';
+    if (unit === 'পিস' || unit === 'পিচ' || unit === 'পিছ' || unit === 'pcs' || unit === 'piece' || unit === 'pieces') unit = 'pc';
     const val = parseFloat(numStr);
     // Auto-convert: if <1 kg -> grams, if <1 liter -> ml
     if ((unit === 'kg') && val > 0 && val < 1){
@@ -369,20 +369,22 @@ function drawProducts() {
       // Derive preferred unit from base weight for consistent rendering
       let preferredUnit = '';
       try {
-        const mPref = String(d.weight||'').toLowerCase().match(/(kg|g|l|liter|ltr|ml|pc|পিস)/);
+        const mPref = String(d.weight||'').toLowerCase().match(/(kg|g|l|liter|ltr|ml|pc|pcs|piece|pieces|পিস|পিচ|পিছ)/);
         if (mPref){
           const hit = mPref[1];
-          preferredUnit = (hit === 'liter' || hit === 'ltr') ? 'l' : (hit === 'পিস' ? 'pc' : hit);
+          preferredUnit = (hit === 'liter' || hit === 'ltr') ? 'l' : (/^(পিস|পিচ|পিছ|pcs|piece|pieces)$/.test(hit) ? 'pc' : hit);
         }
       } catch {}
       // If any option label is in pieces, prefer 'pc' for numeric-only labels
       try {
         const anyPc = Array.isArray(opts) && opts.some(o => {
           const s = String(o.label||o.weight||'').trim();
-          return /pc$/i.test(s) || /পিস$/.test(s);
+          return /(pc|pcs|piece|pieces)$/i.test(s) || /(পিস|পিচ|পিছ)$/.test(s);
         });
         if (anyPc) preferredUnit = 'pc';
       } catch {}
+      // Heuristic improvement: if we have mixed labeled 'pc' and unlabeled numeric-only, still treat numeric-only as pc
+      // Also count withUnits including 'pc' and Bangla piece words
       // Helper to format a raw option label into preferred-unit Bangla label
       function formatVariantLabel(raw){
         const s = String(raw||'').trim();
