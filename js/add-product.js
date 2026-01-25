@@ -80,7 +80,7 @@ function getVariantsFromForm(){
   try {
     const wuSel = document.querySelector('[name="weightUnit"]');
     const wu = (wuSel && wuSel.value) ? String(wuSel.value).trim() : '';
-    unitOut = wu === 'l' ? 'L' : (wu === 'ml' ? 'ml' : (wu === 'kg' ? 'kg' : (wu === 'g' ? 'g' : (wu === 'pc' ? 'pc' : ''))));
+    unitOut = wu === 'l' ? 'L' : (wu === 'kg' ? 'kg' : (wu === 'pc' ? 'pc' : ''));
   } catch {}
   // Piece weight per unit (grams) for 'pc'
   let perPieceGrams = 0;
@@ -252,7 +252,7 @@ mediaCropMain?.addEventListener('click', async ()=>{
 
 function renderSelectedGalleryPreview(){ if (!prevGallery) return; prevGallery.innerHTML=''; selectedGalleryUrls.forEach((u, idx)=>{ const wrap=document.createElement('div'); wrap.className='relative group'; const img=document.createElement('img'); img.src=u; img.alt='Gallery'; img.className='w-full h-16 object-contain bg-white border rounded'; const rm=document.createElement('button'); rm.type='button'; rm.className='hidden group-hover:flex items-center justify-center absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-600 text-white shadow'; rm.innerHTML='×'; rm.addEventListener('click',(e)=>{ e.preventDefault(); selectedGalleryUrls = selectedGalleryUrls.filter((x,i)=> i!==idx); renderSelectedGalleryPreview(); }); wrap.appendChild(img); wrap.appendChild(rm); prevGallery.appendChild(wrap); }); }
 
-function updateAddPreview(){ if (!form || !prevTitle || !prevPrice || !prevExtra || !prevDesc) return; const title = form.title ? String(form.title.value || '').trim() : ''; const price = form.price ? Number(form.price.value || 0) : 0; const weightVal = form.weightValue ? String(form.weightValue.value || '').trim() : ''; const weightUnit = form.weightUnit ? String(form.weightUnit.value || '').trim() : ''; const unitLabel = weightUnit === 'l' ? 'L' : (weightUnit === 'ml' ? 'ml' : (weightUnit === 'kg' ? 'kg' : (weightUnit === 'pc' ? 'pc' : 'g'))); const weight = weightVal ? `${weightVal}${unitLabel}` : ''; const size = form.size ? String(form.size.value || '').trim() : ''; const desc = form.description ? String(form.description.value || '').trim() : ''; prevTitle.textContent = title || '—'; prevPrice.textContent = `৳${Number(price || 0).toFixed(2)}`; const extra = [weight, size].filter(Boolean).join(' · '); prevExtra.textContent = extra || '\u00A0'; prevDesc.textContent = desc || '\u00A0'; }
+function updateAddPreview(){ if (!form || !prevTitle || !prevPrice || !prevExtra || !prevDesc) return; const title = form.title ? String(form.title.value || '').trim() : ''; const price = form.price ? Number(form.price.value || 0) : 0; const weightVal = form.weightValue ? String(form.weightValue.value || '').trim() : ''; const weightUnit = form.weightUnit ? String(form.weightUnit.value || '').trim() : ''; const unitLabel = weightUnit === 'l' ? 'L' : (weightUnit === 'kg' ? 'kg' : (weightUnit === 'pc' ? 'pc' : 'kg')); const weight = weightVal ? `${weightVal}${unitLabel}` : ''; const size = form.size ? String(form.size.value || '').trim() : ''; const desc = form.description ? String(form.description.value || '').trim() : ''; prevTitle.textContent = title || '—'; prevPrice.textContent = `৳${Number(price || 0).toFixed(2)}`; const extra = [weight, size].filter(Boolean).join(' · '); prevExtra.textContent = extra || '\u00A0'; prevDesc.textContent = desc || '\u00A0'; }
 function updateAddPreviewImage(){ if (!form || !prevImg) return; if (selectedMainUrl) { prevImg.src = selectedMainUrl; prevImg.classList.remove('hidden'); return; } const file = form.image && form.image.files ? form.image.files[0] : null; if (file) { const url = URL.createObjectURL(file); prevImg.src = url; prevImg.classList.remove('hidden'); } else { if (editUsingAdd.active && editUsingAdd.original?.image) { prevImg.src = editUsingAdd.original.image; prevImg.classList.remove('hidden'); } else { prevImg.src = ''; prevImg.classList.add('hidden'); } } }
 function updateAddPreviewGallery(){ if (!form || !prevGallery) return; const input = form.querySelector('[name="gallery"]'); const files = input && input.files ? input.files : []; const urlsTextEl = form.querySelector('[name="galleryUrls"]'); const typed = (urlsTextEl?.value||'').toString(); const typedUrls = typed.split(/[\n,]/).map(s=>s.trim()).filter(Boolean).slice(0,5); prevGallery.innerHTML=''; // typed URLs first
   typedUrls.forEach(u=>{ const img=document.createElement('img'); img.src=u; img.alt='Gallery'; img.className='w-full h-16 object-contain bg-white border rounded'; prevGallery.appendChild(img); });
@@ -301,7 +301,7 @@ form?.addEventListener('submit', async (e)=>{
   const subcategory = (data.get('subcategory') || '').toString().trim();
   const wv = (data.get('weightValue') || '').toString().trim();
   const wu = (data.get('weightUnit') || '').toString().trim();
-  const unitOut = wu === 'l' ? 'L' : (wu === 'ml' ? 'ml' : (wu === 'kg' ? 'kg' : (wu === 'pc' ? 'pc' : 'g')));
+  const unitOut = wu === 'l' ? 'L' : (wu === 'kg' ? 'kg' : (wu === 'pc' ? 'pc' : 'kg'));
   const weight = wv ? `${wv}${unitOut}` : '';
   const size = (data.get('size') || '').toString().trim();
   const stock = Number(data.get('stock') || 0);
