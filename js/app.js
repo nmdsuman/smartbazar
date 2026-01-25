@@ -28,7 +28,7 @@ function localizeLabelPrefer(lbl, preferred){
   if (!m) return localizeLabel(s);
   let val = parseFloat(m[1]);
   let unit = m[2] || '';
-  // If preferred unit is pieces, ensure display in pieces when possible
+  // If preferred is pieces, force unit to pc for numeric labels
   if (pref === 'pc'){
     if (!unit) unit = 'pc';
     return localizeLabel(`${val}${unit}`);
@@ -313,9 +313,7 @@ function drawProducts() {
   function normalizeOptions(raw){
     try {
       if (Array.isArray(raw)) {
-        return raw
-          .filter(o=> o && (o.label || o.weight) && (o.price !== undefined && o.price !== null))
-          .map(o=> ({ label: o.label || o.weight || '', price: o.price, weightGrams: (typeof o.weightGrams === 'number' ? o.weightGrams : undefined) }));
+        return raw.filter(o=> o && (o.label || o.weight) && (o.price !== undefined && o.price !== null));
       }
       if (typeof raw === 'string') {
         const parsed = JSON.parse(raw);
@@ -324,7 +322,7 @@ function drawProducts() {
       if (raw && typeof raw === 'object'){
         // If it looks like a single option object
         if ((raw.label || raw.weight) && (raw.price !== undefined && raw.price !== null)){
-          return [ { label: raw.label || raw.weight || '', price: raw.price, weightGrams: (typeof raw.weightGrams === 'number' ? raw.weightGrams : undefined) } ];
+          return [ { label: raw.label || raw.weight || '', price: raw.price } ];
         }
         // Object map of label -> price or index -> {label, price}
         const out = [];
@@ -333,7 +331,7 @@ function drawProducts() {
           if (v && typeof v === 'object'){
             const lbl = v.label || v.weight || '';
             const pr = v.price;
-            if (lbl && pr !== undefined && pr !== null) out.push({ label: lbl, price: pr, weightGrams: (typeof v.weightGrams === 'number' ? v.weightGrams : undefined) });
+            if (lbl && pr !== undefined && pr !== null) out.push({ label: lbl, price: pr });
           } else if (typeof v === 'number') {
             out.push({ label: k, price: v });
           }
@@ -371,21 +369,10 @@ function drawProducts() {
         const mPref = String(d.weight||'').toLowerCase().match(/(kg|g|l|liter|ltr|ml|pc)/);
         if (mPref){ preferredUnit = (mPref[1] === 'liter' || mPref[1] === 'ltr') ? 'l' : mPref[1]; }
       } catch {}
-      // If any option explicitly uses pieces, prefer 'pc'
+      // If any option label is in pieces, prefer 'pc' for numeric-only labels
       try {
-        if (!preferredUnit && Array.isArray(opts)){
-          const anyPc = opts.some(o => /pc$/i.test(String(o.label||o.weight||'').trim()));
-          if (anyPc) preferredUnit = 'pc';
-        }
-      } catch {}
-      // Heuristic: if multiple option labels are numeric-only (no unit), treat as pieces
-      try {
-        if ((!preferredUnit || preferredUnit === 'kg') && Array.isArray(opts)){
-          const labels = opts.map(o => String(o.label||o.weight||'').trim());
-          const numOnly = labels.filter(s => /^\d+(?:\.\d+)?$/.test(s)).length;
-          const withUnits = labels.filter(s => /(kg|g|l|liter|ltr|ml)$/i.test(s)).length;
-          if (numOnly >= 2 && withUnits === 0) preferredUnit = 'pc';
-        }
+        const anyPc = Array.isArray(opts) && opts.some(o => /pc$/i.test(String(o.label||o.weight||'').trim()));
+        if (anyPc) preferredUnit = 'pc';
       } catch {}
       // Helper to format a raw option label into preferred-unit Bangla label
       function formatVariantLabel(raw){
@@ -506,32 +493,26 @@ function drawProducts() {
                 }
               });
             }
-            function doSelect(idx){
-              selectedOpt = Number(idx);
-              btn.setAttribute('aria-label','Add to cart');
-              if (labelSpan) labelSpan.textContent = 'Add To Cart';
-              if (qtyWrap) qtyWrap.classList.remove('hidden');
-              qty = 1; if (qtyView) qtyView.textContent = '1';
-              // Update the main price to the selected option's price
-              try {
-                const opt = opts[selectedOpt] || {};
-                const selPrice = Number(opt.price ?? d.price);
-                if (priceEl && Number.isFinite(selPrice)) priceEl.textContent = `৳${selPrice.toFixed(2)}`;
-              } catch {}
-              refreshPillStyles();
-            }
             pills.forEach(p=>{
               p.addEventListener('click', ()=>{
-                doSelect(p.getAttribute('data-idx')||'0');
+                selectedOpt = Number(p.getAttribute('data-idx')||'0');
+                btn.setAttribute('aria-label','Add to cart');
+                if (labelSpan) labelSpan.textContent = 'Add To Cart';
+                btn.classList.remove('px-3'); btn.classList.add('px-3');
+                if (qtyWrap) qtyWrap.classList.remove('hidden');
+                qty = 1; if (qtyView) qtyView.textContent = '1';
+                // Update the main price to the selected option's price
+                try {
+                  const opt = opts[selectedOpt] || {};
+                  const selPrice = Number(opt.price ?? d.price);
+                  if (priceEl && Number.isFinite(selPrice)) priceEl.textContent = `৳${selPrice.toFixed(2)}`;
+                } catch {}
+                refreshPillStyles();
               });
             });
             // Qty listeners
             if (decBtn) decBtn.addEventListener('click', ()=>{ qty = Math.max(1, qty-1); if (qtyView) qtyView.textContent = String(qty); });
             if (incBtn) incBtn.addEventListener('click', ()=>{ qty = Math.max(1, qty+1); if (qtyView) qtyView.textContent = String(qty); });
-            // Auto-select when there is exactly one option
-            if (opts.length === 1) {
-              doSelect(0);
-            }
             btn.addEventListener('click', () => {
               if (selectedOpt === null){
                 // Require selecting an option first
@@ -541,8 +522,7 @@ function drawProducts() {
               }
               const opt = opts[selectedOpt] || {};
               const weightDisp = formatVariantLabel(opt.label || opt.weight || d.weight || '');
-              const weightGrams = typeof opt.weightGrams === 'number' ? opt.weightGrams : undefined;
-              addToCart({ id: `${id}__${opt.label||opt.weight||'opt'}`, title: d.title, price: Number((opt.price ?? d.price)), image: d.image, weight: weightDisp, qty, weightGrams });
+              addToCart({ id: `${id}__${opt.label||opt.weight||'opt'}`, title: d.title, price: Number((opt.price ?? d.price)), image: d.image, weight: weightDisp, qty });
               bumpCartBadge();
               flyToCartFrom(imgEl);
             });
@@ -728,12 +708,7 @@ export async function renderCartPage() {
 
   function calcDelivery(cart) {
     const cfg = shippingSettings || { fixedFee: 60, fixedUpToGrams: 1000, extraPerKg: 30, fallbackFee: 80 };
-    const totalGrams = cart.reduce((sum, i) => {
-      const perItem = (typeof i.weightGrams === 'number' && i.weightGrams > 0)
-        ? i.weightGrams
-        : parseWeightToGrams(i.weight);
-      return sum + perItem * (Number(i.qty)||1);
-    }, 0);
+    const totalGrams = cart.reduce((sum, i) => sum + parseWeightToGrams(i.weight) * i.qty, 0);
     // Fixed fee always applies
     const fixedUpTo = Number(cfg.fixedUpToGrams || 0);
     const base = Number(cfg.fixedFee || 0);
