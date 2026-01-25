@@ -24,10 +24,12 @@ function localizeLabelPrefer(lbl, preferred){
   const s = String(lbl||'').trim();
   const pref = String(preferred||'').toLowerCase();
   if (!s) return '';
-  const m = s.toLowerCase().replace(/\s+/g,'').match(/^([0-9]*\.?[0-9]+)(kg|g|l|liter|ltr|ml|pc)?$/);
+  const m = s.toLowerCase().replace(/\s+/g,'').match(/^([0-9]*\.?[0-9]+)(kg|g|l|liter|ltr|ml|pc|পিস)?$/);
   if (!m) return localizeLabel(s);
   let val = parseFloat(m[1]);
   let unit = m[2] || '';
+  // Normalize Bangla piece unit to 'pc'
+  if (unit === 'পিস') unit = 'pc';
   // If preferred is pieces, force unit to pc for numeric labels
   if (pref === 'pc'){
     if (!unit) unit = 'pc';
@@ -92,10 +94,11 @@ function toBnDigits(str){
 function localizeLabel(lbl){
   const s = String(lbl||'').trim();
   if (!s) return '';
-  const m = s.toLowerCase().replace(/\s+/g,'').match(/^([0-9]*\.?[0-9]+)(kg|g|l|liter|ltr|ml|milliliter|millilitre|pc)?$/);
+  const m = s.toLowerCase().replace(/\s+/g,'').match(/^([0-9]*\.?[0-9]+)(kg|g|l|liter|ltr|ml|milliliter|millilitre|pc|পিস)?$/);
   if (m){
     const numStr = m[1];
-    const unit = m[2] || '';
+    let unit = m[2] || '';
+    if (unit === 'পিস') unit = 'pc';
     const val = parseFloat(numStr);
     // Auto-convert: if <1 kg -> grams, if <1 liter -> ml
     if ((unit === 'kg') && val > 0 && val < 1){
@@ -366,12 +369,18 @@ function drawProducts() {
       // Derive preferred unit from base weight for consistent rendering
       let preferredUnit = '';
       try {
-        const mPref = String(d.weight||'').toLowerCase().match(/(kg|g|l|liter|ltr|ml|pc)/);
-        if (mPref){ preferredUnit = (mPref[1] === 'liter' || mPref[1] === 'ltr') ? 'l' : mPref[1]; }
+        const mPref = String(d.weight||'').toLowerCase().match(/(kg|g|l|liter|ltr|ml|pc|পিস)/);
+        if (mPref){
+          const hit = mPref[1];
+          preferredUnit = (hit === 'liter' || hit === 'ltr') ? 'l' : (hit === 'পিস' ? 'pc' : hit);
+        }
       } catch {}
       // If any option label is in pieces, prefer 'pc' for numeric-only labels
       try {
-        const anyPc = Array.isArray(opts) && opts.some(o => /pc$/i.test(String(o.label||o.weight||'').trim()));
+        const anyPc = Array.isArray(opts) && opts.some(o => {
+          const s = String(o.label||o.weight||'').trim();
+          return /pc$/i.test(s) || /পিস$/.test(s);
+        });
         if (anyPc) preferredUnit = 'pc';
       } catch {}
       // Helper to format a raw option label into preferred-unit Bangla label
