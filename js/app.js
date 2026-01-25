@@ -461,19 +461,19 @@ function drawProducts() {
           ` : ''}
         </div>
         <div class="action-bar absolute bottom-2 left-2 right-2 z-10">
-          ${hasOptions && !hasSingleOption ? `
+          ${hasOptions ? `
           <div class="bar flex items-center gap-1 w-full rounded-full bg-green-600 text-white overflow-hidden shadow">
-            <div class="qty-inline hidden shrink-0">
+            <div class="qty-inline shrink-0">
               <div class="inline-flex items-center">
                 <button class="qty-dec px-2 h-9 hover:bg-green-700" aria-label="Decrease">−</button>
                 <span class="qty-view px-2 select-none">1</span>
                 <button class="qty-inc px-2 h-9 hover:bg-green-700" aria-label="Increase">+</button>
               </div>
             </div>
-            <div class="separator hidden w-1.5 h-5 bg-white/20 rounded-sm"></div>
-            <button class="add-to-cart flex-1 h-9 flex items-center justify-center text-white px-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 active:scale-[0.98] transition" aria-label="Select options">
-              <span class="btn-label text-[12px] font-medium whitespace-nowrap sm:hidden">Options</span>
-              <span class="btn-label hidden sm:inline text-[13px] font-medium whitespace-nowrap">Select Options</span>
+            <div class="separator w-1.5 h-5 bg-white/20 rounded-sm"></div>
+            <button class="add-to-cart flex-1 h-9 flex items-center justify-center text-white px-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 active:scale-[0.98] transition" aria-label="Add to cart">
+              <span class="btn-label text-[12px] font-medium whitespace-nowrap sm:hidden">Add</span>
+              <span class="btn-label hidden sm:inline text-[13px] font-medium whitespace-nowrap">Add To Cart</span>
             </button>
           </div>
           ` : `
@@ -512,10 +512,21 @@ function drawProducts() {
             let selectedOpt = null;
             let qty = 1;
             
-            // Auto-select single option
+            // Auto-select single option or first option for multi-variant
             if (hasSingleOption) {
               selectedOpt = 0; // Auto-select the first (and only) option
               // Update price to show single option price
+              try {
+                const opt = opts[selectedOpt] || {};
+                const selPrice = Number(opt.price ?? d.price);
+                if (priceEl && Number.isFinite(selPrice)) priceEl.textContent = `৳${selPrice.toFixed(2)}`;
+              } catch {}
+              // Show quantity selector immediately
+              if (qtyWrap) qtyWrap.classList.remove('hidden');
+            } else {
+              // For multi-variant products, auto-select the first option
+              selectedOpt = 0;
+              // Update price to show first option price
               try {
                 const opt = opts[selectedOpt] || {};
                 const selPrice = Number(opt.price ?? d.price);
@@ -538,10 +549,8 @@ function drawProducts() {
               });
             }
             
-            // Initialize pill styles if there are multiple options
-            if (!hasSingleOption) {
-              refreshPillStyles();
-            }
+            // Initialize pill styles for all products with variants
+            refreshPillStyles();
             
             pills.forEach(p=>{
               p.addEventListener('click', ()=>{
@@ -564,15 +573,11 @@ function drawProducts() {
             if (decBtn) decBtn.addEventListener('click', ()=>{ qty = Math.max(1, qty-1); if (qtyView) qtyView.textContent = String(qty); });
             if (incBtn) incBtn.addEventListener('click', ()=>{ qty = Math.max(1, qty+1); if (qtyView) qtyView.textContent = String(qty); });
             btn.addEventListener('click', () => {
-              // For single option, selectedOpt is already set to 0
-              if (selectedOpt === null && !hasSingleOption){
-                // Require selecting an option first for multiple options
-                btn.classList.add('ring-2','ring-blue-400');
-                setTimeout(()=>btn.classList.remove('ring-2','ring-blue-400'), 600);
-                return;
+              // For all variant products, selectedOpt should be set (auto-selected to 0 initially)
+              if (selectedOpt === null){
+                selectedOpt = 0; // Fallback to first option
               }
-              const optIndex = hasSingleOption ? 0 : selectedOpt;
-              const opt = opts[optIndex] || {};
+              const opt = opts[selectedOpt] || {};
               const weightDisp = formatVariantLabel(opt.label || opt.weight || d.weight || '');
               addToCart({ id: `${id}__${opt.label||opt.weight||'opt'}`, title: d.title, price: Number((opt.price ?? d.price)), image: d.image, weight: weightDisp, qty });
               bumpCartBadge();
