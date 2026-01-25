@@ -19,6 +19,35 @@
         font-size: 1rem !important;
       }
     }
+    
+    /* Custom xs breakpoint for very small screens */
+    @media (max-width: 475px) {
+      .xs\\:hidden {
+        display: none !important;
+      }
+      .xs\\:inline {
+        display: inline !important;
+      }
+    }
+    
+    /* Ensure xs breakpoint works by default */
+    .xs\:hidden {
+      display: none;
+    }
+    
+    .xs\:inline {
+      display: inline;
+    }
+    
+    /* Show full text on larger screens */
+    @media (min-width: 476px) {
+      .xs\:hidden {
+        display: inline;
+      }
+      .xs\:inline {
+        display: none;
+      }
+    }
   </style>
   <script type="importmap">
   {
