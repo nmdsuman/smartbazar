@@ -11,7 +11,9 @@
     nav.innerHTML = `
       <div class="grid grid-cols-5 text-xs text-gray-600">
         <a href="#" id="mobile-menu-btn" class="flex flex-col items-center justify-center py-2 gap-0.5">
-          <span class="icon" aria-hidden="true">☰</span>
+          <svg class="icon w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
           <span>Menu</span>
         </a>
         <a href="index.html" data-key="home" class="flex flex-col items-center justify-center py-2 gap-0.5">
