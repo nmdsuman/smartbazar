@@ -299,23 +299,43 @@
       </section>
 
       <!-- Orders Section -->
-      <section id="orders-section" class="hidden bg-white border rounded-xl shadow-sm p-6">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-          <h2 class="text-xl font-bold">Orders</h2>
-          <div class="flex items-center gap-3">
-            <span class="text-sm text-gray-600">Filter by:</span>
-            <select id="orders-filter" class="border-gray-300 rounded-lg text-sm py-1.5 px-3 focus:ring-blue-500 focus:border-blue-500">
-              <option value="All">All Status</option>
-              <option value="Pending">Pending</option>
-              <option value="Processing">Processing</option>
-              <option value="Shipped">Shipped</option>
-              <option value="Delivered">Delivered</option>
-              <option value="Cancelled">Cancelled</option>
-            </select>
+      <section id="orders-section" class="hidden bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                </svg>
+                Orders Management
+              </h2>
+              <p class="text-sm text-gray-600 mt-1">Manage and track all customer orders</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="text-sm text-gray-600 font-medium">Filter by:</span>
+              <select id="orders-filter" class="border-gray-300 rounded-lg text-sm py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm">
+                <option value="All">All Status</option>
+                <option value="Pending">Pending</option>
+                <option value="Processing">Processing</option>
+                <option value="Shipped">Shipped</option>
+                <option value="Delivered">Delivered</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
+            </div>
           </div>
         </div>
-        <div id="orders-list" class="space-y-4"></div>
-        <div id="orders-empty" class="text-center py-10 text-gray-500">No orders placed yet.</div>
+        <div class="p-6">
+          <div id="orders-list" class="space-y-4"></div>
+          <div id="orders-empty" class="text-center py-12">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+              <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+              </svg>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No orders found</h3>
+            <p class="text-gray-500">No orders placed yet or no orders match the current filter.</p>
+          </div>
+        </div>
       </section>
 
       <!-- Shipping Section -->
