@@ -3,9 +3,18 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Bazar — Order View</title>
+  <title>Bazar — Order Details</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="icon" href="data:,">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    @media print {
+      body { background-color: white; }
+      .no-print { display: none !important; }
+      #order-view { box-shadow: none; border: none; padding: 0; }
+    }
+  </style>
   <script type="importmap">
   {
     "imports": {
@@ -17,65 +26,116 @@
   }
   </script>
 </head>
-<body class="bg-gray-50">
-  <header class="bg-white border-b">
+<body class="bg-gray-50 text-gray-900">
+
+  <header class="bg-white border-b no-print">
     <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-      <a href="index.html" class="text-xl font-bold">Bazar</a>
-      <nav class="flex items-center gap-4">
-        <a href="admin.html" class="hover:text-blue-600 hidden">Admin</a>
-        <a href="orders.html" class="hover:text-blue-600">Orders</a>
-        <a href="profile.html" class="hover:text-blue-600">Profile</a>
-        <button id="logout-btn" data-logout class="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200">Logout</button>
+      <a href="index.html" class="text-xl font-bold text-green-700">Bazar</a>
+      <nav class="flex items-center gap-4 text-sm font-medium">
+        <a href="index.html" class="hover:text-green-600">Home</a>
+        <a href="orders.html" class="hover:text-green-600">My Orders</a>
+        <a href="admin.html" class="hover:text-green-600 hidden" id="nav-admin">Admin</a>
       </nav>
     </div>
   </header>
 
-  <main class="max-w-4xl mx-auto px-4 py-8">
-    <h1 class="text-2xl font-semibold mb-6">Order Details</h1>
+  <main class="max-w-4xl mx-auto p-4 md:p-8">
+    
+    <div id="ov-empty" class="hidden text-center py-10 text-gray-500">Loading order details...</div>
 
-    <div id="order-view" class="bg-white border rounded-lg p-6 space-y-4 hidden">
-      <div id="ov-meta" class="text-sm text-gray-700"></div>
-      <table class="w-full text-sm border">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="text-left p-2 border">Product</th>
-            <th class="text-right p-2 border">Price</th>
-            <th class="text-right p-2 border">Qty</th>
-            <th class="text-right p-2 border">Total</th>
-            <th class="p-2 border"></th>
-          </tr>
-        </thead>
-        <tbody id="ov-items"></tbody>
-      </table>
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
-        <div class="md:col-span-2">
-          <label class="block text-sm mb-1">Add product</label>
-          <select id="ov-add-select" class="w-full border rounded px-3 py-2"></select>
-        </div>
+    <div id="order-view" class="bg-white shadow-lg rounded-xl overflow-hidden hidden">
+      
+      <div class="p-8 border-b bg-gray-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <label class="block text-sm mb-1">Qty</label>
-          <input id="ov-add-qty" type="number" min="1" value="1" class="w-full border rounded px-3 py-2"/>
+          <h1 class="text-3xl font-bold text-gray-800">INVOICE</h1>
+          <div class="text-sm text-gray-500 mt-1" id="ov-id-display">#ORDER-ID</div>
+          <div class="mt-2">
+            <span id="ov-status" class="inline-block px-2 py-1 text-xs font-semibold rounded bg-gray-200 text-gray-700">Pending</span>
+          </div>
         </div>
-        <div>
-          <button id="ov-add-btn" class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Add</button>
+        <div class="text-left md:text-right">
+          <h2 class="text-xl font-bold text-green-700">Bazar</h2>
+          <p class="text-sm text-gray-500">Smart Shopping</p>
+          <div id="ov-date" class="text-sm text-gray-500 mt-1">Date: --/--/----</div>
         </div>
       </div>
-      <div class="text-right space-y-1">
-        <div>Subtotal: <span id="ov-subtotal" class="font-semibold">৳0.00</span></div>
-        <div>Delivery: <span id="ov-delivery" class="font-semibold">৳0.00</span></div>
-        <div class="text-lg">Total: <span id="ov-total" class="font-semibold">৳0.00</span></div>
+
+      <div class="p-8 border-b">
+        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Bill To</h3>
+        <div id="ov-customer-info" class="text-sm text-gray-700 leading-relaxed">
+          </div>
       </div>
-      <div class="flex items-center justify-end gap-2">
-        <button id="ov-print" class="px-4 py-2 rounded bg-gray-100 hover:bg-gray-200">Print</button>
-        <button id="ov-save" class="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700">Save Changes</button>
+
+      <div class="p-8">
+        <table class="w-full text-left text-sm">
+          <thead>
+            <tr class="border-b text-gray-500">
+              <th class="py-3 font-medium">Item</th>
+              <th class="py-3 font-medium text-center">Qty</th>
+              <th class="py-3 font-medium text-right">Price</th>
+              <th class="py-3 font-medium text-right">Total</th>
+              <th class="py-3 w-10 no-print"></th>
+            </tr>
+          </thead>
+          <tbody id="ov-items">
+            </tbody>
+        </table>
       </div>
+
+      <div class="px-8 pb-8">
+        <div class="flex justify-end">
+          <div class="w-full md:w-1/3 space-y-2">
+            <div class="flex justify-between text-gray-600">
+              <span>Subtotal</span>
+              <span id="ov-subtotal" class="font-medium">৳0.00</span>
+            </div>
+            <div class="flex justify-between text-gray-600">
+              <span>Delivery</span>
+              <span id="ov-delivery" class="font-medium">৳0.00</span>
+            </div>
+            <div class="border-t pt-2 flex justify-between text-lg font-bold text-gray-900">
+              <span>Total</span>
+              <span id="ov-total">৳0.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="ov-controls" class="bg-gray-50 p-6 border-t no-print hidden">
+        <div class="flex flex-col md:flex-row items-end gap-3">
+          <div class="flex-1 w-full">
+            <label class="block text-xs font-medium text-gray-500 mb-1">Add Product</label>
+            <select id="ov-add-select" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 text-sm p-2 border">
+              <option value="">Select a product...</option>
+            </select>
+          </div>
+          <div class="w-20">
+             <label class="block text-xs font-medium text-gray-500 mb-1">Qty</label>
+             <input id="ov-add-qty" type="number" min="1" value="1" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 text-sm p-2 border">
+          </div>
+          <button id="ov-add-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm font-medium shadow-sm w-full md:w-auto">
+            Add
+          </button>
+        </div>
+      </div>
+
+      <div class="p-6 bg-gray-100 border-t flex justify-between items-center no-print">
+        <button onclick="history.back()" class="text-gray-600 hover:text-gray-900 text-sm font-medium">
+          &larr; Back
+        </button>
+        <div class="flex gap-3">
+          <button id="ov-print" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium shadow-sm transition">
+            Print Invoice
+          </button>
+          <button id="ov-save" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium shadow-sm transition hidden">
+            Save Changes
+          </button>
+        </div>
+      </div>
+
     </div>
-    <div id="ov-empty" class="text-gray-500">Loading...</div>
   </main>
 
-  <script type="module" src="js/firebase-config.js"></script>
-  <script type="module" src="js/auth.js"></script>
   <script type="module" src="js/order-view.js"></script>
-  <script src="js/mobile-nav.js"></script>
 </body>
 </html>
