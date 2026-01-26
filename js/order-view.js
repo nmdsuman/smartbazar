@@ -5,56 +5,41 @@ import { collection, doc, getDoc, getDocs, orderBy, query, updateDoc, serverTime
 (function init() {
   initAuthHeader();
   
-  // DOM Elements
+  // Elements
   const container = document.getElementById('order-view');
   const emptyEl = document.getElementById('ov-empty');
   const itemsBody = document.getElementById('ov-items');
-  
-  // Info Elements
-  const idDisplay = document.getElementById('ov-id-display');
-  const dateDisplay = document.getElementById('ov-date');
-  const statusBadge = document.getElementById('ov-status');
-  const customerInfo = document.getElementById('ov-customer-info');
-  
-  // Totals
-  const subtotalEl = document.getElementById('ov-subtotal');
-  const deliveryEl = document.getElementById('ov-delivery');
-  const totalEl = document.getElementById('ov-total');
-
-  // Controls
-  const controlsDiv = document.getElementById('ov-controls');
-  const addSelect = document.getElementById('ov-add-select');
-  const addQty = document.getElementById('ov-add-qty');
-  const addBtn = document.getElementById('ov-add-btn');
   const saveBtn = document.getElementById('ov-save');
   const printBtn = document.getElementById('ov-print');
+  const addMoreBtn = document.getElementById('ov-add-more');
+  
+  // Modal Elements
+  const modal = document.getElementById('product-modal');
+  const modalClose = document.getElementById('pm-close');
+  const modalGrid = document.getElementById('pm-grid');
+  const modalSearch = document.getElementById('pm-search');
 
   // State
   let orderId = new URLSearchParams(window.location.search).get('id');
   let orderData = null;
   let items = [];
-  let products = [];
+  let products = []; // Full product list
   let canEdit = false;
   let hasChanges = false;
+  let isAdmin = false;
 
-  // Helpers
   const formatMoney = (amount) => `৳${Number(amount || 0).toFixed(2)}`;
-  
-  function parseProductLabel(str) {
-    // Extract Name and Unit from "Onion 1kg"
-    return str; // Simple return for now, can be enhanced
-  }
 
   // Load Data
   async function loadData() {
-    if (!orderId) { showEmpty('No Order ID provided.'); return; }
+    if (!orderId) { showEmpty('No Order ID.'); return; }
     
-    emptyEl.textContent = 'Loading...';
+    emptyEl.textContent = 'Loading details...';
     emptyEl.classList.remove('hidden');
     container.classList.add('hidden');
 
     try {
-      // 1. Get Products for the dropdown (Admin/Edit mode)
+      // 1. Get All Products (for the popup)
       const prodSnap = await getDocs(query(collection(db, 'products'), orderBy('createdAt', 'desc')));
       products = prodSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
@@ -65,61 +50,35 @@ import { collection, doc, getDoc, getDocs, orderBy, query, updateDoc, serverTime
       orderData = snap.data();
       items = Array.isArray(orderData.items) ? [...orderData.items] : [];
 
-      // Check Permissions
+      // 3. Auth Check
       auth.onAuthStateChanged(user => {
         if (!user) { window.location.href = 'login.html'; return; }
         
-        // Determine Edit Rights
-        // Admin can always edit. User can edit ONLY if status is Pending.
         getDoc(doc(db, 'users', user.uid)).then(uSnap => {
            const role = uSnap.exists() ? uSnap.data().role : 'user';
+           isAdmin = (role === 'admin');
            const isOwner = orderData.userId === user.uid;
+           const isPending = (orderData.status === 'Pending');
            
-           if (role !== 'admin' && !isOwner) {
-             window.location.href = 'orders.html'; // Unauthorized
-             return;
-           }
-           
-           // Admin Button Show
-           if (role === 'admin') {
-             document.getElementById('nav-admin')?.classList.remove('hidden');
+           if (!isAdmin && !isOwner) {
+             window.location.href = 'orders.html'; return;
            }
 
-           // Edit Logic
-           canEdit = (role === 'admin') || (isOwner && (orderData.status === 'Pending'));
+           if (isAdmin) document.getElementById('nav-admin')?.classList.remove('hidden');
+
+           // Edit Permission: Admin OR (Owner AND Pending)
+           canEdit = isAdmin || (isOwner && isPending);
            
            render();
            container.classList.remove('hidden');
            emptyEl.classList.add('hidden');
-
-           // Populate Dropdown if editable
-           if (canEdit) {
-             controlsDiv.classList.remove('hidden');
-             saveBtn.classList.remove('hidden'); // Show save button if editable
-             populateSelect();
-           }
         });
       });
 
     } catch (e) {
       console.error(e);
-      showEmpty('Error loading order: ' + e.message);
+      showEmpty('Error: ' + e.message);
     }
-  }
-
-  function populateSelect() {
-    addSelect.innerHTML = '<option value="">Select Product...</option>';
-    products.forEach(p => {
-      const opt = document.createElement('option');
-      opt.value = p.id;
-      // Show variants if any
-      const variants = p.options && p.options.length ? p.options : [{ price: p.price }];
-      // For simplicity, just adding base product. 
-      // A full implementation would allow selecting variants.
-      opt.textContent = p.title;
-      opt.setAttribute('data-price', p.price);
-      addSelect.appendChild(opt);
-    });
   }
 
   function showEmpty(msg) {
@@ -128,32 +87,32 @@ import { collection, doc, getDoc, getDocs, orderBy, query, updateDoc, serverTime
     container.classList.add('hidden');
   }
 
-  // RENDER UI
+  // RENDER MAIN VIEW
   function render() {
-    // Meta
-    idDisplay.textContent = `Order #${orderId.slice(-6).toUpperCase()}`;
+    // 1. Meta Data
+    document.getElementById('ov-id-display').textContent = `Order #${orderId.slice(-6).toUpperCase()}`;
     if (orderData.createdAt) {
-      dateDisplay.textContent = `Date: ${new Date(orderData.createdAt.seconds * 1000).toLocaleDateString()}`;
+      document.getElementById('ov-date').textContent = `Date: ${new Date(orderData.createdAt.seconds * 1000).toLocaleDateString()}`;
     }
     
-    // Status Color
     const st = orderData.status || 'Pending';
-    statusBadge.textContent = st;
-    statusBadge.className = `inline-block px-3 py-1 text-xs font-bold rounded uppercase tracking-wide ${
+    const sBadge = document.getElementById('ov-status');
+    sBadge.textContent = st;
+    sBadge.className = `inline-block px-3 py-1 text-xs font-bold rounded uppercase tracking-wide ${
        st === 'Delivered' ? 'bg-green-100 text-green-800' :
        st === 'Cancelled' ? 'bg-red-100 text-red-800' :
        'bg-blue-100 text-blue-800'
     }`;
 
-    // Customer
+    // 2. Customer
     const cust = orderData.customer || {};
-    customerInfo.innerHTML = `
-      <div class="font-bold text-gray-900">${cust.name || 'N/A'}</div>
-      <div>${cust.phone || ''}</div>
-      <div>${cust.address || ''}</div>
+    document.getElementById('ov-customer-info').innerHTML = `
+      <div class="font-bold text-gray-900 text-lg">${cust.name || 'Unknown'}</div>
+      <div class="mt-1">${cust.phone || ''}</div>
+      <div class="mt-1">${cust.address || ''}</div>
     `;
 
-    // Items
+    // 3. Items List
     itemsBody.innerHTML = '';
     let subtotal = 0;
 
@@ -172,65 +131,140 @@ import { collection, doc, getDoc, getDocs, orderBy, query, updateDoc, serverTime
         <td class="py-3 text-right">${formatMoney(item.price)}</td>
         <td class="py-3 text-right font-medium">${formatMoney(lineTotal)}</td>
         <td class="py-3 text-right no-print">
-          ${canEdit ? `<button class="text-red-500 hover:text-red-700 p-1" data-idx="${index}">&times;</button>` : ''}
+          ${canEdit ? `<button class="text-red-500 hover:text-red-700 p-2 rounded hover:bg-red-50 transition" data-idx="${index}" title="Remove">&times;</button>` : ''}
         </td>
       `;
       itemsBody.appendChild(tr);
     });
 
-    // Remove buttons handler
+    // Remove Item Handler
     if (canEdit) {
       itemsBody.querySelectorAll('button[data-idx]').forEach(btn => {
         btn.addEventListener('click', (e) => {
           const idx = parseInt(e.target.dataset.idx);
-          items.splice(idx, 1);
-          hasChanges = true;
-          saveBtn.textContent = 'Save Changes*';
-          render();
+          if(confirm('Remove this item?')){
+            items.splice(idx, 1);
+            markChanged();
+            render();
+          }
         });
       });
     }
 
-    // Totals
+    // 4. Totals
     const delivery = Number(orderData.deliveryFee || 0);
     const total = subtotal + delivery;
     
-    subtotalEl.textContent = formatMoney(subtotal);
-    deliveryEl.textContent = formatMoney(delivery);
-    totalEl.textContent = formatMoney(total);
+    document.getElementById('ov-subtotal').textContent = formatMoney(subtotal);
+    document.getElementById('ov-delivery').textContent = formatMoney(delivery);
+    document.getElementById('ov-total').textContent = formatMoney(total);
+
+    // 5. Button Visibility
+    // Admin gets Print, Everyone who canEdit gets "Add Items"
+    if (isAdmin) {
+      printBtn.classList.remove('hidden');
+    } else {
+      printBtn.classList.add('hidden'); // Hide print for users
+    }
+
+    if (canEdit) {
+      addMoreBtn.classList.remove('hidden');
+      if (hasChanges) saveBtn.classList.remove('hidden');
+    } else {
+      addMoreBtn.classList.add('hidden');
+      saveBtn.classList.add('hidden');
+    }
   }
 
-  // ADD ITEM
-  addBtn.addEventListener('click', () => {
-    const pid = addSelect.value;
-    if (!pid) return;
-    
-    const p = products.find(x => x.id === pid);
-    const qty = parseInt(addQty.value) || 1;
-    
-    if (p) {
-      items.push({
-        id: p.id,
-        title: p.title,
-        price: Number(p.price || 0),
-        qty: qty,
-        variant: '' // Default variant for admin add
-      });
-      hasChanges = true;
-      saveBtn.textContent = 'Save Changes*';
-      render();
-      addSelect.value = '';
-      addQty.value = 1;
-    }
+  function markChanged() {
+    hasChanges = true;
+    saveBtn.textContent = 'Save Changes*';
+    saveBtn.classList.remove('hidden');
+  }
+
+  // --- MODAL & ADD PRODUCT LOGIC ---
+
+  addMoreBtn.addEventListener('click', () => {
+    renderModalProducts(products);
+    modal.classList.remove('hidden');
   });
 
-  // SAVE CHANGES
+  modalClose.addEventListener('click', () => {
+    modal.classList.add('hidden');
+  });
+
+  // Render cards in popup
+  function renderModalProducts(list) {
+    modalGrid.innerHTML = '';
+    if (list.length === 0) {
+      modalGrid.innerHTML = '<div class="col-span-full text-center text-gray-500 py-10">No products found.</div>';
+      return;
+    }
+
+    list.forEach(p => {
+      // Image fallback
+      const img = p.image || 'https://via.placeholder.com/150?text=No+Image';
+      
+      const div = document.createElement('div');
+      div.className = 'bg-white rounded-lg shadow-sm border overflow-hidden hover:shadow-md transition flex flex-col h-full';
+      div.innerHTML = `
+        <div class="h-32 bg-gray-200 w-full relative">
+          <img src="${img}" class="w-full h-full object-cover">
+        </div>
+        <div class="p-3 flex flex-col flex-1">
+          <h4 class="font-semibold text-sm text-gray-800 line-clamp-2 mb-1">${p.title}</h4>
+          <div class="text-green-600 font-bold text-sm mb-3">${formatMoney(p.price)}</div>
+          
+          <div class="mt-auto">
+             <button class="add-to-order-btn w-full bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white border border-blue-200 py-1.5 rounded text-sm font-medium transition" 
+               data-id="${p.id}">
+               + Add
+             </button>
+          </div>
+        </div>
+      `;
+      
+      // Add Click Handler
+      div.querySelector('.add-to-order-btn').addEventListener('click', function() {
+        // Animation
+        const btn = this;
+        const originalText = btn.textContent;
+        btn.textContent = 'Added';
+        btn.classList.add('bg-green-600', 'text-white', 'border-green-600');
+        setTimeout(() => {
+           btn.textContent = originalText;
+           btn.classList.remove('bg-green-600', 'text-white', 'border-green-600');
+        }, 1000);
+
+        // Add to items list
+        items.push({
+          id: p.id,
+          title: p.title,
+          price: Number(p.price || 0),
+          qty: 1,
+          variant: '' // Basic add
+        });
+        markChanged();
+        render(); // Update background table
+      });
+
+      modalGrid.appendChild(div);
+    });
+  }
+
+  // Search in Modal
+  modalSearch.addEventListener('input', (e) => {
+    const term = e.target.value.toLowerCase();
+    const filtered = products.filter(p => p.title.toLowerCase().includes(term));
+    renderModalProducts(filtered);
+  });
+
+  // SAVE TO FIREBASE
   saveBtn.addEventListener('click', async () => {
     if (!hasChanges) return;
     saveBtn.disabled = true;
     saveBtn.textContent = 'Saving...';
     try {
-      // Recalculate totals
       const sub = items.reduce((sum, i) => sum + (i.price * i.qty), 0);
       const del = Number(orderData.deliveryFee || 0);
       
@@ -242,10 +276,13 @@ import { collection, doc, getDoc, getDocs, orderBy, query, updateDoc, serverTime
       });
       
       hasChanges = false;
-      saveBtn.textContent = 'Saved';
-      setTimeout(() => { saveBtn.textContent = 'Save Changes'; saveBtn.disabled = false; }, 2000);
+      saveBtn.textContent = 'Saved!';
+      setTimeout(() => { 
+        saveBtn.textContent = 'Save Changes'; 
+        saveBtn.disabled = false;
+        saveBtn.classList.add('hidden'); // Hide until next change
+      }, 2000);
       
-      // Update local data
       orderData.items = items;
       render();
 
@@ -255,12 +292,5 @@ import { collection, doc, getDoc, getDocs, orderBy, query, updateDoc, serverTime
     }
   });
 
-  // PRINT
-  printBtn.addEventListener('click', () => {
-    window.print();
-  });
-
-  // Start
   loadData();
-
 })();
