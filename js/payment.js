@@ -134,9 +134,25 @@ class PaymentGateway {
 
   renderPaymentMethods() {
     const container = document.getElementById('payment-methods');
-    if (!container) return;
+    if (!container) {
+      console.error('Payment methods container not found');
+      return;
+    }
 
+    console.log('Rendering payment methods:', this.paymentMethods);
+    
     const enabledMethods = this.paymentMethods.filter(m => m.enabled);
+    console.log('Enabled methods:', enabledMethods);
+    
+    if (enabledMethods.length === 0) {
+      container.innerHTML = `
+        <div class="text-center text-gray-500 py-4">
+          <p>No payment methods available</p>
+          <p class="text-sm">Please contact admin to enable payment options</p>
+        </div>
+      `;
+      return;
+    }
     
     container.innerHTML = enabledMethods.map(method => `
       <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
@@ -149,6 +165,8 @@ class PaymentGateway {
         </div>
       </label>
     `).join('');
+    
+    console.log('Payment methods rendered successfully');
   }
 
   async handlePaymentSubmit(e) {
