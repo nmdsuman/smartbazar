@@ -1017,6 +1017,11 @@ export async function renderCartPage() {
       
       if (method && method.type === 'manual') {
         modalPaymentDetails.classList.remove('hidden');
+        
+        // Get existing values from cart form
+        const existingTrxId = document.querySelector('input[name="transaction_id"]')?.value || '';
+        const existingSenderNumber = document.querySelector('input[name="sender_number"]')?.value || '';
+        
         modalPaymentDetails.innerHTML = `
           <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <h4 class="font-semibold text-blue-900 mb-2">${method.name} Payment Details</h4>
@@ -1028,12 +1033,14 @@ export async function renderCartPage() {
               <label class="block text-sm font-medium text-gray-700 mb-1">Transaction ID (TRX)</label>
               <input type="text" name="transaction_id" required 
                      class="w-full border-gray-300 rounded-lg px-3 py-2"
+                     value="${existingTrxId}"
                      placeholder="Enter your bKash Transaction ID">
             </div>
             <div class="mt-3">
               <label class="block text-sm font-medium text-gray-700 mb-1">Sender Number</label>
               <input type="text" name="sender_number" required 
                      class="w-full border-gray-300 rounded-lg px-3 py-2"
+                     value="${existingSenderNumber}"
                      placeholder="Your bKash number">
             </div>
           </div>
@@ -1105,11 +1112,17 @@ export async function renderCartPage() {
 
         // Process payment if not COD
         if (selectedPaymentMethod.value !== 'cod' && window.paymentGateway) {
-          // Get TRX ID and sender number from the form
-          const transactionId = document.querySelector('input[name="transaction_id"]')?.value;
-          const senderNumber = document.querySelector('input[name="sender_number"]')?.value;
+          // Get TRX ID and sender number from modal inputs
+          const transactionId = document.querySelector('#modal-payment-details input[name="transaction_id"]')?.value;
+          const senderNumber = document.querySelector('#modal-payment-details input[name="sender_number"]')?.value;
           
-          if (!transactionId || !senderNumber) {
+          console.log('Modal payment data:', { transactionId, senderNumber });
+          
+          // If modal doesn't have values, try cart form
+          const fallbackTrxId = transactionId || document.querySelector('input[name="transaction_id"]')?.value;
+          const fallbackSenderNumber = senderNumber || document.querySelector('input[name="sender_number"]')?.value;
+          
+          if (!fallbackTrxId || !fallbackSenderNumber) {
             alert('Please provide both Transaction ID and Sender number for bKash payment');
             return;
           }
@@ -1121,14 +1134,17 @@ export async function renderCartPage() {
               method: 'bkash',
               methodName: 'bKash',
               status: 'pending_verification',
-              transactionId: transactionId,
-              senderNumber: senderNumber,
+              transactionId: fallbackTrxId,
+              senderNumber: fallbackSenderNumber,
               createdAt: serverTimestamp(),
               userId: auth.currentUser?.uid || null
             };
 
+            console.log('Saving payment data:', paymentData);
+
             // Save payment record
             const paymentRef = await addDoc(collection(db, 'payments'), paymentData);
+            console.log('Payment saved with ID:', paymentRef.id);
 
             // Update order with payment info
             await updateDoc(doc(db, 'orders', newOrderId), {
@@ -1137,6 +1153,7 @@ export async function renderCartPage() {
               paymentStatus: 'pending_verification',
               updatedAt: serverTimestamp()
             });
+            console.log('Order updated with payment info');
 
             // Show success message
             alert('Payment submitted successfully! Admin will verify your payment shortly.');
@@ -1150,7 +1167,7 @@ export async function renderCartPage() {
 
           } catch (error) {
             console.error('Payment processing error:', error);
-            alert('Payment processing failed. Please try again.');
+            alert('Payment processing failed: ' + error.message);
           }
         } else {
           // COD - complete order directly
