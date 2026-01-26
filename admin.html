@@ -538,11 +538,22 @@
   <script type="module" src="js/auth.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
   <script>
-    // Tab switching logic fallback
+    // Tab switching logic fallback - only if admin.js showSection is not available
     document.addEventListener('DOMContentLoaded', () => {
+      // Check if admin.js has already set up section management
+      if (typeof window.showSection === 'function') {
+        // Admin.js is handling sections, just ensure default section
+        const hash = location.hash.replace('#', '');
+        if (!hash) {
+          location.hash = '#add';
+        }
+        return;
+      }
+      
+      // Fallback logic only if admin.js showSection is not available
       const ids = ['add', 'products', 'orders-section', 'shipping', 'site', 'categories', 'files', 'chat'];
       function showSection(id) {
-        const key = ids.includes(id) ? id : 'products'; // Default to products if unsure, or add if preferred
+        const key = ids.includes(id) ? id : 'add'; // Default to add
         ids.forEach(k => {
           const el = document.getElementById(k);
           if (el) {
@@ -563,7 +574,7 @@
       }
       function sync() { 
         const hash = location.hash.replace('#', '');
-        showSection(hash || 'add'); // Default to Add Product screen for better UX
+        showSection(hash || 'add'); // Default to Add Product screen
       }
       window.addEventListener('hashchange', sync);
       sync();
