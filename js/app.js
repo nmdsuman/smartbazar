@@ -11,6 +11,7 @@ import {
   doc,
   getDoc,
   setDoc,
+  updateDoc,
   runTransaction
 } from 'firebase/firestore';
 
