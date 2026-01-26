@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Payment Test</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="importmap">
+  {
+    "imports": {
+      "firebase/app": "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js",
+      "firebase/auth": "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js",
+      "firebase/firestore": "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js"
+    }
+  }
+  </script>
+</head>
+<body class="bg-gray-100 p-8">
+  <div class="max-w-2xl mx-auto">
+    <h1 class="text-2xl font-bold mb-6">Payment Gateway Test</h1>
+    
+    <div class="bg-white rounded-lg p-6 shadow-sm">
+      <h2 class="text-lg font-semibold mb-4">Test Payment Methods</h2>
+      
+      <div class="mb-4">
+        <button id="test-load" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+          Load Payment Methods
+        </button>
+        <button id="test-render" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 ml-2">
+          Render Payment Methods
+        </button>
+      </div>
+      
+      <div id="payment-methods" class="space-y-2 mb-4">
+        <!-- Payment methods will be rendered here -->
+      </div>
+      
+      <div id="payment-details" class="mb-4">
+        <!-- Payment details will be shown here -->
+      </div>
+      
+      <div id="test-results" class="bg-gray-50 p-4 rounded text-sm">
+        <!-- Test results will be shown here -->
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/firebase-config.js"></script>
+  <script type="module" src="js/payment.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const testResults = document.getElementById('test-results');
+      const paymentMethodsContainer = document.getElementById('payment-methods');
+      
+      function log(message) {
+        console.log(message);
+        testResults.innerHTML += `<div>${new Date().toLocaleTimeString()}: ${message}</div>`;
+      }
+      
+      // Test load button
+      document.getElementById('test-load').addEventListener('click', async () => {
+        log('Testing payment methods loading...');
+        
+        if (!window.paymentGateway) {
+          log('❌ Payment gateway not found');
+          return;
+        }
+        
+        try {
+          await window.paymentGateway.loadPaymentMethods();
+          log(`✅ Payment methods loaded: ${window.paymentGateway.paymentMethods.length} methods`);
+          window.paymentGateway.paymentMethods.forEach(method => {
+            log(`   - ${method.name}: enabled=${method.enabled}`);
+          });
+        } catch (error) {
+          log(`❌ Error loading payment methods: ${error.message}`);
+        }
+      });
+      
+      // Test render button
+      document.getElementById('test-render').addEventListener('click', () => {
+        log('Testing payment methods rendering...');
+        
+        if (!window.paymentGateway) {
+          log('❌ Payment gateway not found');
+          return;
+        }
+        
+        try {
+          window.paymentGateway.renderPaymentMethods();
+          log('✅ Payment methods rendered successfully');
+        } catch (error) {
+          log(`❌ Error rendering payment methods: ${error.message}`);
+        }
+      });
+      
+      // Auto-test on load
+      setTimeout(async () => {
+        log('🔄 Auto-testing payment gateway...');
+        if (window.paymentGateway) {
+          await window.paymentGateway.loadPaymentMethods();
+          window.paymentGateway.renderPaymentMethods();
+          log('✅ Auto-test completed');
+        } else {
+          log('❌ Payment gateway not available for auto-test');
+        }
+      }, 1000);
+    });
+  </script>
+</body>
+</html>
