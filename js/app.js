@@ -1182,7 +1182,7 @@ export async function renderCartPage() {
             updateCartBadge();
             invModal.classList.add('hidden'); 
             invModal.classList.remove('flex');
-            window.location.href = `orders.html?payment=${encodeURIComponent(paymentRef.id)}`;
+            window.location.href = `orders.html?payment=${encodeURIComponent(paymentRef.id)}&success=bkash`;
 
           } catch (error) {
             console.error('Payment processing error:', error);
@@ -1194,7 +1194,7 @@ export async function renderCartPage() {
           updateCartBadge();
           invModal.classList.add('hidden'); 
           invModal.classList.remove('flex');
-          window.location.href = `orders.html?placed=${encodeURIComponent(newOrderId)}`;
+          window.location.href = `orders.html?placed=${encodeURIComponent(newOrderId)}&success=cod`;
         }
       } catch (e) {
         alert('Failed to place order: ' + e.message);
