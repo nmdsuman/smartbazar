@@ -13,7 +13,11 @@
       body { background-color: white; }
       .no-print { display: none !important; }
       #order-view { box-shadow: none; border: none; padding: 0; }
+      #product-modal { display: none !important; }
     }
+    /* Scrollbar for modal */
+    #pm-grid::-webkit-scrollbar { width: 6px; }
+    #pm-grid::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
   </style>
   <script type="importmap">
   {
@@ -41,29 +45,27 @@
 
   <main class="max-w-4xl mx-auto p-4 md:p-8">
     
-    <div id="ov-empty" class="hidden text-center py-10 text-gray-500">Loading order details...</div>
+    <div id="ov-empty" class="hidden text-center py-10 text-gray-500">Loading...</div>
 
     <div id="order-view" class="bg-white shadow-lg rounded-xl overflow-hidden hidden">
       
       <div class="p-8 border-b bg-gray-50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 class="text-3xl font-bold text-gray-800">INVOICE</h1>
-          <div class="text-sm text-gray-500 mt-1" id="ov-id-display">#ORDER-ID</div>
+          <div class="text-sm text-gray-500 mt-1" id="ov-id-display">#ORDER</div>
           <div class="mt-2">
             <span id="ov-status" class="inline-block px-2 py-1 text-xs font-semibold rounded bg-gray-200 text-gray-700">Pending</span>
           </div>
         </div>
         <div class="text-left md:text-right">
           <h2 class="text-xl font-bold text-green-700">Bazar</h2>
-          <p class="text-sm text-gray-500">Smart Shopping</p>
           <div id="ov-date" class="text-sm text-gray-500 mt-1">Date: --/--/----</div>
         </div>
       </div>
 
       <div class="p-8 border-b">
         <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Bill To</h3>
-        <div id="ov-customer-info" class="text-sm text-gray-700 leading-relaxed">
-          </div>
+        <div id="ov-customer-info" class="text-sm text-gray-700 leading-relaxed"></div>
       </div>
 
       <div class="p-8">
@@ -77,8 +79,7 @@
               <th class="py-3 w-10 no-print"></th>
             </tr>
           </thead>
-          <tbody id="ov-items">
-            </tbody>
+          <tbody id="ov-items"></tbody>
         </table>
       </div>
 
@@ -101,40 +102,47 @@
         </div>
       </div>
 
-      <div id="ov-controls" class="bg-gray-50 p-6 border-t no-print hidden">
-        <div class="flex flex-col md:flex-row items-end gap-3">
-          <div class="flex-1 w-full">
-            <label class="block text-xs font-medium text-gray-500 mb-1">Add Product</label>
-            <select id="ov-add-select" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 text-sm p-2 border">
-              <option value="">Select a product...</option>
-            </select>
-          </div>
-          <div class="w-20">
-             <label class="block text-xs font-medium text-gray-500 mb-1">Qty</label>
-             <input id="ov-add-qty" type="number" min="1" value="1" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500 text-sm p-2 border">
-          </div>
-          <button id="ov-add-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm font-medium shadow-sm w-full md:w-auto">
-            Add
-          </button>
-        </div>
-      </div>
-
-      <div class="p-6 bg-gray-100 border-t flex justify-between items-center no-print">
+      <div class="p-6 bg-gray-100 border-t flex flex-wrap justify-between items-center gap-3 no-print">
         <button onclick="history.back()" class="text-gray-600 hover:text-gray-900 text-sm font-medium">
           &larr; Back
         </button>
-        <div class="flex gap-3">
-          <button id="ov-print" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium shadow-sm transition">
+        
+        <div class="flex gap-3 items-center">
+          <button id="ov-add-more" class="hidden px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-sm transition flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            Add Items
+          </button>
+
+          <button id="ov-print" class="hidden px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium shadow-sm transition">
             Print Invoice
           </button>
-          <button id="ov-save" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium shadow-sm transition hidden">
+          
+          <button id="ov-save" class="hidden px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium shadow-sm transition">
             Save Changes
           </button>
         </div>
       </div>
-
     </div>
   </main>
+
+  <div id="product-modal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-5xl h-[85vh] rounded-2xl flex flex-col shadow-2xl overflow-hidden transform transition-all scale-100">
+      
+      <div class="px-6 py-4 border-b flex justify-between items-center bg-white sticky top-0 z-10">
+        <h3 class="text-xl font-bold text-gray-800">Add Products</h3>
+        <button id="pm-close" class="p-2 bg-gray-100 hover:bg-red-100 text-gray-500 hover:text-red-600 rounded-full transition">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <div class="p-4 bg-gray-50 border-b">
+        <input type="text" id="pm-search" placeholder="Search products..." class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition shadow-sm">
+      </div>
+      
+      <div id="pm-grid" class="p-6 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 bg-gray-50 flex-1">
+        </div>
+    </div>
+  </div>
 
   <script type="module" src="js/order-view.js"></script>
 </body>
