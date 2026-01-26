@@ -962,10 +962,31 @@ export async function renderCartPage() {
     invModal?.classList.add('flex');
 
     // Initialize payment methods if payment gateway is available
-    if (window.paymentGateway) {
-      await window.paymentGateway.loadPaymentMethods();
-      window.paymentGateway.renderPaymentMethods();
-    }
+    // Add a small delay to ensure DOM is ready
+    setTimeout(async () => {
+      if (window.paymentGateway) {
+        console.log('Initializing payment gateway...');
+        try {
+          await window.paymentGateway.loadPaymentMethods();
+          window.paymentGateway.renderPaymentMethods();
+          console.log('Payment methods rendered successfully');
+        } catch (error) {
+          console.error('Error initializing payment methods:', error);
+        }
+      } else {
+        console.error('Payment gateway not available');
+        // Show fallback payment options
+        const paymentMethodsContainer = document.getElementById('payment-methods');
+        if (paymentMethodsContainer) {
+          paymentMethodsContainer.innerHTML = `
+            <div class="text-center text-gray-500 py-4">
+              <p>Payment options are currently unavailable.</p>
+              <p class="text-sm">Please contact support or try again later.</p>
+            </div>
+          `;
+        }
+      }
+    }, 100);
 
     // Wire confirm once per open
     const onConfirm = async () => {
@@ -1064,6 +1085,55 @@ export async function renderCartPage() {
   await loadShippingSettings();
   refresh();
   loadProfile();
+
+  // Initialize payment gateway when page loads
+  setTimeout(async () => {
+    if (window.paymentGateway) {
+      console.log('Pre-initializing payment gateway...');
+      try {
+        await window.paymentGateway.loadPaymentMethods();
+        console.log('Payment gateway pre-initialized successfully');
+      } catch (error) {
+        console.error('Error pre-initializing payment gateway:', error);
+      }
+    } else {
+      console.log('Payment gateway not yet available for pre-initialization');
+    }
+  }, 500);
+
+  // Debug button functionality
+  const debugBtn = document.getElementById('debug-payment-btn');
+  if (debugBtn) {
+    debugBtn.addEventListener('click', async () => {
+      console.log('Debug: Testing payment methods...');
+      
+      if (!window.paymentGateway) {
+        console.error('Payment gateway not found');
+        alert('Payment gateway not loaded. Check console for errors.');
+        return;
+      }
+
+      try {
+        // Test loading payment methods
+        await window.paymentGateway.loadPaymentMethods();
+        console.log('Payment methods loaded:', window.paymentGateway.paymentMethods);
+        
+        // Test rendering payment methods
+        const container = document.getElementById('payment-methods');
+        if (container) {
+          window.paymentGateway.renderPaymentMethods();
+          console.log('Payment methods rendered to container');
+          alert('Payment methods loaded successfully! Check console for details.');
+        } else {
+          console.error('Payment methods container not found');
+          alert('Payment methods container not found in modal.');
+        }
+      } catch (error) {
+        console.error('Debug error:', error);
+        alert('Error: ' + error.message);
+      }
+    });
+  }
 
   // If opened with ?quick=1 and profile is present, auto open summary
   try {
