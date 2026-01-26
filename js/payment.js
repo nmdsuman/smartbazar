@@ -31,27 +31,39 @@ class PaymentGateway {
       const settingsSnap = await getDoc(settingsRef);
       const settings = settingsSnap.exists() ? settingsSnap.data() : {};
       
-      this.paymentMethods = settings.methods || [
-        {
-          id: 'bkash',
-          name: 'bKash',
-          type: 'manual',
-          enabled: true,
-          config: {
-            number: '',
-            instructions: 'Send money to the bKash number and enter your Transaction ID'
+      console.log('Loading payment settings:', settings);
+      
+      // Use saved methods or default methods
+      const savedMethods = settings.methods || [];
+      
+      if (savedMethods.length > 0) {
+        this.paymentMethods = savedMethods;
+      } else {
+        // Fallback to default methods
+        this.paymentMethods = [
+          {
+            id: 'bkash',
+            name: 'bKash',
+            type: 'manual',
+            enabled: true,
+            config: {
+              number: '',
+              instructions: 'Send money to the bKash number and enter your Transaction ID'
+            }
+          },
+          {
+            id: 'cod',
+            name: 'Cash on Delivery',
+            type: 'cod',
+            enabled: true,
+            config: {
+              instructions: 'Pay when you receive your order'
+            }
           }
-        },
-        {
-          id: 'cod',
-          name: 'Cash on Delivery',
-          type: 'cod',
-          enabled: true,
-          config: {
-            instructions: 'Pay when you receive your order'
-          }
-        }
-      ];
+        ];
+      }
+      
+      console.log('Payment methods loaded:', this.paymentMethods);
     } catch (error) {
       console.error('Failed to load payment methods:', error);
       this.paymentMethods = [];
@@ -79,6 +91,8 @@ class PaymentGateway {
 
     const detailsContainer = document.getElementById('payment-details');
     if (!detailsContainer) return;
+
+    console.log('Showing payment details for:', method);
 
     if (method.type === 'manual') {
       detailsContainer.innerHTML = `
@@ -196,6 +210,11 @@ class PaymentGateway {
       e.target.reset();
       document.getElementById('payment-details').innerHTML = '';
 
+      // Redirect to orders page after successful payment
+      setTimeout(() => {
+        window.location.href = `orders.html?payment=${encodeURIComponent(paymentRef.id)}`;
+      }, 2000);
+
     } catch (error) {
       console.error('Payment processing error:', error);
       alert('Payment processing failed. Please try again.');
@@ -206,22 +225,32 @@ class PaymentGateway {
     const successContainer = document.getElementById('payment-success');
     if (!successContainer) return;
 
-    if (method.type === 'cod') {
+    if (method.type === 'manual') {
       successContainer.innerHTML = `
-        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
-          <h4 class="font-bold">Order Placed Successfully!</h4>
-          <p class="text-sm">Your order has been placed. Please pay ${paymentData.amount || 'the total amount'} when your order is delivered.</p>
+        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+          <h4 class="font-semibold text-green-900 mb-2">✅ Payment Submitted Successfully!</h4>
+          <div class="text-sm text-green-800 space-y-1">
+            <p><strong>Transaction ID:</strong> ${paymentData.transactionId}</p>
+            <p><strong>Sender Number:</strong> ${paymentData.senderNumber}</p>
+            <p><strong>Status:</strong> Pending Verification</p>
+            <p class="mt-2 text-xs">Admin will verify your payment shortly. You will be redirected to your orders page...</p>
+          </div>
         </div>
       `;
-    } else if (method.type === 'manual') {
+    } else if (method.type === 'cod') {
       successContainer.innerHTML = `
-        <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
-          <h4 class="font-bold">Payment Submitted for Verification!</h4>
-          <p class="text-sm">Your payment details have been submitted. We will verify your transaction and process your order shortly.</p>
-          <p class="text-sm mt-1"><strong>Transaction ID:</strong> ${paymentData.transactionId}</p>
+        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+          <h4 class="font-semibold text-green-900 mb-2">✅ Order Placed Successfully!</h4>
+          <div class="text-sm text-green-800">
+            <p>Payment will be collected when your order is delivered.</p>
+            <p class="mt-2 text-xs">You will be redirected to your orders page...</p>
+          </div>
         </div>
       `;
     }
+    
+    // Show the success message
+    successContainer.classList.remove('hidden');
   }
 
   // Admin methods for payment management
