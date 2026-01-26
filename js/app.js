@@ -1046,10 +1046,12 @@ export async function renderCartPage() {
 
         // Process payment if not COD
         if (selectedPaymentMethod.value !== 'cod' && window.paymentGateway) {
+          // Create payment form and submit it
           const paymentForm = document.createElement('form');
           paymentForm.id = 'payment-form';
           paymentForm.innerHTML = `
             <input type="hidden" name="order_id" value="${newOrderId}">
+            <input type="hidden" name="payment_method" value="${selectedPaymentMethod.value}">
           `;
           
           // Add payment form to modal and submit
@@ -1058,7 +1060,10 @@ export async function renderCartPage() {
             paymentDetails.appendChild(paymentForm);
             
             // Trigger payment processing
-            await window.paymentGateway.handlePaymentSubmit(new Event('submit', { cancelable: true }));
+            await window.paymentGateway.handlePaymentSubmit(new Event('submit', { 
+              target: paymentForm,
+              cancelable: true 
+            }));
           }
         } else {
           // COD - complete order directly
