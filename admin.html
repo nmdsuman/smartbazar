@@ -71,14 +71,6 @@
           <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
           <span>Delivery</span>
         </a>
-        <a href="#bkash-payment" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-blue-50 hover:text-blue-700 transition-colors group">
-          <svg class="w-5 h-5 text-gray-400 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
-          <span>bKash Payment</span>
-        </a>
-        <a href="#payment-methods" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-blue-50 hover:text-blue-700 transition-colors group">
-          <svg class="w-5 h-5 text-gray-400 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-          <span>Payment Methods</span>
-        </a>
         <a href="#site" class="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors">
           <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
           <span>Site Settings</span>
@@ -373,192 +365,6 @@
         </form>
       </section>
 
-      <!-- bKash Payment Section -->
-      <section id="bkash-payment" class="hidden bg-white border rounded-xl shadow-sm p-6 max-w-3xl">
-        <div class="flex items-center justify-between mb-6">
-          <h2 class="text-xl font-bold text-gray-800">bKash Payment Gateway</h2>
-          <div class="flex items-center gap-2">
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-              bKash
-            </span>
-          </div>
-        </div>
-        
-        <form id="bkash-form" class="space-y-6">
-          <!-- bKash API Configuration -->
-          <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
-            <h3 class="font-semibold text-purple-800 mb-4 flex items-center gap-2">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-              </svg>
-              API Configuration
-            </h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">App Key</label>
-                <input type="text" name="bkashAppKey" class="w-full border-gray-300 rounded-lg px-3 py-2 font-mono text-sm" placeholder="bKash App Key">
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">App Secret</label>
-                <input type="password" name="bkashAppSecret" class="w-full border-gray-300 rounded-lg px-3 py-2 font-mono text-sm" placeholder="bKash App Secret">
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                <input type="text" name="bkashUsername" class="w-full border-gray-300 rounded-lg px-3 py-2 font-mono text-sm" placeholder="bKash Username">
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                <input type="password" name="bkashPassword" class="w-full border-gray-300 rounded-lg px-3 py-2 font-mono text-sm" placeholder="bKash Password">
-              </div>
-            </div>
-          </div>
-
-          <!-- bKash Payment Settings -->
-          <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <h3 class="font-semibold text-gray-800 mb-4">Payment Settings</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Merchant API Number</label>
-                <input type="text" name="bkashMerchantNumber" class="w-full border-gray-300 rounded-lg px-3 py-2" placeholder="01XXXXXXXXX">
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Personal bKash Number (For Manual Payment)</label>
-                <input type="text" name="bkashPersonalNumber" class="w-full border-gray-300 rounded-lg px-3 py-2" placeholder="Personal bKash Number">
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Transaction Fee (৳)</label>
-                <input type="number" step="0.01" name="bkashTransactionFee" class="w-full border-gray-300 rounded-lg px-3 py-2" placeholder="0.00">
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Payment Instructions</label>
-                <textarea name="bkashInstructions" rows="2" class="w-full border-gray-300 rounded-lg px-3 py-2" placeholder="Send money to this bKash number and enter transaction ID"></textarea>
-              </div>
-            </div>
-            
-            <div class="mt-4 space-y-3">
-              <label class="flex items-center gap-3">
-                <input type="checkbox" name="bkashEnabled" class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
-                <span class="text-sm font-medium text-gray-700">Enable bKash Payment</span>
-              </label>
-              <label class="flex items-center gap-3">
-                <input type="checkbox" name="bkashSandbox" class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
-                <span class="text-sm font-medium text-gray-700">Use Sandbox Mode (Testing)</span>
-              </label>
-            </div>
-          </div>
-
-          <div class="flex items-center gap-3">
-            <button type="submit" class="bg-purple-600 text-white px-5 py-2 rounded-lg hover:bg-purple-700">Save bKash Settings</button>
-            <button type="button" id="bkash-test-connection" class="bg-purple-100 text-purple-700 px-5 py-2 rounded-lg hover:bg-purple-200 border border-purple-300">Test Connection</button>
-          </div>
-          <div id="bkash-message" class="text-sm"></div>
-        </form>
-      </section>
-
-      <!-- Payment Methods Section -->
-      <section id="payment-methods" class="hidden bg-white border rounded-xl shadow-sm p-6 max-w-4xl">
-        <div class="flex items-center justify-between mb-6">
-          <h2 class="text-xl font-bold text-gray-800">Payment Methods</h2>
-          <button type="button" id="add-payment-method" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium">
-            <span class="flex items-center gap-2">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-              </svg>
-              Add Payment Method
-            </span>
-          </button>
-        </div>
-
-        <!-- Payment Methods List -->
-        <div id="payment-methods-list" class="space-y-4">
-          <!-- Payment methods will be dynamically added here -->
-        </div>
-
-        <!-- Empty State -->
-        <div id="payment-methods-empty" class="text-center py-12 hidden">
-          <div class="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
-            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
-            </svg>
-          </div>
-          <h3 class="text-lg font-medium text-gray-900 mb-2">No Payment Methods</h3>
-          <p class="text-gray-500 mb-4">Add payment methods to accept different types of payments.</p>
-          <button type="button" onclick="document.getElementById('add-payment-method').click()" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-            </svg>
-            Add First Payment Method
-          </button>
-        </div>
-
-        <!-- Add/Edit Payment Method Modal -->
-        <div id="payment-method-modal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50">
-          <div class="bg-white w-full max-w-2xl m-4 rounded-xl shadow-lg flex flex-col max-h-[90vh]">
-            <div class="p-4 border-b flex justify-between items-center">
-              <h3 class="font-bold text-gray-800" id="payment-method-modal-title">Add Payment Method</h3>
-              <button id="payment-method-modal-close" class="text-gray-500 hover:text-gray-700">✕</button>
-            </div>
-            <div class="p-4 overflow-y-auto flex-1">
-              <form id="payment-method-form" class="space-y-4">
-                <input type="hidden" id="payment-method-id">
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Method Name *</label>
-                    <input type="text" id="payment-method-name" required class="w-full border-gray-300 rounded-lg px-3 py-2" placeholder="e.g., Cash on Delivery">
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Method Type *</label>
-                    <select id="payment-method-type" required class="w-full border-gray-300 rounded-lg px-3 py-2">
-                      <option value="">Select Type</option>
-                      <option value="cod">Cash on Delivery</option>
-                      <option value="bank">Bank Transfer</option>
-                      <option value="wallet">Digital Wallet</option>
-                      <option value="card">Credit/Debit Card</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                  <textarea id="payment-method-description" rows="3" class="w-full border-gray-300 rounded-lg px-3 py-2" placeholder="Payment method description..."></textarea>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Transaction Fee (৳)</label>
-                    <input type="number" step="0.01" id="payment-method-fee" class="w-full border-gray-300 rounded-lg px-3 py-2" placeholder="0.00">
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Instructions</label>
-                    <input type="text" id="payment-method-instructions" class="w-full border-gray-300 rounded-lg px-3 py-2" placeholder="Payment instructions">
-                  </div>
-                </div>
-
-                <div class="space-y-3">
-                  <label class="flex items-center gap-3">
-                    <input type="checkbox" id="payment-method-enabled" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" checked>
-                    <span class="text-sm font-medium text-gray-700">Enable this payment method</span>
-                  </label>
-                  <label class="flex items-center gap-3">
-                    <input type="checkbox" id="payment-method-default" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                    <span class="text-sm font-medium text-gray-700">Set as default payment method</span>
-                  </label>
-                </div>
-
-                <div class="flex justify-end gap-3 pt-4 border-t">
-                  <button type="button" id="payment-method-cancel" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Cancel</button>
-                  <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Save Payment Method</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-
-        <div id="payment-methods-message" class="text-sm mt-4"></div>
-      </section>
-
       <!-- Site Settings -->
       <section id="site" class="hidden bg-white border rounded-xl shadow-sm p-6 max-w-3xl">
         <h2 class="text-xl font-bold mb-6">Site Settings</h2>
@@ -732,22 +538,11 @@
   <script type="module" src="js/auth.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
   <script>
-    // Tab switching logic fallback - only if admin.js showSection is not available
+    // Tab switching logic fallback
     document.addEventListener('DOMContentLoaded', () => {
-      // Check if admin.js has already set up section management
-      if (typeof window.showSection === 'function') {
-        // Admin.js is handling sections, just ensure default section
-        const hash = location.hash.replace('#', '');
-        if (!hash) {
-          location.hash = '#add';
-        }
-        return;
-      }
-      
-      // Fallback logic only if admin.js showSection is not available
-      const ids = ['add', 'products', 'orders-section', 'shipping', 'bkash-payment', 'payment-methods', 'site', 'categories', 'files', 'chat'];
+      const ids = ['add', 'products', 'orders-section', 'shipping', 'site', 'categories', 'files', 'chat'];
       function showSection(id) {
-        const key = ids.includes(id) ? id : 'add'; // Default to add
+        const key = ids.includes(id) ? id : 'products'; // Default to products if unsure, or add if preferred
         ids.forEach(k => {
           const el = document.getElementById(k);
           if (el) {
@@ -768,7 +563,7 @@
       }
       function sync() { 
         const hash = location.hash.replace('#', '');
-        showSection(hash || 'add'); // Default to Add Product screen
+        showSection(hash || 'add'); // Default to Add Product screen for better UX
       }
       window.addEventListener('hashchange', sync);
       sync();
@@ -778,7 +573,6 @@
   <script type="module" src="js/categories.js"></script>
   <script type="module" src="js/add-product.js"></script>
   <script type="module" src="js/products.js"></script>
-  <script type="module" src="js/payments.js"></script>
   <script type="module" src="js/notes.js"></script>
   <script type="module" src="js/admin.js"></script>
 </body>

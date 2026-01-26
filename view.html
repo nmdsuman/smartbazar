@@ -145,15 +145,5 @@
   </div>
 
   <script type="module" src="js/order-view.js"></script>
-  <script>
-    // Auto-print for admin print mode
-    if (new URLSearchParams(window.location.search).get('print') === 'true') {
-      window.addEventListener('load', () => {
-        setTimeout(() => {
-          window.print();
-        }, 1000);
-      });
-    }
-  </script>
 </body>
 </html>
