@@ -308,13 +308,16 @@ import { collection, doc, getDoc, getDocs, orderBy, query, updateDoc, serverTime
     if (!hasChanges) return;
     saveBtn.disabled = true;
     saveBtn.textContent = 'Saving...';
+    
     try {
-      const sub = items.reduce((sum, i) => sum + (i.price * i.qty), 0);
-      const del = Number(orderData.deliveryFee || 0);
+      const orderRef = doc(db, 'orders', orderId);
+      const sub = items.reduce((sum, it) => sum + (Number(it.price || 0) * Number(it.qty || 1)), 0);
+      const del = Number(orderData.deliveryFee || orderData.delivery || 0);
       
-      await updateDoc(doc(db, 'orders', orderId), {
+      await updateDoc(orderRef, {
         items: items,
         subtotal: sub,
+        delivery: del,
         total: sub + del,
         updatedAt: serverTimestamp()
       });
@@ -328,12 +331,22 @@ import { collection, doc, getDoc, getDocs, orderBy, query, updateDoc, serverTime
       }, 2000);
       
       orderData.items = items;
-      render();
-
+      orderData.subtotal = sub;
+      orderData.delivery = del;
+      orderData.total = sub + del;
+      
     } catch (e) {
-      alert('Error saving: ' + e.message);
+      console.error('Save failed:', e);
+      alert('Failed to save changes: ' + e.message);
+      saveBtn.textContent = 'Save Changes';
       saveBtn.disabled = false;
     }
+  });
+
+  // PRINT INVOICE
+  printBtn.addEventListener('click', () => {
+    console.log('Print button clicked');
+    window.print();
   });
 
   loadData();
