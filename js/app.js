@@ -964,6 +964,11 @@ export async function renderCartPage() {
         </div>
       </div>
       
+      <!-- bKash Payment Details (shown when bKash is selected) -->
+      <div id="modal-payment-details" class="mt-4 hidden">
+        <!-- Payment details will be shown here -->
+      </div>
+      
       <div class="mt-2 text-xs text-gray-500">Please review your order details before confirmation.</div>
     `;
     // Show modal
@@ -1002,6 +1007,41 @@ export async function renderCartPage() {
       }
     } else if (paymentDisplay) {
       paymentDisplay.innerHTML = `<span class="text-red-500">No payment method selected</span>`;
+    }
+
+    // Show payment details in modal if bKash is selected
+    const modalPaymentDetails = document.getElementById('modal-payment-details');
+    if (selectedPaymentMethod && modalPaymentDetails) {
+      const methodId = selectedPaymentMethod.value;
+      const method = window.paymentGateway?.paymentMethods?.find(m => m.id === methodId);
+      
+      if (method && method.type === 'manual') {
+        modalPaymentDetails.classList.remove('hidden');
+        modalPaymentDetails.innerHTML = `
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h4 class="font-semibold text-blue-900 mb-2">${method.name} Payment Details</h4>
+            <div class="text-sm text-blue-800 space-y-2">
+              <p><strong>bKash Number:</strong> <span class="font-mono">${method.config.number}</span></p>
+              <p><strong>Instructions:</strong> ${method.config.instructions}</p>
+            </div>
+            <div class="mt-4">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Transaction ID (TRX)</label>
+              <input type="text" name="transaction_id" required 
+                     class="w-full border-gray-300 rounded-lg px-3 py-2"
+                     placeholder="Enter your bKash Transaction ID">
+            </div>
+            <div class="mt-3">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Sender Number</label>
+              <input type="text" name="sender_number" required 
+                     class="w-full border-gray-300 rounded-lg px-3 py-2"
+                     placeholder="Your bKash number">
+            </div>
+          </div>
+        `;
+      } else {
+        modalPaymentDetails.classList.add('hidden');
+        modalPaymentDetails.innerHTML = '';
+      }
     }
 
     // No need to initialize payment methods here anymore
@@ -1065,24 +1105,52 @@ export async function renderCartPage() {
 
         // Process payment if not COD
         if (selectedPaymentMethod.value !== 'cod' && window.paymentGateway) {
-          // Create payment form and submit it
-          const paymentForm = document.createElement('form');
-          paymentForm.id = 'payment-form';
-          paymentForm.innerHTML = `
-            <input type="hidden" name="order_id" value="${newOrderId}">
-            <input type="hidden" name="payment_method" value="${selectedPaymentMethod.value}">
-          `;
+          // Get TRX ID and sender number from the form
+          const transactionId = document.querySelector('input[name="transaction_id"]')?.value;
+          const senderNumber = document.querySelector('input[name="sender_number"]')?.value;
           
-          // Add payment form to modal and submit
-          const paymentDetails = document.getElementById('payment-details');
-          if (paymentDetails) {
-            paymentDetails.appendChild(paymentForm);
+          if (!transactionId || !senderNumber) {
+            alert('Please provide both Transaction ID and Sender number for bKash payment');
+            return;
+          }
+          
+          // Create payment data directly
+          try {
+            const paymentData = {
+              orderId: newOrderId,
+              method: 'bkash',
+              methodName: 'bKash',
+              status: 'pending_verification',
+              transactionId: transactionId,
+              senderNumber: senderNumber,
+              createdAt: serverTimestamp(),
+              userId: auth.currentUser?.uid || null
+            };
+
+            // Save payment record
+            const paymentRef = await addDoc(collection(db, 'payments'), paymentData);
+
+            // Update order with payment info
+            await updateDoc(doc(db, 'orders', newOrderId), {
+              paymentId: paymentRef.id,
+              paymentMethod: 'bkash',
+              paymentStatus: 'pending_verification',
+              updatedAt: serverTimestamp()
+            });
+
+            // Show success message
+            alert('Payment submitted successfully! Admin will verify your payment shortly.');
             
-            // Trigger payment processing
-            await window.paymentGateway.handlePaymentSubmit(new Event('submit', { 
-              target: paymentForm,
-              cancelable: true 
-            }));
+            // Clear cart and redirect
+            localStorage.removeItem(CART_KEY);
+            updateCartBadge();
+            invModal.classList.add('hidden'); 
+            invModal.classList.remove('flex');
+            window.location.href = `orders.html?payment=${encodeURIComponent(paymentRef.id)}`;
+
+          } catch (error) {
+            console.error('Payment processing error:', error);
+            alert('Payment processing failed. Please try again.');
           }
         } else {
           // COD - complete order directly
