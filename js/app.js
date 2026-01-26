@@ -961,17 +961,32 @@ export async function renderCartPage() {
     invModal?.classList.remove('hidden');
     invModal?.classList.add('flex');
 
+    // Initialize payment methods if payment gateway is available
+    if (window.paymentGateway) {
+      await window.paymentGateway.loadPaymentMethods();
+      window.paymentGateway.renderPaymentMethods();
+    }
+
     // Wire confirm once per open
     const onConfirm = async () => {
       try {
+        // Check if payment method is selected
+        const selectedPaymentMethod = document.querySelector('input[name="payment_method"]:checked');
+        if (!selectedPaymentMethod) {
+          alert('Please select a payment method');
+          return;
+        }
+
         // Save/merge profile
         if (auth.currentUser) {
           await setDoc(doc(db, 'users', auth.currentUser.uid), { name, phone, address }, { merge: true });
         }
+
         // Place order atomically: validate and decrement stock, then create order
         const ordersCol = collection(db, 'orders');
         const newOrderRef = doc(ordersCol);
         const newOrderId = newOrderRef.id;
+        
         await runTransaction(db, async (tx) => {
           // 1) Read all product docs first (no writes yet)
           const writePlan = [];
@@ -1002,14 +1017,36 @@ export async function renderCartPage() {
             userId: auth.currentUser ? auth.currentUser.uid : null,
             customer: { name, phone, address },
             status: 'Pending',
+            paymentMethod: selectedPaymentMethod.value,
+            paymentStatus: selectedPaymentMethod.value === 'cod' ? 'pending' : 'pending_verification',
             createdAt: serverTimestamp()
           });
         });
-        localStorage.removeItem(CART_KEY);
-        updateCartBadge();
-        invModal.classList.add('hidden'); invModal.classList.remove('flex');
-        // Redirect to orders with success flag
-        window.location.href = `orders.html?placed=${encodeURIComponent(newOrderId)}`;
+
+        // Process payment if not COD
+        if (selectedPaymentMethod.value !== 'cod' && window.paymentGateway) {
+          const paymentForm = document.createElement('form');
+          paymentForm.id = 'payment-form';
+          paymentForm.innerHTML = `
+            <input type="hidden" name="order_id" value="${newOrderId}">
+          `;
+          
+          // Add payment form to modal and submit
+          const paymentDetails = document.getElementById('payment-details');
+          if (paymentDetails) {
+            paymentDetails.appendChild(paymentForm);
+            
+            // Trigger payment processing
+            await window.paymentGateway.handlePaymentSubmit(new Event('submit', { cancelable: true }));
+          }
+        } else {
+          // COD - complete order directly
+          localStorage.removeItem(CART_KEY);
+          updateCartBadge();
+          invModal.classList.add('hidden'); 
+          invModal.classList.remove('flex');
+          window.location.href = `orders.html?placed=${encodeURIComponent(newOrderId)}`;
+        }
       } catch (e) {
         alert('Failed to place order: ' + e.message);
       } finally {
