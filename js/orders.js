@@ -2,6 +2,67 @@ import { auth, db } from './firebase-config.js';
 import { initAuthHeader } from './auth.js';
 import { collection, onSnapshot, query, where, doc, updateDoc, runTransaction } from 'firebase/firestore';
 
+// Show success message based on URL parameters
+function showSuccessMessage() {
+  const params = new URLSearchParams(window.location.search);
+  const successType = params.get('success');
+  
+  if (successType) {
+    const successContainer = document.getElementById('success-message');
+    if (successContainer) {
+      let message = '';
+      let bgColor = '';
+      let borderColor = '';
+      let textColor = '';
+      
+      if (successType === 'cod') {
+        message = '🎉 Order placed successfully! Your order has been confirmed and will be delivered soon.';
+        bgColor = 'bg-green-50';
+        borderColor = 'border-green-200';
+        textColor = 'text-green-800';
+      } else if (successType === 'bkash') {
+        message = '💳 Payment submitted successfully! Admin will verify your bKash payment shortly.';
+        bgColor = 'bg-blue-50';
+        borderColor = 'border-blue-200';
+        textColor = 'text-blue-800';
+      }
+      
+      if (message) {
+        successContainer.className = `mb-6 p-4 rounded-lg border ${bgColor} ${borderColor}`;
+        successContainer.innerHTML = `
+          <div class="flex items-center gap-3">
+            <div class="flex-shrink-0">
+              <svg class="w-6 h-6 ${textColor}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <div class="flex-1">
+              <p class="${textColor} font-medium">${message}</p>
+            </div>
+            <button onclick="this.parentElement.parentElement.classList.add('hidden')" class="flex-shrink-0">
+              <svg class="w-5 h-5 ${textColor}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+          </div>
+        `;
+        
+        // Auto-hide after 10 seconds
+        setTimeout(() => {
+          successContainer.classList.add('hidden');
+        }, 10000);
+        
+        // Clean URL
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, '', cleanUrl);
+      }
+    }
+  }
+}
+
+// Call success message function when page loads
+document.addEventListener('DOMContentLoaded', showSuccessMessage);
+
 // Cancel order function
 async function cancelOrder(orderId, orderData) {
   if (!confirm('Are you sure you want to cancel this order? This action cannot be undone.')) {
