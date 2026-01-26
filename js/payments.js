@@ -48,7 +48,9 @@ async function loadBkashSettings() {
     bkashForm.bkashUsername.value = settings.username || '';
     bkashForm.bkashPassword.value = settings.password || '';
     bkashForm.bkashMerchantNumber.value = settings.merchantNumber || '';
+    bkashForm.bkashPersonalNumber.value = settings.personalNumber || '';
     bkashForm.bkashTransactionFee.value = settings.transactionFee || '';
+    bkashForm.bkashInstructions.value = settings.instructions || '';
     bkashForm.bkashEnabled.checked = !!settings.enabled;
     bkashForm.bkashSandbox.checked = !!settings.sandbox;
   } catch (e) {
@@ -73,7 +75,9 @@ bkashForm?.addEventListener('submit', async (e) => {
       username: bkashForm.bkashUsername.value?.trim() || '',
       password: bkashForm.bkashPassword.value?.trim() || '',
       merchantNumber: bkashForm.bkashMerchantNumber.value?.trim() || '',
+      personalNumber: bkashForm.bkashPersonalNumber.value?.trim() || '',
       transactionFee: Number(bkashForm.bkashTransactionFee.value || 0),
+      instructions: bkashForm.bkashInstructions.value?.trim() || '',
       enabled: !!bkashForm.bkashEnabled.checked,
       sandbox: !!bkashForm.bkashSandbox.checked,
       updatedAt: serverTimestamp()
