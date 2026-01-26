@@ -194,7 +194,8 @@ const sectionMap = {
   categories: document.getElementById('categories'),
   notes: document.getElementById('notes'),
   files: document.getElementById('files'),
-  chat: document.getElementById('chat')
+  chat: document.getElementById('chat'),
+  payments: document.getElementById('payments')
 };
 
 function showSection(id) {
