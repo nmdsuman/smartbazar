@@ -955,11 +955,54 @@ export async function renderCartPage() {
         <div class="flex items-center justify-between text-gray-700"><span>Delivery</span><span class="font-medium">৳${delivery.toFixed(2)}</span></div>
         <div class="flex items-center justify-between text-base mt-1"><span class="font-semibold">Grand Total</span><span class="inline-flex items-center justify-center font-semibold bg-green-600 text-white px-3 py-1 rounded-full">৳${(subtotal+delivery).toFixed(2)}</span></div>
       </div>
+      
+      <!-- Payment Information Display -->
+      <div class="mt-4 p-3 rounded border bg-blue-50">
+        <div class="font-medium text-blue-900 mb-2">Payment Method</div>
+        <div id="selected-payment-display" class="text-sm text-blue-800">
+          <!-- Selected payment method will be shown here -->
+        </div>
+      </div>
+      
       <div class="mt-2 text-xs text-gray-500">Please review your order details before confirmation.</div>
     `;
     // Show modal
     invModal?.classList.remove('hidden');
     invModal?.classList.add('flex');
+
+    // Display selected payment method
+    const selectedPaymentMethod = document.querySelector('input[name="payment_method"]:checked');
+    const paymentDisplay = document.getElementById('selected-payment-display');
+    
+    if (selectedPaymentMethod && paymentDisplay) {
+      const methodId = selectedPaymentMethod.value;
+      const method = window.paymentGateway?.paymentMethods?.find(m => m.id === methodId);
+      
+      if (method) {
+        if (method.type === 'cod') {
+          paymentDisplay.innerHTML = `
+            <div class="flex items-center gap-2">
+              <span class="font-medium">${method.name}</span>
+              <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">Pay on delivery</span>
+            </div>
+            <p class="text-xs mt-1">${method.config.instructions}</p>
+          `;
+        } else if (method.type === 'manual') {
+          paymentDisplay.innerHTML = `
+            <div class="flex items-center gap-2">
+              <span class="font-medium">${method.name}</span>
+              <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Manual verification</span>
+            </div>
+            <p class="text-xs mt-1">Send payment to: <span class="font-mono">${method.config.number}</span></p>
+            <p class="text-xs mt-1">${method.config.instructions}</p>
+          `;
+        }
+      } else {
+        paymentDisplay.innerHTML = `<span class="text-gray-500">Payment method: ${methodId}</span>`;
+      }
+    } else if (paymentDisplay) {
+      paymentDisplay.innerHTML = `<span class="text-red-500">No payment method selected</span>`;
+    }
 
     // No need to initialize payment methods here anymore
     // They are already loaded in the cart page
