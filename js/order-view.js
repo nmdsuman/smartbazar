@@ -1,353 +1,366 @@
 import { auth, db } from './firebase-config.js';
 import { initAuthHeader } from './auth.js';
-import { collection, doc, getDoc, getDocs, orderBy, query, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, orderBy, query, updateDoc } from 'firebase/firestore';
 
-(function init() {
+(function init(){
   initAuthHeader();
+  const params = new URLSearchParams(window.location.search);
+  const orderId = params.get('id');
   
-  // Elements
-  const container = document.getElementById('order-view');
-  const emptyEl = document.getElementById('ov-empty');
-  const itemsBody = document.getElementById('ov-items');
+  // UI Elements
+  const loadingEl = document.getElementById('ov-loading');
+  const viewEl = document.getElementById('order-view');
+  
+  const idEl = document.getElementById('ov-id');
+  const statusEl = document.getElementById('ov-status');
+  const customerEl = document.getElementById('ov-customer');
+  const tbody = document.getElementById('ov-items');
+  
+  const addSection = document.getElementById('add-section');
+  const addSelect = document.getElementById('ov-add-select');
+  const addQty = document.getElementById('ov-add-qty');
+  const addBtn = document.getElementById('ov-add-btn');
+  
+  const subtotalEl = document.getElementById('ov-subtotal');
+  const deliveryEl = document.getElementById('ov-delivery');
+  const totalEl = document.getElementById('ov-total');
+  
   const saveBtn = document.getElementById('ov-save');
   const printBtn = document.getElementById('ov-print');
-  const addMoreBtn = document.getElementById('ov-add-more');
-  
-  // Modal Elements
-  const modal = document.getElementById('product-modal');
-  const modalClose = document.getElementById('pm-close');
-  const modalGrid = document.getElementById('pm-grid');
-  const modalSearch = document.getElementById('pm-search');
 
   // State
-  let orderId = new URLSearchParams(window.location.search).get('id');
-  let orderData = null;
+  let products = [];
+  let shippingCfg = null;
   let items = [];
-  let products = []; // Full product list
+  let orderData = null;
   let canEdit = false;
-  let hasChanges = false;
   let isAdmin = false;
 
-  const formatMoney = (amount) => `৳${Number(amount || 0).toFixed(2)}`;
-
-  // Load Data
-  async function loadData() {
-    if (!orderId) { showEmpty('No Order ID.'); return; }
-    
-    emptyEl.textContent = 'Loading details...';
-    emptyEl.classList.remove('hidden');
-    container.classList.add('hidden');
-
-    try {
-      // 1. Get All Products (for the popup)
-      const prodSnap = await getDocs(query(collection(db, 'products'), orderBy('createdAt', 'desc')));
-      products = prodSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-      // 2. Get Order
-      const snap = await getDoc(doc(db, 'orders', orderId));
-      if (!snap.exists()) { showEmpty('Order not found.'); return; }
-      
-      orderData = snap.data();
-      items = Array.isArray(orderData.items) ? [...orderData.items] : [];
-
-      // 3. Auth Check
-      auth.onAuthStateChanged(user => {
-        if (!user) { window.location.href = 'login.html'; return; }
-        
-        getDoc(doc(db, 'users', user.uid)).then(uSnap => {
-           const role = uSnap.exists() ? uSnap.data().role : 'user';
-           isAdmin = (role === 'admin');
-           const isOwner = orderData.userId === user.uid;
-           const isPending = (orderData.status === 'Pending');
-           
-           if (!isAdmin && !isOwner) {
-             window.location.href = 'orders.html'; return;
-           }
-
-           if (isAdmin) document.getElementById('nav-admin')?.classList.remove('hidden');
-
-           // Edit Permission: Admin OR (Owner AND Pending)
-           canEdit = isAdmin || (isOwner && isPending);
-           
-           render();
-           container.classList.remove('hidden');
-           emptyEl.classList.add('hidden');
-        });
-      });
-
-    } catch (e) {
-      console.error(e);
-      showEmpty('Error: ' + e.message);
-    }
+  // Helpers
+  function parseWeightToGrams(w){
+    if (!w) return 0; const s=String(w).trim().toLowerCase();
+    const m=s.match(/([0-9]*\.?[0-9]+)\s*(kg|g|l|liter|ltr|ml)?/); if(!m) return 0;
+    const v=parseFloat(m[1]); const u=m[2]||'g';
+    if (u==='kg' || u==='l' || u==='liter' || u==='ltr') return Math.round(v*1000);
+    return Math.round(v);
   }
 
-  function showEmpty(msg) {
-    emptyEl.textContent = msg;
-    emptyEl.classList.remove('hidden');
-    container.classList.add('hidden');
+  function calcDelivery(){
+    const cfg = shippingCfg || { fixedFee:60, fixedUpToGrams:1000, extraPerKg:30, fallbackFee:80 };
+    const grams = items.reduce((s,i)=> s + parseWeightToGrams(i.weight)*i.qty, 0);
+    if (grams<=0) return cfg.fallbackFee||0;
+    const base = Number(cfg.fixedFee||0); const upTo = Number(cfg.fixedUpToGrams||0); const extraKg=Number(cfg.extraPerKg||0);
+    if (upTo>0 && grams<=upTo) return base;
+    const over = Math.max(0, grams - upTo); const blocks = Math.ceil(over/1000);
+    return base + blocks*extraKg;
   }
 
-  // RENDER MAIN VIEW
-  function render() {
-    // 1. Meta Data
-    document.getElementById('ov-id-display').textContent = `Order #${orderId.slice(-6).toUpperCase()}`;
-    if (orderData.createdAt) {
-      document.getElementById('ov-date').textContent = `Date: ${new Date(orderData.createdAt.seconds * 1000).toLocaleDateString()}`;
-    }
-    
-    const st = orderData.status || 'Pending';
-    const sBadge = document.getElementById('ov-status');
-    sBadge.textContent = st;
-    sBadge.className = `inline-block px-3 py-1 text-xs font-bold rounded uppercase tracking-wide ${
-       st === 'Delivered' ? 'bg-green-100 text-green-800' :
-       st === 'Cancelled' ? 'bg-red-100 text-red-800' :
-       'bg-blue-100 text-blue-800'
-    }`;
-
-    // 2. Customer
-    const cust = orderData.customer || {};
-    document.getElementById('ov-customer-info').innerHTML = `
-      <div class="font-bold text-gray-900 text-lg">${cust.name || 'Unknown'}</div>
-      <div class="mt-1">${cust.phone || ''}</div>
-      <div class="mt-1">${cust.address || ''}</div>
-    `;
-
-    // 3. Payment Method
-    const paymentMethod = orderData.paymentMethod || 'cod';
-    const paymentStatus = orderData.paymentStatus || 'pending';
-    
-    let paymentInfo = '';
-    if (paymentMethod === 'cod') {
-      paymentInfo = `
-        <div class="flex items-center gap-2">
-          <span class="font-semibold text-gray-900">Cash on Delivery</span>
-          <span class="inline-block px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-700">Pay on delivery</span>
-        </div>
-        <div class="mt-1 text-sm text-gray-600">Payment will be collected when order is delivered</div>
-      `;
-    } else if (paymentMethod === 'bkash') {
-      paymentInfo = `
-        <div class="flex items-center gap-2">
-          <span class="font-semibold text-gray-900">bKash</span>
-          <span class="inline-block px-2 py-1 text-xs font-semibold rounded bg-blue-100 text-blue-700">Manual verification</span>
-        </div>
-        <div class="mt-1 text-sm text-gray-600">Payment submitted via bKash</div>
-        <div class="mt-1 text-sm text-gray-600">Status: ${paymentStatus === 'pending_verification' ? 'Pending verification' : paymentStatus}</div>
-      `;
-    } else {
-      paymentInfo = `
-        <div class="font-semibold text-gray-900">${paymentMethod}</div>
-        <div class="mt-1 text-sm text-gray-600">Status: ${paymentStatus}</div>
-      `;
-    }
-    
-    document.getElementById('ov-payment-info').innerHTML = paymentInfo;
-
-    // 4. Items List
-    itemsBody.innerHTML = '';
+  function render(){
+    tbody.innerHTML = '';
     let subtotal = 0;
 
-    items.forEach((item, index) => {
-      const lineTotal = (item.price || 0) * (item.qty || 1);
-      subtotal += lineTotal;
-      
+    items.forEach((it, idx)=>{
+      const line = Number(it.price)*Number(it.qty); subtotal += line;
       const tr = document.createElement('tr');
-      tr.className = 'border-b last:border-0 hover:bg-gray-50 transition';
+      // Compact row styling
+      tr.className = "hover:bg-gray-50 group";
+      
       tr.innerHTML = `
-        <td class="py-3 pr-2">
-          <div class="font-medium text-gray-900">${item.title || 'Product'}</div>
-          <div class="text-xs text-gray-500">${item.variant || ''}</div>
+        <td class="py-2 px-2 border-b border-gray-100">
+          <div class="flex items-center gap-2">
+            ${it.image ? `<img src="${it.image}" alt="Product" class="w-8 h-8 object-cover rounded border bg-white">` : ''}
+            <div class="flex flex-col">
+              <span class="font-medium text-gray-800 leading-tight">${it.title}</span>
+              ${it.weight ? `<span class="text-[10px] text-gray-500">${it.weight}</span>` : ''}
+            </div>
+          </div>
         </td>
-        <td class="py-3 text-center">${item.qty}</td>
-        <td class="py-3 text-right">${formatMoney(item.price)}</td>
-        <td class="py-3 text-right font-medium">${formatMoney(lineTotal)}</td>
-        <td class="py-3 text-right no-print">
-          ${canEdit ? `<button class="text-red-500 hover:text-red-700 p-2 rounded hover:bg-red-50 transition" data-idx="${index}" title="Remove">&times;</button>` : ''}
+        <td class="py-2 px-2 border-b border-gray-100 text-right text-gray-600">৳${Number(it.price).toFixed(2)}</td>
+        <td class="py-2 px-2 border-b border-gray-100 text-center">
+          ${canEdit 
+            ? `<input type="number" min="1" value="${it.qty}" data-idx="${idx}" class="qty w-12 text-center border rounded px-1 py-0.5 text-sm focus:border-blue-500 focus:outline-none"/>` 
+            : `<span class="font-medium">${it.qty}</span>`}
+        </td>
+        <td class="py-2 px-2 border-b border-gray-100 text-right font-medium text-gray-800">৳${line.toFixed(2)}</td>
+        <td class="py-2 px-2 border-b border-gray-100 text-center">
+          ${canEdit ? `<button data-idx="${idx}" class="remove text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity" title="Remove">✕</button>` : ''}
         </td>
       `;
-      itemsBody.appendChild(tr);
-    });
-
-    // Remove Item Handler
-    if (canEdit) {
-      itemsBody.querySelectorAll('button[data-idx]').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const idx = parseInt(e.target.dataset.idx);
-          if(confirm('Remove this item?')){
-            items.splice(idx, 1);
-            markChanged();
+      
+      if (canEdit) {
+        const qtyInput = tr.querySelector('.qty');
+        const removeBtn = tr.querySelector('.remove');
+        if(qtyInput) qtyInput.addEventListener('change', (e)=>{
+          const i = Number(e.target.getAttribute('data-idx'));
+          items[i].qty = Math.max(1, Number(e.target.value)||1);
+          render();
+        });
+        if(removeBtn) removeBtn.addEventListener('click', ()=>{
+          const i = Number(removeBtn.getAttribute('data-idx'));
+          if(confirm('Remove this item?')) {
+            items.splice(i,1);
             render();
           }
         });
-      });
+      }
+      tbody.appendChild(tr);
+    });
+
+    const delivery = calcDelivery();
+    subtotalEl.textContent = `৳${subtotal.toFixed(2)}`;
+    deliveryEl.textContent = `৳${delivery.toFixed(2)}`;
+    totalEl.textContent = `৳${(subtotal+delivery).toFixed(2)}`;
+
+    // Toggle Visibility based on permissions
+    if (canEdit) {
+      addSection.classList.remove('hidden');
+      saveBtn.classList.remove('hidden');
+    } else {
+      addSection.classList.add('hidden');
+      saveBtn.classList.add('hidden');
     }
 
-    // 4. Totals
-    // Try multiple possible field names for delivery charge
-    const deliveryFee = Number(orderData.deliveryFee) || Number(orderData.delivery) || Number(orderData.delivery_charge) || 0;
-    const total = Number(orderData.total) || (subtotal + deliveryFee);
-    
-    console.log('Order totals calculation:', {
-      subtotal,
-      deliveryFee,
-      total,
-      deliveryFeeField: orderData.deliveryFee,
-      deliveryField: orderData.delivery,
-      deliveryChargeField: orderData.delivery_charge,
-      totalField: orderData.total,
-      calculatedTotal: subtotal + deliveryFee,
-      orderData
-    });
-    
-    document.getElementById('ov-subtotal').textContent = formatMoney(subtotal);
-    document.getElementById('ov-delivery').textContent = formatMoney(deliveryFee);
-    document.getElementById('ov-total').textContent = formatMoney(total);
-
-    // 5. Button Visibility
-    // Admin gets Print, Everyone who canEdit gets "Add Items"
     if (isAdmin) {
       printBtn.classList.remove('hidden');
     } else {
-      printBtn.classList.add('hidden'); // Hide print for users
+      printBtn.classList.add('hidden');
     }
+  }
 
-    if (canEdit) {
-      addMoreBtn.classList.remove('hidden');
-      if (hasChanges) saveBtn.classList.remove('hidden');
+  function fillProductsSelect(){
+    addSelect.innerHTML = '<option value="">-- Select Product to Add --</option>' +
+      products.map(p=>`<option value="${p.id}">${p.title} (৳${p.price})</option>`).join('');
+  }
+
+  addBtn.addEventListener('click', ()=>{
+    const pid = addSelect.value; 
+    const qty = Math.max(1, Number(addQty.value)||1);
+    if (!pid) return; 
+    
+    const p = products.find(x=>x.id===pid); 
+    if (!p) return;
+    
+    const existing = items.find(i=>i.id===pid);
+    if (existing) {
+      existing.qty += qty; 
     } else {
-      addMoreBtn.classList.add('hidden');
-      saveBtn.classList.add('hidden');
-    }
-  }
-
-  function markChanged() {
-    hasChanges = true;
-    saveBtn.textContent = 'Save Changes*';
-    saveBtn.classList.remove('hidden');
-  }
-
-  // --- MODAL & ADD PRODUCT LOGIC ---
-
-  addMoreBtn.addEventListener('click', () => {
-    renderModalProducts(products);
-    modal.classList.remove('hidden');
-  });
-
-  modalClose.addEventListener('click', () => {
-    modal.classList.add('hidden');
-  });
-
-  // Render cards in popup
-  function renderModalProducts(list) {
-    modalGrid.innerHTML = '';
-    if (list.length === 0) {
-      modalGrid.innerHTML = '<div class="col-span-full text-center text-gray-500 py-10">No products found.</div>';
-      return;
-    }
-
-    list.forEach(p => {
-      // Image fallback
-      const img = p.image || 'https://via.placeholder.com/150?text=No+Image';
-      
-      const div = document.createElement('div');
-      div.className = 'bg-white rounded-lg shadow-sm border overflow-hidden hover:shadow-md transition flex flex-col h-full';
-      div.innerHTML = `
-        <div class="h-32 bg-gray-200 w-full relative">
-          <img src="${img}" class="w-full h-full object-cover">
-        </div>
-        <div class="p-3 flex flex-col flex-1">
-          <h4 class="font-semibold text-sm text-gray-800 line-clamp-2 mb-1">${p.title}</h4>
-          <div class="text-green-600 font-bold text-sm mb-3">${formatMoney(p.price)}</div>
-          
-          <div class="mt-auto">
-             <button class="add-to-order-btn w-full bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white border border-blue-200 py-1.5 rounded text-sm font-medium transition" 
-               data-id="${p.id}">
-               + Add
-             </button>
-          </div>
-        </div>
-      `;
-      
-      // Add Click Handler
-      div.querySelector('.add-to-order-btn').addEventListener('click', function() {
-        // Animation
-        const btn = this;
-        const originalText = btn.textContent;
-        btn.textContent = 'Added';
-        btn.classList.add('bg-green-600', 'text-white', 'border-green-600');
-        setTimeout(() => {
-           btn.textContent = originalText;
-           btn.classList.remove('bg-green-600', 'text-white', 'border-green-600');
-        }, 1000);
-
-        // Add to items list
-        items.push({
-          id: p.id,
-          title: p.title,
-          price: Number(p.price || 0),
-          qty: 1,
-          variant: '' // Basic add
-        });
-        markChanged();
-        render(); // Update background table
+      items.push({ 
+        id: p.id, 
+        title: p.title, 
+        price: Number(p.price), 
+        image: p.image, 
+        weight: p.weight||'', 
+        qty 
       });
-
-      modalGrid.appendChild(div);
-    });
-  }
-
-  // Search in Modal
-  modalSearch.addEventListener('input', (e) => {
-    const term = e.target.value.toLowerCase();
-    const filtered = products.filter(p => p.title.toLowerCase().includes(term));
-    renderModalProducts(filtered);
+    }
+    // Reset inputs
+    addSelect.value = "";
+    addQty.value = "1";
+    render();
   });
 
-  // SAVE TO FIREBASE
-  saveBtn.addEventListener('click', async () => {
-    if (!hasChanges) return;
+  saveBtn.addEventListener('click', async ()=>{
+    if (!canEdit) return;
     saveBtn.disabled = true;
     saveBtn.textContent = 'Saving...';
-    
     try {
-      const orderRef = doc(db, 'orders', orderId);
-      const sub = items.reduce((sum, it) => sum + (Number(it.price || 0) * Number(it.qty || 1)), 0);
-      const del = Number(orderData.deliveryFee || orderData.delivery || 0);
-      
-      await updateDoc(orderRef, {
-        items: items,
-        subtotal: sub,
-        delivery: del,
-        total: sub + del,
-        updatedAt: serverTimestamp()
+      const subtotal = items.reduce((s,i)=> s + Number(i.price)*Number(i.qty), 0);
+      const delivery = calcDelivery();
+      await updateDoc(doc(db,'orders', orderId), {
+        items,
+        subtotal,
+        delivery,
+        total: subtotal + delivery
       });
-      
-      hasChanges = false;
-      saveBtn.textContent = 'Saved!';
-      setTimeout(() => { 
-        saveBtn.textContent = 'Save Changes'; 
-        saveBtn.disabled = false;
-        saveBtn.classList.add('hidden'); // Hide until next change
-      }, 2000);
-      
-      orderData.items = items;
-      orderData.subtotal = sub;
-      orderData.delivery = del;
-      orderData.total = sub + del;
-      
-    } catch (e) {
-      console.error('Save failed:', e);
-      alert('Failed to save changes: ' + e.message);
-      saveBtn.textContent = 'Save Changes';
+      alert('Order updated successfully.');
+    } catch (e) { 
+      alert('Save failed: ' + e.message); 
+    } finally {
       saveBtn.disabled = false;
+      saveBtn.textContent = 'Save Changes';
     }
   });
 
-  // PRINT INVOICE
-  printBtn.addEventListener('click', () => {
-    console.log('Print button clicked');
-    window.print();
+  // PROFESSIONAL PRINT FUNCTION
+  printBtn.addEventListener('click', ()=>{
+    const w = window.open('', '_blank');
+    
+    // Rows generation
+    const rows = items.map(i=>`
+      <tr>
+        <td style="padding:4px 0;">
+          <div style="font-weight:bold;font-size:11px;">${i.title}</div>
+          ${i.weight ? `<div style="font-size:9px;color:#666;">${i.weight}</div>` : ''}
+        </td>
+        <td style="text-align:right;padding:4px 0;">${i.qty}</td>
+        <td style="text-align:right;padding:4px 0;">৳${Number(i.price).toFixed(2)}</td>
+        <td style="text-align:right;padding:4px 0;">৳${(i.qty*i.price).toFixed(2)}</td>
+      </tr>
+      <tr><td colspan="4" style="border-bottom:1px solid #eee;"></td></tr>
+    `).join('');
+
+    const subtotal = items.reduce((s,i)=> s + Number(i.price)*Number(i.qty), 0);
+    const delivery = calcDelivery();
+    const total = subtotal + delivery;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Invoice #${orderId.slice(-6)}</title>
+        <style>
+          @page { size: A4; margin: 1cm; }
+          body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 11px; line-height: 1.3; color: #333; max-width: 100%; margin: 0; padding: 0; }
+          .header { display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 10px; }
+          .brand h1 { margin: 0; font-size: 18px; text-transform: uppercase; letter-spacing: 1px; }
+          .brand p { margin: 2px 0 0; font-size: 9px; color: #555; }
+          .invoice-meta { text-align: right; }
+          .invoice-meta h2 { margin: 0; font-size: 16px; color: #333; }
+          .invoice-meta p { margin: 2px 0 0; }
+          
+          .info-grid { display: flex; gap: 30px; margin-bottom: 20px; }
+          .info-col { flex: 1; }
+          .info-label { font-size: 9px; font-weight: bold; text-transform: uppercase; color: #777; border-bottom: 1px solid #ddd; margin-bottom: 4px; padding-bottom: 2px; }
+          .info-content { font-size: 11px; font-weight: 500; }
+          
+          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+          th { text-align: left; border-bottom: 1px solid #333; padding: 5px 0; font-size: 10px; text-transform: uppercase; }
+          .nums { text-align: right; }
+          
+          .totals { margin-left: auto; width: 40%; }
+          .total-row { display: flex; justify-content: space-between; padding: 3px 0; }
+          .total-row.final { font-weight: bold; font-size: 13px; border-top: 1px solid #333; margin-top: 5px; padding-top: 5px; }
+          
+          .footer { margin-top: 30px; font-size: 9px; text-align: center; color: #888; border-top: 1px solid #eee; padding-top: 10px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="brand">
+            <h1>Bazar Shop</h1>
+            <p>123 Market Road, Dhaka, Bangladesh<br>Phone: +880 1700-000000</p>
+          </div>
+          <div class="invoice-meta">
+            <h2>INVOICE</h2>
+            <p>#${orderId.slice(-6).toUpperCase()}</p>
+            <p>${new Date().toLocaleDateString()}</p>
+          </div>
+        </div>
+
+        <div class="info-grid">
+          <div class="info-col">
+            <div class="info-label">Customer Details</div>
+            <div class="info-content">
+              ${orderData?.customer?.name || 'N/A'}<br>
+              ${orderData?.customer?.phone || ''}
+            </div>
+          </div>
+          <div class="info-col">
+            <div class="info-label">Delivery Address</div>
+            <div class="info-content">
+              ${orderData?.customer?.address || 'N/A'}
+            </div>
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th style="width:50%">Item</th>
+              <th class="nums">Qty</th>
+              <th class="nums">Price</th>
+              <th class="nums">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+        </table>
+
+        <div class="totals">
+          <div class="total-row"><span>Subtotal</span><span>৳${subtotal.toFixed(2)}</span></div>
+          <div class="total-row"><span>Delivery</span><span>৳${delivery.toFixed(2)}</span></div>
+          <div class="total-row final"><span>TOTAL PAYABLE</span><span>৳${total.toFixed(2)}</span></div>
+        </div>
+
+        <div class="footer">
+          Thank you for shopping with Bazar. If you have any questions about this invoice, please contact us.
+        </div>
+        <script>window.print();</script>
+      </body>
+      </html>
+    `;
+    w.document.write(html);
+    w.document.close();
   });
 
-  loadData();
+  auth.onAuthStateChanged(async (user)=>{
+    if (!user) { window.location.replace('login.html'); return; }
+    try {
+      // Role Check
+      const uSnap = await getDoc(doc(db,'users', user.uid));
+      const role = uSnap.exists() && uSnap.data()?.role ? uSnap.data().role : 'user';
+      isAdmin = role === 'admin';
+
+      // Settings & Products
+      const setSnap = await getDoc(doc(db,'settings','shipping'));
+      if (setSnap.exists()) shippingCfg = setSnap.data();
+      
+      const prodSnap = await getDocs(query(collection(db,'products'), orderBy('createdAt','desc')));
+      products = prodSnap.docs.map(d=>({ id: d.id, ...d.data(), price: Number(d.data().price) }));
+      fillProductsSelect();
+
+      // Order Data
+      const ordSnap = await getDoc(doc(db,'orders', orderId));
+      if (!ordSnap.exists()) { loadingEl.textContent = 'Order not found.'; return; }
+      orderData = ordSnap.data();
+
+      // Auto-update status for admin if pending
+      if (isAdmin && (orderData.status || 'Pending') === 'Pending') {
+        await updateDoc(doc(db,'orders', orderId), { status: 'Processing' });
+        orderData.status = 'Processing';
+      }
+
+      // Populate Meta
+      idEl.textContent = '#' + orderId.slice(-6).toUpperCase();
+      statusEl.textContent = orderData.status || 'Pending';
+      // Style status badge
+      const st = (orderData.status || 'Pending').toLowerCase();
+      statusEl.className = `px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide border ${
+        st==='pending' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' : 
+        st==='processing' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+        st==='delivered' ? 'bg-green-100 text-green-700 border-green-200' :
+        'bg-gray-100 text-gray-700 border-gray-200'
+      }`;
+
+      // Compact Customer Info
+      customerEl.innerHTML = `
+        <div class="font-bold">${orderData.customer?.name || 'Guest'}</div>
+        <div class="text-xs text-gray-500">${orderData.customer?.phone || ''}</div>
+        <div class="mt-1 text-gray-700">${orderData.customer?.address || ''}</div>
+      `;
+
+      // Permissions Logic
+      const isOwner = orderData.userId && (orderData.userId === user.uid);
+      const isPending = (orderData.status || 'Pending') === 'Pending';
+      
+      // Admin can always edit. User can edit ONLY if Owner AND Pending.
+      // If Processing/Delivered/etc -> User CANNOT edit (canEdit = false).
+      canEdit = isAdmin || (isOwner && isPending);
+
+      // Security Redirect
+      if (!isAdmin && !isOwner) { window.location.replace('orders.html'); return; }
+
+      items = Array.isArray(orderData.items) ? orderData.items.map(x=>({ ...x })) : [];
+      
+      render();
+      
+      loadingEl.classList.add('hidden');
+      viewEl.classList.remove('hidden');
+
+    } catch (e) {
+      console.error(e);
+      loadingEl.textContent = 'Failed to load: ' + e.message;
+    }
+  });
 })();
