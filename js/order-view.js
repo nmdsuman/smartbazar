@@ -112,7 +112,38 @@ import { collection, doc, getDoc, getDocs, orderBy, query, updateDoc, serverTime
       <div class="mt-1">${cust.address || ''}</div>
     `;
 
-    // 3. Items List
+    // 3. Payment Method
+    const paymentMethod = orderData.paymentMethod || 'cod';
+    const paymentStatus = orderData.paymentStatus || 'pending';
+    
+    let paymentInfo = '';
+    if (paymentMethod === 'cod') {
+      paymentInfo = `
+        <div class="flex items-center gap-2">
+          <span class="font-semibold text-gray-900">Cash on Delivery</span>
+          <span class="inline-block px-2 py-1 text-xs font-semibold rounded bg-green-100 text-green-700">Pay on delivery</span>
+        </div>
+        <div class="mt-1 text-sm text-gray-600">Payment will be collected when order is delivered</div>
+      `;
+    } else if (paymentMethod === 'bkash') {
+      paymentInfo = `
+        <div class="flex items-center gap-2">
+          <span class="font-semibold text-gray-900">bKash</span>
+          <span class="inline-block px-2 py-1 text-xs font-semibold rounded bg-blue-100 text-blue-700">Manual verification</span>
+        </div>
+        <div class="mt-1 text-sm text-gray-600">Payment submitted via bKash</div>
+        <div class="mt-1 text-sm text-gray-600">Status: ${paymentStatus === 'pending_verification' ? 'Pending verification' : paymentStatus}</div>
+      `;
+    } else {
+      paymentInfo = `
+        <div class="font-semibold text-gray-900">${paymentMethod}</div>
+        <div class="mt-1 text-sm text-gray-600">Status: ${paymentStatus}</div>
+      `;
+    }
+    
+    document.getElementById('ov-payment-info').innerHTML = paymentInfo;
+
+    // 4. Items List
     itemsBody.innerHTML = '';
     let subtotal = 0;
 
