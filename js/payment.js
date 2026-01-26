@@ -154,10 +154,13 @@ class PaymentGateway {
       return;
     }
     
+    // Find COD method to set as default
+    const codMethod = enabledMethods.find(m => m.id === 'cod');
+    
     container.innerHTML = enabledMethods.map(method => `
-      <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+      <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 ${method.id === 'cod' ? 'bg-green-50 border-green-200' : ''}">
         <input type="radio" name="payment_method" value="${method.id}" 
-               class="mr-3" required>
+               class="mr-3" ${method.id === 'cod' ? 'checked' : ''} required>
         <div class="flex-1">
           <div class="font-medium">${method.name}</div>
           ${method.type === 'cod' ? '<div class="text-sm text-gray-500">Pay on delivery</div>' : ''}
@@ -165,6 +168,11 @@ class PaymentGateway {
         </div>
       </label>
     `).join('');
+    
+    // Show COD details by default
+    if (codMethod) {
+      this.showPaymentDetails('cod');
+    }
     
     console.log('Payment methods rendered successfully');
   }
