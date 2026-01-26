@@ -1,184 +1,266 @@
 import { auth, db } from './firebase-config.js';
 import { initAuthHeader } from './auth.js';
-import { collection, doc, getDoc, getDocs, orderBy, query, updateDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, orderBy, query, updateDoc, serverTimestamp } from 'firebase/firestore';
 
-(function init(){
+(function init() {
   initAuthHeader();
-  const params = new URLSearchParams(window.location.search);
-  const orderId = params.get('id');
-  const view = document.getElementById('order-view');
-  const empty = document.getElementById('ov-empty');
-  const meta = document.getElementById('ov-meta');
-  const tbody = document.getElementById('ov-items');
-  const addSelect = document.getElementById('ov-add-select');
-  const addQty = document.getElementById('ov-add-qty');
-  const addBtn = document.getElementById('ov-add-btn');
+  
+  // DOM Elements
+  const container = document.getElementById('order-view');
+  const emptyEl = document.getElementById('ov-empty');
+  const itemsBody = document.getElementById('ov-items');
+  
+  // Info Elements
+  const idDisplay = document.getElementById('ov-id-display');
+  const dateDisplay = document.getElementById('ov-date');
+  const statusBadge = document.getElementById('ov-status');
+  const customerInfo = document.getElementById('ov-customer-info');
+  
+  // Totals
   const subtotalEl = document.getElementById('ov-subtotal');
   const deliveryEl = document.getElementById('ov-delivery');
   const totalEl = document.getElementById('ov-total');
+
+  // Controls
+  const controlsDiv = document.getElementById('ov-controls');
+  const addSelect = document.getElementById('ov-add-select');
+  const addQty = document.getElementById('ov-add-qty');
+  const addBtn = document.getElementById('ov-add-btn');
   const saveBtn = document.getElementById('ov-save');
   const printBtn = document.getElementById('ov-print');
 
-  let products = [];
-  let shippingCfg = null;
-  let items = [];
+  // State
+  let orderId = new URLSearchParams(window.location.search).get('id');
   let orderData = null;
-  let canEdit = false; // computed based on role and order status
+  let items = [];
+  let products = [];
+  let canEdit = false;
+  let hasChanges = false;
 
-  function parseWeightToGrams(w){
-    if (!w) return 0; const s=String(w).trim().toLowerCase();
-    const m=s.match(/([0-9]*\.?[0-9]+)\s*(kg|g|l|liter|ltr|ml)?/); if(!m) return 0;
-    const v=parseFloat(m[1]); const u=m[2]||'g';
-    if (u==='kg' || u==='l' || u==='liter' || u==='ltr') return Math.round(v*1000);
-    return Math.round(v);
-  }
-  function calcDelivery(){
-    const cfg = shippingCfg || { fixedFee:60, fixedUpToGrams:1000, extraPerKg:30, fallbackFee:80 };
-    const grams = items.reduce((s,i)=> s + parseWeightToGrams(i.weight)*i.qty, 0);
-    if (grams<=0) return cfg.fallbackFee||0;
-    const base = Number(cfg.fixedFee||0); const upTo = Number(cfg.fixedUpToGrams||0); const extraKg=Number(cfg.extraPerKg||0);
-    if (upTo>0 && grams<=upTo) return base;
-    const over = Math.max(0, grams - upTo); const blocks = Math.ceil(over/1000);
-    return base + blocks*extraKg;
+  // Helpers
+  const formatMoney = (amount) => `৳${Number(amount || 0).toFixed(2)}`;
+  
+  function parseProductLabel(str) {
+    // Extract Name and Unit from "Onion 1kg"
+    return str; // Simple return for now, can be enhanced
   }
 
-  function render(){
-    tbody.innerHTML = '';
-    let subtotal = 0;
-    items.forEach((it, idx)=>{
-      const line = Number(it.price)*Number(it.qty); subtotal += line;
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td class=\"p-2 border\"><div class=\"flex items-center gap-2\"><img src=\"${it.image||''}\" alt=\"${it.title}\" class=\"w-10 h-10 object-cover rounded border\"/><span>${it.title}${it.weight?` · ${it.weight}`:''}</span></div></td>
-        <td class=\"p-2 border text-right\">৳${Number(it.price).toFixed(2)}</td>
-        <td class=\"p-2 border text-right\">${canEdit ? `<input type=\"number\" min=\"1\" value=\"${it.qty}\" data-idx=\"${idx}\" class=\"w-20 border rounded px-2 py-1 qty\"/>` : `<span>${it.qty}</span>`}</td>
-        <td class=\"p-2 border text-right\">৳${line.toFixed(2)}</td>
-        <td class=\"p-2 border text-right\">${canEdit ? `<button data-idx=\"${idx}\" class=\"remove text-red-600\">Remove</button>` : ''}</td>
-      `;
-      if (canEdit) {
-        tr.querySelector('.qty')?.addEventListener('change', (e)=>{
-          const i = Number(e.target.getAttribute('data-idx')); items[i].qty = Math.max(1, Number(e.target.value)||1); render();
-        });
-        tr.querySelector('.remove')?.addEventListener('click', ()=>{
-          const i = Number(tr.querySelector('.remove').getAttribute('data-idx'));
-          items.splice(i,1); render();
-        });
-      }
-      tbody.appendChild(tr);
-    });
-    const delivery = calcDelivery();
-    subtotalEl.textContent = `৳${subtotal.toFixed(2)}`;
-    deliveryEl.textContent = `৳${delivery.toFixed(2)}`;
-    totalEl.textContent = `৳${(subtotal+delivery).toFixed(2)}`;
+  // Load Data
+  async function loadData() {
+    if (!orderId) { showEmpty('No Order ID provided.'); return; }
+    
+    emptyEl.textContent = 'Loading...';
+    emptyEl.classList.remove('hidden');
+    container.classList.add('hidden');
 
-    // Toggle add/save controls
-    addSelect.disabled = !canEdit;
-    addQty.disabled = !canEdit;
-    addBtn.disabled = !canEdit;
-    saveBtn.disabled = !canEdit;
-  }
-
-  function fillProductsSelect(){
-    addSelect.innerHTML = '<option value="">Select product</option>' +
-      products.map(p=>`<option value="${p.id}">${p.title} — ৳${Number(p.price).toFixed(2)}${p.weight?` · ${p.weight}`:''}</option>`).join('');
-  }
-
-  addBtn.addEventListener('click', ()=>{
-    const pid = addSelect.value; const qty = Math.max(1, Number(addQty.value)||1);
-    if (!pid) return; const p = products.find(x=>x.id===pid); if (!p) return;
-    const existing = items.find(i=>i.id===pid);
-    if (existing) existing.qty += qty; else items.push({ id: p.id, title: p.title, price: Number(p.price), image: p.image, weight: p.weight||'', qty });
-    render();
-  });
-
-  saveBtn.addEventListener('click', async ()=>{
-    if (!canEdit) return;
     try {
-      const subtotal = items.reduce((s,i)=> s + Number(i.price)*Number(i.qty), 0);
-      const delivery = calcDelivery();
-      await updateDoc(doc(db,'orders', orderId), {
-        items,
-        subtotal,
-        delivery,
-        total: subtotal + delivery
+      // 1. Get Products for the dropdown (Admin/Edit mode)
+      const prodSnap = await getDocs(query(collection(db, 'products'), orderBy('createdAt', 'desc')));
+      products = prodSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      // 2. Get Order
+      const snap = await getDoc(doc(db, 'orders', orderId));
+      if (!snap.exists()) { showEmpty('Order not found.'); return; }
+      
+      orderData = snap.data();
+      items = Array.isArray(orderData.items) ? [...orderData.items] : [];
+
+      // Check Permissions
+      auth.onAuthStateChanged(user => {
+        if (!user) { window.location.href = 'login.html'; return; }
+        
+        // Determine Edit Rights
+        // Admin can always edit. User can edit ONLY if status is Pending.
+        getDoc(doc(db, 'users', user.uid)).then(uSnap => {
+           const role = uSnap.exists() ? uSnap.data().role : 'user';
+           const isOwner = orderData.userId === user.uid;
+           
+           if (role !== 'admin' && !isOwner) {
+             window.location.href = 'orders.html'; // Unauthorized
+             return;
+           }
+           
+           // Admin Button Show
+           if (role === 'admin') {
+             document.getElementById('nav-admin')?.classList.remove('hidden');
+           }
+
+           // Edit Logic
+           canEdit = (role === 'admin') || (isOwner && (orderData.status === 'Pending'));
+           
+           render();
+           container.classList.remove('hidden');
+           emptyEl.classList.add('hidden');
+
+           // Populate Dropdown if editable
+           if (canEdit) {
+             controlsDiv.classList.remove('hidden');
+             saveBtn.classList.remove('hidden'); // Show save button if editable
+             populateSelect();
+           }
+        });
       });
-      alert('Order updated.');
-    } catch (e) { alert('Save failed: ' + e.message); }
-  });
 
-  printBtn.addEventListener('click', ()=>{
-    const w = window.open('', '_blank');
-    const rows = items.map(i=>`<tr>
-    <td>
-      <div style="display:flex;align-items:center;gap:8px">
-        <img src="${i.image||''}" alt="${i.title}" style="width:32px;height:32px;object-fit:cover;border:1px solid #ddd;border-radius:4px"/>
-        <span>${i.title}${i.weight?` · ${i.weight}`:''}</span>
-      </div>
-    </td>
-    <td style='text-align:right'>${i.qty}</td>
-    <td style='text-align:right'>৳${Number(i.price).toFixed(2)}</td>
-    <td style='text-align:right'>৳${(i.qty*i.price).toFixed(2)}</td>
-  </tr>`).join('');
-    const subtotal = items.reduce((s,i)=> s + Number(i.price)*Number(i.qty), 0);
-    const delivery = calcDelivery();
-    const total = subtotal + delivery;
-    w.document.write(`
-      <html><head><title>Invoice</title><style>
-      body{font-family:Arial,sans-serif;padding:24px}
-      table{width:100%;border-collapse:collapse} td,th{border:1px solid #ddd;padding:6px}
-      </style></head><body>
-        <h2>Bazar — Delivery Invoice</h2>
-        <div>Order #${orderId.slice(-6)}</div>
-        <div>${orderData?.customer?.name||''} · ${orderData?.customer?.phone||''}</div>
-        <div>${orderData?.customer?.address||''}</div>
-        <hr/>
-        <table><thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead><tbody>
-        ${rows}
-        </tbody></table>
-        <h3 style='text-align:right'>Subtotal: ৳${subtotal.toFixed(2)}<br/>Delivery: ৳${delivery.toFixed(2)}<br/>Total: ৳${total.toFixed(2)}</h3>
-        <p>Thank you.</p>
-        <script>window.print();</script>
-      </body></html>
-    `);
-    w.document.close();
-  });
-
-  auth.onAuthStateChanged(async (user)=>{
-    if (!user) { window.location.replace('login.html'); return; }
-    try {
-      // Determine role
-      const uSnap = await getDoc(doc(db,'users', user.uid));
-      const role = uSnap.exists() && uSnap.data()?.role ? uSnap.data().role : 'user';
-      // Hide print for non-admins
-      if (role !== 'admin') {
-        printBtn.classList.add('hidden');
-      }
-      // shipping settings
-      const setSnap = await getDoc(doc(db,'settings','shipping'));
-      if (setSnap.exists()) shippingCfg = setSnap.data();
-      // products
-      const prodSnap = await getDocs(query(collection(db,'products'), orderBy('createdAt','desc')));
-      products = prodSnap.docs.map(d=>({ id: d.id, ...d.data(), price: Number(d.data().price) }));
-      fillProductsSelect();
-      // order
-      const ordSnap = await getDoc(doc(db,'orders', orderId));
-      if (!ordSnap.exists()) { empty.textContent = 'Order not found.'; return; }
-      orderData = ordSnap.data();
-      if (role === 'admin' && (orderData.status || 'Pending') === 'Pending') {
-        await updateDoc(doc(db,'orders', orderId), { status: 'Processing' });
-        orderData.status = 'Processing';
-      }
-      // Permission: admin can edit always; user can edit only if owns and status Pending
-      const isOwner = orderData.userId && (orderData.userId === user.uid);
-      canEdit = role === 'admin' || (isOwner && (orderData.status === 'Pending'));
-      // If user (not admin) tries to view someone else's order, redirect
-      if (role !== 'admin' && !isOwner) { window.location.replace('orders.html'); return; }
-      items = Array.isArray(orderData.items) ? orderData.items.map(x=>({ ...x })) : [];
-      meta.textContent = `${orderData.status||'Pending'} · ${orderData.customer?.name||''} · ${orderData.customer?.phone||''} · ${orderData.customer?.address||''}`;
-      render();
-      empty.classList.add('hidden'); view.classList.remove('hidden');
     } catch (e) {
-      empty.textContent = 'Failed to load: ' + e.message;
+      console.error(e);
+      showEmpty('Error loading order: ' + e.message);
+    }
+  }
+
+  function populateSelect() {
+    addSelect.innerHTML = '<option value="">Select Product...</option>';
+    products.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      // Show variants if any
+      const variants = p.options && p.options.length ? p.options : [{ price: p.price }];
+      // For simplicity, just adding base product. 
+      // A full implementation would allow selecting variants.
+      opt.textContent = p.title;
+      opt.setAttribute('data-price', p.price);
+      addSelect.appendChild(opt);
+    });
+  }
+
+  function showEmpty(msg) {
+    emptyEl.textContent = msg;
+    emptyEl.classList.remove('hidden');
+    container.classList.add('hidden');
+  }
+
+  // RENDER UI
+  function render() {
+    // Meta
+    idDisplay.textContent = `Order #${orderId.slice(-6).toUpperCase()}`;
+    if (orderData.createdAt) {
+      dateDisplay.textContent = `Date: ${new Date(orderData.createdAt.seconds * 1000).toLocaleDateString()}`;
+    }
+    
+    // Status Color
+    const st = orderData.status || 'Pending';
+    statusBadge.textContent = st;
+    statusBadge.className = `inline-block px-3 py-1 text-xs font-bold rounded uppercase tracking-wide ${
+       st === 'Delivered' ? 'bg-green-100 text-green-800' :
+       st === 'Cancelled' ? 'bg-red-100 text-red-800' :
+       'bg-blue-100 text-blue-800'
+    }`;
+
+    // Customer
+    const cust = orderData.customer || {};
+    customerInfo.innerHTML = `
+      <div class="font-bold text-gray-900">${cust.name || 'N/A'}</div>
+      <div>${cust.phone || ''}</div>
+      <div>${cust.address || ''}</div>
+    `;
+
+    // Items
+    itemsBody.innerHTML = '';
+    let subtotal = 0;
+
+    items.forEach((item, index) => {
+      const lineTotal = (item.price || 0) * (item.qty || 1);
+      subtotal += lineTotal;
+      
+      const tr = document.createElement('tr');
+      tr.className = 'border-b last:border-0 hover:bg-gray-50 transition';
+      tr.innerHTML = `
+        <td class="py-3 pr-2">
+          <div class="font-medium text-gray-900">${item.title || 'Product'}</div>
+          <div class="text-xs text-gray-500">${item.variant || ''}</div>
+        </td>
+        <td class="py-3 text-center">${item.qty}</td>
+        <td class="py-3 text-right">${formatMoney(item.price)}</td>
+        <td class="py-3 text-right font-medium">${formatMoney(lineTotal)}</td>
+        <td class="py-3 text-right no-print">
+          ${canEdit ? `<button class="text-red-500 hover:text-red-700 p-1" data-idx="${index}">&times;</button>` : ''}
+        </td>
+      `;
+      itemsBody.appendChild(tr);
+    });
+
+    // Remove buttons handler
+    if (canEdit) {
+      itemsBody.querySelectorAll('button[data-idx]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const idx = parseInt(e.target.dataset.idx);
+          items.splice(idx, 1);
+          hasChanges = true;
+          saveBtn.textContent = 'Save Changes*';
+          render();
+        });
+      });
+    }
+
+    // Totals
+    const delivery = Number(orderData.deliveryFee || 0);
+    const total = subtotal + delivery;
+    
+    subtotalEl.textContent = formatMoney(subtotal);
+    deliveryEl.textContent = formatMoney(delivery);
+    totalEl.textContent = formatMoney(total);
+  }
+
+  // ADD ITEM
+  addBtn.addEventListener('click', () => {
+    const pid = addSelect.value;
+    if (!pid) return;
+    
+    const p = products.find(x => x.id === pid);
+    const qty = parseInt(addQty.value) || 1;
+    
+    if (p) {
+      items.push({
+        id: p.id,
+        title: p.title,
+        price: Number(p.price || 0),
+        qty: qty,
+        variant: '' // Default variant for admin add
+      });
+      hasChanges = true;
+      saveBtn.textContent = 'Save Changes*';
+      render();
+      addSelect.value = '';
+      addQty.value = 1;
     }
   });
+
+  // SAVE CHANGES
+  saveBtn.addEventListener('click', async () => {
+    if (!hasChanges) return;
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+    try {
+      // Recalculate totals
+      const sub = items.reduce((sum, i) => sum + (i.price * i.qty), 0);
+      const del = Number(orderData.deliveryFee || 0);
+      
+      await updateDoc(doc(db, 'orders', orderId), {
+        items: items,
+        subtotal: sub,
+        total: sub + del,
+        updatedAt: serverTimestamp()
+      });
+      
+      hasChanges = false;
+      saveBtn.textContent = 'Saved';
+      setTimeout(() => { saveBtn.textContent = 'Save Changes'; saveBtn.disabled = false; }, 2000);
+      
+      // Update local data
+      orderData.items = items;
+      render();
+
+    } catch (e) {
+      alert('Error saving: ' + e.message);
+      saveBtn.disabled = false;
+    }
+  });
+
+  // PRINT
+  printBtn.addEventListener('click', () => {
+    window.print();
+  });
+
+  // Start
+  loadData();
+
 })();
