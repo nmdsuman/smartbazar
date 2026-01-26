@@ -198,7 +198,7 @@ const sectionMap = {
 };
 
 function showSection(id) {
-  const key = id && sectionMap[id] ? id : 'products';
+  const key = id && sectionMap[id] ? id : 'add';
   Object.entries(sectionMap).forEach(([k, el]) => {
     if (!el) return;
     if (k === key) el.classList.remove('hidden');
@@ -219,10 +219,16 @@ function showSection(id) {
 // Expose for other modules (e.g., add-product.js)
 try { window.showSection = showSection; } catch {}
 
-window.addEventListener('hashchange', () => showSection(location.hash.replace('#','')));
+window.addEventListener('hashchange', () => {
+  const hash = location.hash.replace('#','');
+  showSection(hash || 'add');
+});
 // Initial section (DOMContentLoaded safety)
 try {
-  const init = () => showSection(location.hash.replace('#',''));
+  const init = () => {
+    const hash = location.hash.replace('#','');
+    showSection(hash || 'add');
+  };
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init, { once: true });
   } else {
@@ -378,7 +384,11 @@ function drawOrders() {
         });
       } catch(err) { alert('Failed to update: '+err.message); }
     });
-    div.querySelector('.view').addEventListener('click', ()=> { window.location.href = `view.html?id=${id}`; });
+    div.querySelector('.view').addEventListener('click', ()=> { 
+      // For admin, directly print the order instead of navigating to view.html
+      const printUrl = `view.html?id=${id}&print=true`;
+      window.open(printUrl, '_blank');
+    });
     frag.appendChild(div);
   });
   ordersListEl.appendChild(frag);
