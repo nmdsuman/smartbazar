@@ -1175,7 +1175,7 @@ export async function renderCartPage() {
             console.log('Order updated with payment info');
 
             // Show success message
-            alert('Payment submitted successfully! Admin will verify your payment shortly.');
+            // alert('Payment submitted successfully! Admin will verify your payment shortly.');
             
             // Clear cart and redirect
             localStorage.removeItem(CART_KEY);
