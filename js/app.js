@@ -970,8 +970,29 @@ export async function renderCartPage() {
           await window.paymentGateway.loadPaymentMethods();
           window.paymentGateway.renderPaymentMethods();
           console.log('Payment methods rendered successfully');
+          
+          // Check if payment methods were actually rendered
+          const container = document.getElementById('payment-methods');
+          if (container && container.children.length === 0) {
+            console.log('No payment methods rendered, showing fallback');
+            container.innerHTML = `
+              <div class="text-center text-gray-500 py-4">
+                <p>Loading payment options...</p>
+                <button onclick="window.location.reload()" class="mt-2 text-blue-600 underline">Retry</button>
+              </div>
+            `;
+          }
         } catch (error) {
           console.error('Error initializing payment methods:', error);
+          const container = document.getElementById('payment-methods');
+          if (container) {
+            container.innerHTML = `
+              <div class="text-center text-gray-500 py-4">
+                <p>Payment options are currently unavailable.</p>
+                <p class="text-sm">Please contact support or try again later.</p>
+              </div>
+            `;
+          }
         }
       } else {
         console.error('Payment gateway not available');
@@ -986,7 +1007,7 @@ export async function renderCartPage() {
           `;
         }
       }
-    }, 100);
+    }, 200); // Increased delay to 200ms
 
     // Wire confirm once per open
     const onConfirm = async () => {
@@ -1136,6 +1157,33 @@ export async function renderCartPage() {
       } catch (error) {
         console.error('Debug error:', error);
         alert('Error: ' + error.message);
+      }
+    });
+  }
+
+  // Manual load payment methods button in modal
+  const manualLoadBtn = document.getElementById('manual-load-payment');
+  if (manualLoadBtn) {
+    manualLoadBtn.addEventListener('click', async () => {
+      console.log('Manual load: Loading payment methods...');
+      
+      if (!window.paymentGateway) {
+        console.error('Payment gateway not found');
+        alert('Payment gateway not loaded');
+        return;
+      }
+
+      try {
+        await window.paymentGateway.loadPaymentMethods();
+        window.paymentGateway.renderPaymentMethods();
+        console.log('Payment methods loaded manually');
+        manualLoadBtn.textContent = '✅ Loaded';
+        setTimeout(() => {
+          manualLoadBtn.textContent = '🔄 Load Payment Methods';
+        }, 2000);
+      } catch (error) {
+        console.error('Manual load error:', error);
+        alert('Error loading payment methods: ' + error.message);
       }
     });
   }
