@@ -33,6 +33,8 @@ class PaymentsAdmin {
       const settingsSnap = await getDoc(settingsRef);
       const settings = settingsSnap.exists() ? settingsSnap.data() : {};
 
+      console.log('Loading payment settings:', settings);
+
       // Load bKash settings
       const bkashEnabled = document.querySelector('input[name="bkash_enabled"]');
       const bkashNumber = document.querySelector('input[name="bkash_number"]');
@@ -50,6 +52,8 @@ class PaymentsAdmin {
 
       if (codEnabled) codEnabled.checked = settings.cod?.enabled || false;
       if (codInstructions) codInstructions.value = settings.cod?.instructions || '';
+
+      console.log('Payment settings loaded successfully');
 
     } catch (error) {
       console.error('Failed to load payment settings:', error);
@@ -71,16 +75,20 @@ class PaymentsAdmin {
     const messageEl = document.getElementById('payment-settings-message');
     
     try {
+      // Get checkbox values properly
+      const bkashEnabled = document.querySelector('input[name="bkash_enabled"]').checked;
+      const codEnabled = document.querySelector('input[name="cod_enabled"]').checked;
+      
       const settings = {
         methods: [
           {
             id: 'bkash',
             name: 'bKash',
             type: 'manual',
-            enabled: formData.get('bkash_enabled') === 'on',
+            enabled: bkashEnabled,
             config: {
-              number: formData.get('bkash_number'),
-              accountName: formData.get('bkash_account_name'),
+              number: formData.get('bkash_number') || '',
+              accountName: formData.get('bkash_account_name') || '',
               instructions: formData.get('bkash_instructions') || 'Send money to the bKash number and enter your Transaction ID'
             }
           },
@@ -88,30 +96,36 @@ class PaymentsAdmin {
             id: 'cod',
             name: 'Cash on Delivery',
             type: 'cod',
-            enabled: formData.get('cod_enabled') === 'on',
+            enabled: codEnabled,
             config: {
               instructions: formData.get('cod_instructions') || 'Pay when you receive your order'
             }
           }
         ],
         bkash: {
-          enabled: formData.get('bkash_enabled') === 'on',
-          number: formData.get('bkash_number'),
-          accountName: formData.get('bkash_account_name'),
-          instructions: formData.get('bkash_instructions')
+          enabled: bkashEnabled,
+          number: formData.get('bkash_number') || '',
+          accountName: formData.get('bkash_account_name') || '',
+          instructions: formData.get('bkash_instructions') || ''
         },
         cod: {
-          enabled: formData.get('cod_enabled') === 'on',
-          instructions: formData.get('cod_instructions')
+          enabled: codEnabled,
+          instructions: formData.get('cod_instructions') || ''
         },
         updatedAt: serverTimestamp()
       };
 
+      console.log('Saving payment settings:', settings);
       await setDoc(doc(db, 'settings', 'payment'), settings, { merge: true });
 
       if (messageEl) {
         messageEl.textContent = 'Payment settings saved successfully!';
         messageEl.className = 'mt-3 text-sm text-green-700';
+      }
+
+      // Reload payment methods to update the customer view
+      if (window.paymentGateway) {
+        await window.paymentGateway.loadPaymentMethods();
       }
 
     } catch (error) {
