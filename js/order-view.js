@@ -183,11 +183,24 @@ import { collection, doc, getDoc, getDocs, orderBy, query, updateDoc, serverTime
     }
 
     // 4. Totals
-    const delivery = Number(orderData.deliveryFee || 0);
-    const total = subtotal + delivery;
+    // Try multiple possible field names for delivery charge
+    const deliveryFee = Number(orderData.deliveryFee) || Number(orderData.delivery) || Number(orderData.delivery_charge) || 0;
+    const total = Number(orderData.total) || (subtotal + deliveryFee);
+    
+    console.log('Order totals calculation:', {
+      subtotal,
+      deliveryFee,
+      total,
+      deliveryFeeField: orderData.deliveryFee,
+      deliveryField: orderData.delivery,
+      deliveryChargeField: orderData.delivery_charge,
+      totalField: orderData.total,
+      calculatedTotal: subtotal + deliveryFee,
+      orderData
+    });
     
     document.getElementById('ov-subtotal').textContent = formatMoney(subtotal);
-    document.getElementById('ov-delivery').textContent = formatMoney(delivery);
+    document.getElementById('ov-delivery').textContent = formatMoney(deliveryFee);
     document.getElementById('ov-total').textContent = formatMoney(total);
 
     // 5. Button Visibility
