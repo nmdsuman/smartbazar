@@ -224,19 +224,28 @@ import { collection, doc, getDoc, getDocs, orderBy, query, updateDoc, serverTime
         </div>
       `;
       
-      // Add Click Handler with variant selection
+      // Add Click Handler
       div.querySelector('.add-to-order-btn').addEventListener('click', function() {
+        // Animation
         const btn = this;
-        const product = p;
-        
-        // Check if product has variants/options
-        if (Array.isArray(product.options) && product.options.length > 0) {
-          // Show variant selection modal
-          showVariantSelection(product, btn);
-        } else {
-          // Direct add for products without variants
-          addProductToOrder(product, null, btn);
-        }
+        const originalText = btn.textContent;
+        btn.textContent = 'Added';
+        btn.classList.add('bg-green-600', 'text-white', 'border-green-600');
+        setTimeout(() => {
+           btn.textContent = originalText;
+           btn.classList.remove('bg-green-600', 'text-white', 'border-green-600');
+        }, 1000);
+
+        // Add to items list
+        items.push({
+          id: p.id,
+          title: p.title,
+          price: Number(p.price || 0),
+          qty: 1,
+          variant: '' // Basic add
+        });
+        markChanged();
+        render(); // Update background table
       });
 
       modalGrid.appendChild(div);
@@ -249,88 +258,6 @@ import { collection, doc, getDoc, getDocs, orderBy, query, updateDoc, serverTime
     const filtered = products.filter(p => p.title.toLowerCase().includes(term));
     renderModalProducts(filtered);
   });
-
-  // Variant Selection Modal
-  function showVariantSelection(product, originalBtn) {
-    // Create variant selection overlay
-    const overlay = document.createElement('div');
-    overlay.className = 'fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4';
-    overlay.innerHTML = `
-      <div class="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[80vh] overflow-hidden">
-        <div class="p-4 border-b">
-          <h3 class="font-bold text-lg">Select Variant</h3>
-          <p class="text-sm text-gray-600">${product.title}</p>
-        </div>
-        <div class="p-4 max-h-60 overflow-y-auto">
-          ${product.options.map((opt, idx) => `
-            <div class="variant-option border rounded-lg p-3 mb-2 cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition" data-idx="${idx}">
-              <div class="flex justify-between items-center">
-                <div>
-                  <div class="font-medium">${opt.label}</div>
-                  <div class="text-sm text-gray-500">${formatMoney(opt.price)}</div>
-                </div>
-                <div class="flex items-center gap-2">
-                  <input type="number" min="1" value="1" class="w-16 border rounded px-2 py-1 text-center variant-qty">
-                  <button class="bg-blue-600 text-white px-3 py-1 rounded text-sm add-variant-btn">Add</button>
-                </div>
-              </div>
-            </div>
-          `).join('')}
-        </div>
-        <div class="p-4 border-t">
-          <button class="w-full bg-gray-200 text-gray-700 py-2 rounded-lg cancel-variant-btn">Cancel</button>
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(overlay);
-
-    // Add event listeners
-    overlay.querySelector('.cancel-variant-btn').addEventListener('click', () => {
-      overlay.remove();
-    });
-
-    overlay.querySelectorAll('.add-variant-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const optionDiv = e.target.closest('.variant-option');
-        const idx = parseInt(optionDiv.dataset.idx);
-        const qty = parseInt(optionDiv.querySelector('.variant-qty').value) || 1;
-        const selectedOption = product.options[idx];
-        
-        addProductToOrder(product, selectedOption, originalBtn, qty);
-        overlay.remove();
-      });
-    });
-
-    // Close on backdrop click
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) {
-        overlay.remove();
-      }
-    });
-  }
-
-  function addProductToOrder(product, variant, btn, qty = 1) {
-    // Animation
-    const originalText = btn.textContent;
-    btn.textContent = 'Added';
-    btn.classList.add('bg-green-600', 'text-white', 'border-green-600');
-    setTimeout(() => {
-       btn.textContent = originalText;
-       btn.classList.remove('bg-green-600', 'text-white', 'border-green-600');
-    }, 1000);
-
-    // Add to items list
-    items.push({
-      id: product.id,
-      title: product.title,
-      price: variant ? Number(variant.price || 0) : Number(product.price || 0),
-      qty: qty,
-      variant: variant ? variant.label : ''
-    });
-    markChanged();
-    render(); // Update background table
-  }
 
   // SAVE TO FIREBASE
   saveBtn.addEventListener('click', async () => {
