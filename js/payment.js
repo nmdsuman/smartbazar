@@ -75,13 +75,46 @@ class PaymentGateway {
     document.addEventListener('change', (e) => {
       if (e.target.name === 'payment_method') {
         this.showPaymentDetails(e.target.value);
+        // Update modal payment display if modal is open
+        this.updateModalPaymentDisplay(e.target.value);
       }
     });
 
     // Payment form submission
-    const paymentForm = document.getElementById('payment-form');
-    if (paymentForm) {
-      paymentForm.addEventListener('submit', (e) => this.handlePaymentSubmit(e));
+    document.addEventListener('submit', async (e) => {
+      if (e.target.id === 'payment-form') {
+        await this.handlePaymentSubmit(e);
+      }
+    });
+  }
+
+  updateModalPaymentDisplay(methodId) {
+    const paymentDisplay = document.getElementById('selected-payment-display');
+    if (!paymentDisplay) return;
+
+    const method = this.paymentMethods.find(m => m.id === methodId);
+    
+    if (method) {
+      if (method.type === 'cod') {
+        paymentDisplay.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span class="font-medium">${method.name}</span>
+            <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">Pay on delivery</span>
+          </div>
+          <p class="text-xs mt-1">${method.config.instructions}</p>
+        `;
+      } else if (method.type === 'manual') {
+        paymentDisplay.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span class="font-medium">${method.name}</span>
+            <span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Manual verification</span>
+          </div>
+          <p class="text-xs mt-1">Send payment to: <span class="font-mono">${method.config.number}</span></p>
+          <p class="text-xs mt-1">${method.config.instructions}</p>
+        `;
+      }
+    } else {
+      paymentDisplay.innerHTML = `<span class="text-gray-500">Payment method: ${methodId}</span>`;
     }
   }
 
