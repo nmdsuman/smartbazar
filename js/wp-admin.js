@@ -1,6 +1,6 @@
 import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, getDocs, query, orderBy, where, doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, where, doc, getDoc, setDoc, updateDoc, serverTimestamp, deleteDoc, addDoc } from 'firebase/firestore';
 
 // WordPress Admin Navigation
 class WPAdmin {
@@ -155,6 +155,49 @@ class WPAdmin {
   setupProductForm() {
     const form = document.getElementById('add-product-form');
     if (!form) return;
+
+    // Media library buttons
+    const btnImageLibrary = document.getElementById('btn-image-library');
+    const btnGalleryLibrary = document.getElementById('btn-gallery-library');
+    const btnImageClear = document.getElementById('btn-image-clear');
+    const btnGalleryClear = document.getElementById('btn-gallery-clear');
+    
+    if (btnImageLibrary) {
+      btnImageLibrary.addEventListener('click', () => {
+        document.getElementById('media-modal').classList.remove('hidden');
+      });
+    }
+    
+    if (btnGalleryLibrary) {
+      btnGalleryLibrary.addEventListener('click', () => {
+        document.getElementById('media-modal').classList.remove('hidden');
+      });
+    }
+    
+    if (btnImageClear) {
+      btnImageClear.addEventListener('click', () => {
+        const imageInput = document.querySelector('input[name="imageUrl"]');
+        const previewImage = document.getElementById('add-preview-image');
+        const placeholder = document.getElementById('preview-placeholder');
+        
+        if (imageInput) imageInput.value = '';
+        if (previewImage) {
+          previewImage.src = '';
+          previewImage.classList.add('hidden');
+        }
+        if (placeholder) placeholder.classList.remove('hidden');
+      });
+    }
+    
+    if (btnGalleryClear) {
+      btnGalleryClear.addEventListener('click', () => {
+        const galleryTextarea = document.querySelector('textarea[name="galleryUrls"]');
+        const previewGallery = document.getElementById('add-preview-gallery');
+        
+        if (galleryTextarea) galleryTextarea.value = '';
+        if (previewGallery) previewGallery.innerHTML = '';
+      });
+    }
 
     // Variant management
     const variantAddBtn = document.getElementById('variant-add');
@@ -603,13 +646,287 @@ class WPAdmin {
   }
 
   async loadMediaData() {
-    console.log('Loading media data...');
-    // Media library will be implemented in next step
+    try {
+      // Load media from Firestore
+      let snap;
+      try {
+        const qy = query(collection(db,'media'), orderBy('createdAt','desc'));
+        snap = await getDocs(qy);
+      } catch(err){
+        // Fallback: no index or field issues — read without ordering
+        snap = await getDocs(collection(db,'media'));
+      }
+      
+      const allMedia = snap.docs.map(d=> ({ id:d.id, ...d.data() }));
+      
+      // Sort by createdAt if available
+      allMedia.sort((a,b)=> {
+        const ta = (a.createdAt?.seconds||0);
+        const tb = (b.createdAt?.seconds||0);
+        return tb - ta;
+      });
+
+      const mediaGrid = document.getElementById('media-grid');
+      if (!mediaGrid) return;
+
+      if (allMedia.length === 0) {
+        mediaGrid.innerHTML = '<div class="col-span-full text-center py-8 text-gray-500">No images in library</div>';
+        return;
+      }
+
+      mediaGrid.innerHTML = '';
+      allMedia.forEach(m => {
+        const card = document.createElement('div');
+        card.className = 'relative group cursor-pointer border-2 border-transparent hover:border-blue-400 rounded-lg overflow-hidden transition-all';
+        card.innerHTML = `
+          <img src="${m.url}" alt="" class="w-full h-24 object-cover">
+          <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <button class="select-media bg-blue-600 text-white px-3 py-1 rounded text-sm mr-2" data-url="${m.url}">Select</button>
+            <button class="delete-media bg-red-600 text-white px-3 py-1 rounded text-sm" data-id="${m.id}">Delete</button>
+          </div>
+        `;
+        mediaGrid.appendChild(card);
+      });
+
+      // Setup media selection
+      this.setupMediaSelection(allMedia);
+      
+      // Setup media upload for media page
+      this.setupMediaPageUpload();
+      
+      console.log('Media data loaded successfully');
+    } catch (error) {
+      console.error('Error loading media data:', error);
+    }
   }
 
-  async loadPluginsData() {
-    console.log('Loading plugins data...');
-    // Plugins section will be implemented in next step
+  setupMediaPageUpload() {
+    const mediaFileInput = document.getElementById('media-file-input');
+    const mediaUploadTrigger = document.getElementById('media-upload-trigger');
+    const mediaUploadMessage = document.getElementById('media-upload-message');
+    
+    if (mediaUploadTrigger && mediaFileInput) {
+      mediaUploadTrigger.addEventListener('click', () => {
+        mediaFileInput.click();
+      });
+    }
+    
+    if (mediaFileInput) {
+      mediaFileInput.addEventListener('change', async (e) => {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+        
+        try {
+          if (mediaUploadMessage) mediaUploadMessage.textContent = 'Uploading...';
+          mediaUploadMessage.className = 'mt-4 text-sm text-blue-600';
+          
+          for (const file of files) {
+            const url = await this.uploadImage(file);
+            await addDoc(collection(db, 'media'), { 
+              url, 
+              category: null, 
+              createdAt: serverTimestamp(), 
+              by: auth.currentUser ? auth.currentUser.uid : null 
+            });
+          }
+          
+          if (mediaUploadMessage) {
+            mediaUploadMessage.textContent = 'Upload complete!';
+            mediaUploadMessage.className = 'mt-4 text-sm text-green-600';
+          }
+          
+          // Clear input
+          mediaFileInput.value = '';
+          
+          // Reload media
+          await this.loadMediaData();
+          
+          // Clear message after 3 seconds
+          setTimeout(() => {
+            if (mediaUploadMessage) {
+              mediaUploadMessage.textContent = '';
+              mediaUploadMessage.className = 'mt-4 text-sm';
+            }
+          }, 3000);
+          
+        } catch (error) {
+          if (mediaUploadMessage) {
+            mediaUploadMessage.textContent = 'Upload failed: ' + error.message;
+            mediaUploadMessage.className = 'mt-4 text-sm text-red-600';
+          }
+        }
+      });
+    }
+  }
+
+  setupMediaSelection(allMedia) {
+    // Media upload
+    const mediaUpload = document.getElementById('media-upload');
+    const mediaUploadBtn = document.getElementById('media-upload-btn');
+    const mediaMessage = document.getElementById('media-message');
+    
+    if (mediaUpload && mediaUploadBtn) {
+      mediaUpload.addEventListener('change', async (e) => {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+        
+        try {
+          if (mediaMessage) mediaMessage.textContent = 'Uploading...';
+          mediaUploadBtn.disabled = true;
+          
+          for (const file of files) {
+            const url = await this.uploadImage(file);
+            await addDoc(collection(db, 'media'), { 
+              url, 
+              category: null, 
+              createdAt: serverTimestamp(), 
+              by: auth.currentUser ? auth.currentUser.uid : null 
+            });
+          }
+          
+          if (mediaMessage) mediaMessage.textContent = 'Upload complete!';
+          await this.loadMediaData();
+        } catch (error) {
+          if (mediaMessage) mediaMessage.textContent = 'Upload failed: ' + error.message;
+        } finally {
+          mediaUploadBtn.disabled = false;
+        }
+      });
+    }
+
+    // Media selection buttons
+    document.querySelectorAll('.select-media').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const url = btn.dataset.url;
+        this.selectMediaImage(url);
+      });
+    });
+
+    // Media delete buttons
+    document.querySelectorAll('.delete-media').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (!confirm('Delete this image?')) return;
+        
+        const id = btn.dataset.id;
+        try {
+          await deleteDoc(doc(db, 'media', id));
+          this.showNotification('Image deleted', 'success');
+          await this.loadMediaData();
+        } catch (error) {
+          this.showNotification('Delete failed: ' + error.message, 'error');
+        }
+      });
+    });
+
+    // Modal buttons
+    const mediaUseMain = document.getElementById('media-use-main');
+    const mediaUseGallery = document.getElementById('media-use-gallery');
+    const mediaClose = document.getElementById('media-close');
+    
+    if (mediaUseMain) {
+      mediaUseMain.addEventListener('click', () => {
+        const selected = document.querySelector('.select-media[data-url].selected');
+        if (selected) {
+          this.selectMediaImage(selected.dataset.url);
+        }
+      });
+    }
+
+    if (mediaUseGallery) {
+      mediaUseGallery.addEventListener('click', () => {
+        const selected = document.querySelector('.select-media[data-url].selected');
+        if (selected) {
+          this.addToGallery(selected.dataset.url);
+        }
+      });
+    }
+
+    if (mediaClose) {
+      mediaClose.addEventListener('click', () => {
+        document.getElementById('media-modal').classList.add('hidden');
+      });
+    }
+  }
+
+  async uploadImage(file) {
+    // ImgBB upload (simplified version)
+    const IMGBB_API_KEY = '462884d7f63129dede1b67d612e66ee6';
+    
+    const formData = new FormData();
+    formData.append('image', await this.fileToBase64(file));
+    
+    const response = await fetch(`https://api.imgbb.com/1/upload?expiration=0&key=${IMGBB_API_KEY}`, {
+      method: 'POST',
+      body: formData
+    });
+    
+    const result = await response.json();
+    if (!result.success) throw new Error('Upload failed');
+    
+    return result.data.url;
+  }
+
+  fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  selectMediaImage(url) {
+    // Set as main image for product
+    const imageInput = document.querySelector('input[name="imageUrl"]');
+    const previewImage = document.getElementById('add-preview-image');
+    const placeholder = document.getElementById('preview-placeholder');
+    
+    if (imageInput) imageInput.value = url;
+    if (previewImage) {
+      previewImage.src = url;
+      previewImage.classList.remove('hidden');
+    }
+    if (placeholder) placeholder.classList.add('hidden');
+    
+    // Close modal
+    document.getElementById('media-modal').classList.add('hidden');
+    this.showNotification('Image selected', 'success');
+  }
+
+  addToGallery(url) {
+    // Add to gallery textarea
+    const galleryTextarea = document.querySelector('textarea[name="galleryUrls"]');
+    if (galleryTextarea) {
+      const currentUrls = galleryTextarea.value ? galleryTextarea.value.split(',') : [];
+      currentUrls.push(url);
+      galleryTextarea.value = currentUrls.join(',');
+    }
+    
+    // Update gallery preview
+    this.updateGalleryPreview();
+    
+    // Close modal
+    document.getElementById('media-modal').classList.add('hidden');
+    this.showNotification('Added to gallery', 'success');
+  }
+
+  updateGalleryPreview() {
+    const galleryTextarea = document.querySelector('textarea[name="galleryUrls"]');
+    const previewGallery = document.getElementById('add-preview-gallery');
+    
+    if (!galleryTextarea || !previewGallery) return;
+    
+    const urls = galleryTextarea.value ? galleryTextarea.value.split(',') : [];
+    previewGallery.innerHTML = '';
+    
+    urls.forEach(url => {
+      const img = document.createElement('img');
+      img.src = url.trim();
+      img.className = 'w-full h-full object-cover rounded';
+      previewGallery.appendChild(img);
+    });
   }
 
   async loadSettingsData() {
