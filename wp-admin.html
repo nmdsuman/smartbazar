@@ -624,6 +624,534 @@
         </div>
       </div>
 
+      <!-- Media Page -->
+      <div id="media-page" class="wp-page-content">
+        <div class="wp-breadcrumb">
+          <a href="#dashboard">Dashboard</a>
+          <span>></span>
+          <span>Media Library</span>
+        </div>
+
+        <div class="flex justify-between items-center mb-6">
+          <h1 class="text-2xl font-bold">Media Library</h1>
+          <button class="wp-button">
+            <i class="fas fa-plus"></i> Add New
+          </button>
+        </div>
+
+        <div class="wp-search-box">
+          <i class="fas fa-search wp-search-icon"></i>
+          <input type="text" placeholder="Search media..." class="wp-search-input">
+        </div>
+
+        <div class="wp-media-upload" onclick="document.getElementById('media-file-input').click()">
+          <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
+          <p class="text-gray-600">Drop files here or click to upload</p>
+          <p class="text-sm text-gray-500">Maximum upload file size: 64 MB</p>
+          <input type="file" id="media-file-input" class="hidden" multiple accept="image/*">
+        </div>
+
+        <div class="wp-media-preview" id="media-preview">
+          <!-- Media items will be loaded here -->
+        </div>
+      </div>
+
+      <!-- Pages Page -->
+      <div id="pages-page" class="wp-page-content">
+        <div class="wp-breadcrumb">
+          <a href="#dashboard">Dashboard</a>
+          <span>></span>
+          <span>Pages</span>
+        </div>
+
+        <div class="flex justify-between items-center mb-6">
+          <h1 class="text-2xl font-bold">Pages</h1>
+          <a href="#pages/new" class="wp-button">
+            <i class="fas fa-plus"></i> Add New Page
+          </a>
+        </div>
+
+        <div class="wp-search-box">
+          <i class="fas fa-search wp-search-icon"></i>
+          <input type="text" placeholder="Search pages..." class="wp-search-input">
+        </div>
+
+        <div class="wp-card">
+          <div class="wp-card-body">
+            <table class="wp-table">
+              <thead>
+                <tr>
+                  <th><input type="checkbox" class="w-4 h-4"></th>
+                  <th>Title</th>
+                  <th>Author</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td colspan="5" class="text-center py-8 text-gray-500">
+                    No pages found. <a href="#pages/new" class="text-blue-600 hover:underline">Add your first page</a>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Posts Page -->
+      <div id="posts-page" class="wp-page-content">
+        <div class="wp-breadcrumb">
+          <a href="#dashboard">Dashboard</a>
+          <span>></span>
+          <span>Posts</span>
+        </div>
+
+        <div class="flex justify-between items-center mb-6">
+          <h1 class="text-2xl font-bold">Posts</h1>
+          <a href="#posts/new" class="wp-button">
+            <i class="fas fa-plus"></i> Add New Post
+          </a>
+        </div>
+
+        <div class="wp-search-box">
+          <i class="fas fa-search wp-search-icon"></i>
+          <input type="text" placeholder="Search posts..." class="wp-search-input">
+        </div>
+
+        <div class="wp-card">
+          <div class="wp-card-body">
+            <table class="wp-table">
+              <thead>
+                <tr>
+                  <th><input type="checkbox" class="w-4 h-4"></th>
+                  <th>Title</th>
+                  <th>Author</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td colspan="5" class="text-center py-8 text-gray-500">
+                    No posts found. <a href="#posts/new" class="text-blue-600 hover:underline">Add your first post</a>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Comments Page -->
+      <div id="comments-page" class="wp-page-content">
+        <div class="wp-breadcrumb">
+          <a href="#dashboard">Dashboard</a>
+          <span>></span>
+          <span>Comments</span>
+        </div>
+
+        <div class="flex justify-between items-center mb-6">
+          <h1 class="text-2xl font-bold">Comments</h1>
+          <div class="flex gap-2">
+            <select class="wp-select">
+              <option>All Comments</option>
+              <option>Pending</option>
+              <option>Approved</option>
+              <option>Spam</option>
+              <option>Trash</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="wp-search-box">
+          <i class="fas fa-search wp-search-icon"></i>
+          <input type="text" placeholder="Search comments..." class="wp-search-input">
+        </div>
+
+        <div class="wp-card">
+          <div class="wp-card-body">
+            <div class="text-center py-8 text-gray-500">
+              No comments found.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Plugins Page -->
+      <div id="plugins-page" class="wp-page-content">
+        <div class="wp-breadcrumb">
+          <a href="#dashboard">Dashboard</a>
+          <span>></span>
+          <span>Plugins</span>
+        </div>
+
+        <div class="flex justify-between items-center mb-6">
+          <h1 class="text-2xl font-bold">Plugins</h1>
+          <button class="wp-button">
+            <i class="fas fa-plus"></i> Add New
+          </button>
+        </div>
+
+        <div class="wp-search-box">
+          <i class="fas fa-search wp-search-icon"></i>
+          <input type="text" placeholder="Search plugins..." class="wp-search-input">
+        </div>
+
+        <div class="wp-plugin-item">
+          <div class="wp-plugin-header">
+            <div>
+              <div class="wp-plugin-name">Bazar Core</div>
+              <div class="wp-plugin-version">Version 1.0.0</div>
+            </div>
+            <div class="wp-plugin-actions">
+              <span class="wp-plugin-action wp-plugin-deactivate">Deactivate</span>
+              <span class="wp-plugin-action wp-plugin-settings">Settings</span>
+            </div>
+          </div>
+          <div class="wp-plugin-description">
+            Core functionality for Bazar e-commerce platform including product management, order processing, and payment integration.
+          </div>
+        </div>
+
+        <div class="wp-plugin-item">
+          <div class="wp-plugin-header">
+            <div>
+              <div class="wp-plugin-name">Payment Gateway</div>
+              <div class="wp-plugin-version">Version 1.0.0</div>
+            </div>
+            <div class="wp-plugin-actions">
+              <span class="wp-plugin-action wp-plugin-deactivate">Deactivate</span>
+              <span class="wp-plugin-action wp-plugin-settings">Settings</span>
+            </div>
+          </div>
+          <div class="wp-plugin-description">
+            Multiple payment gateway support including bKash, Nagad, Rocket, and other popular payment methods.
+          </div>
+        </div>
+
+        <div class="wp-plugin-item">
+          <div class="wp-plugin-header">
+            <div>
+              <div class="wp-plugin-name">Advanced Analytics</div>
+              <div class="wp-plugin-version">Version 1.0.0</div>
+            </div>
+            <div class="wp-plugin-actions">
+              <span class="wp-plugin-action wp-plugin-activate">Activate</span>
+            </div>
+          </div>
+          <div class="wp-plugin-description">
+            Advanced analytics and reporting system for detailed insights into sales, customer behavior, and performance metrics.
+          </div>
+        </div>
+
+        <div class="wp-plugin-item">
+          <div class="wp-plugin-header">
+            <div>
+              <div class="wp-plugin-name">SEO Optimizer</div>
+              <div class="wp-plugin-version">Version 1.0.0</div>
+            </div>
+            <div class="wp-plugin-actions">
+              <span class="wp-plugin-action wp-plugin-activate">Activate</span>
+            </div>
+          </div>
+          <div class="wp-plugin-description">
+            SEO optimization tools including meta tags, sitemap generation, and search engine submission.
+          </div>
+        </div>
+      </div>
+
+      <!-- Users Page -->
+      <div id="users-page" class="wp-page-content">
+        <div class="wp-breadcrumb">
+          <a href="#dashboard">Dashboard</a>
+          <span>></span>
+          <span>Users</span>
+        </div>
+
+        <div class="flex justify-between items-center mb-6">
+          <h1 class="text-2xl font-bold">Users</h1>
+          <a href="#users/new" class="wp-button">
+            <i class="fas fa-plus"></i> Add New User
+          </a>
+        </div>
+
+        <div class="wp-search-box">
+          <i class="fas fa-search wp-search-icon"></i>
+          <input type="text" placeholder="Search users..." class="wp-search-input">
+        </div>
+
+        <div class="wp-card">
+          <div class="wp-card-body">
+            <table class="wp-table">
+              <thead>
+                <tr>
+                  <th><input type="checkbox" class="w-4 h-4"></th>
+                  <th>Username</th>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><input type="checkbox" class="w-4 h-4"></td>
+                  <td><strong>admin</strong></td>
+                  <td>Administrator</td>
+                  <td>admin@bazar.com</td>
+                  <td>Administrator</td>
+                  <td><span class="wp-status wp-status-published">Active</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tools Page -->
+      <div id="tools-page" class="wp-page-content">
+        <div class="wp-breadcrumb">
+          <a href="#dashboard">Dashboard</a>
+          <span>></span>
+          <span>Tools</span>
+        </div>
+
+        <h1 class="text-2xl font-bold mb-6">Tools</h1>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="wp-card">
+            <div class="wp-card-header">
+              Import/Export
+            </div>
+            <div class="wp-card-body">
+              <p class="mb-4">Import products, orders, and customers from CSV files or export your data for backup.</p>
+              <div class="flex gap-2">
+                <button class="wp-button">Import</button>
+                <button class="wp-button-secondary">Export</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="wp-card">
+            <div class="wp-card-header">
+              Database Backup
+            </div>
+            <div class="wp-card-body">
+              <p class="mb-4">Create backups of your database and restore from previous backups.</p>
+              <div class="flex gap-2">
+                <button class="wp-button">Backup Now</button>
+                <button class="wp-button-secondary">Restore</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="wp-card">
+            <div class="wp-card-header">
+              Site Health
+            </div>
+            <div class="wp-card-body">
+              <p class="mb-4">Check your site's health and performance status.</p>
+              <button class="wp-button">Check Status</button>
+            </div>
+          </div>
+
+          <div class="wp-card">
+            <div class="wp-card-header">
+              Clear Cache
+            </div>
+            <div class="wp-card-body">
+              <p class="mb-4">Clear all cached data to improve performance.</p>
+              <button class="wp-button">Clear Cache</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings Page -->
+      <div id="settings-page" class="wp-page-content">
+        <div class="wp-breadcrumb">
+          <a href="#dashboard">Dashboard</a>
+          <span>></span>
+          <span>Settings</span>
+        </div>
+
+        <h1 class="text-2xl font-bold mb-6">Settings</h1>
+
+        <div class="wp-tabs">
+          <button class="wp-tab active" data-tab="general">General</button>
+          <button class="wp-tab" data-tab="shipping">Shipping</button>
+          <button class="wp-tab" data-tab="payment">Payment</button>
+          <button class="wp-tab" data-tab="email">Email</button>
+        </div>
+
+        <div id="general-tab" class="wp-tab-content active">
+          <form class="wp-form-table">
+            <table>
+              <tr>
+                <th>Site Title</th>
+                <td>
+                  <input type="text" class="wp-input" value="Bazar" id="site-title">
+                  <p class="wp-description">The name of your site as displayed throughout the admin area.</p>
+                </td>
+              </tr>
+              <tr>
+                <th>Tagline</th>
+                <td>
+                  <input type="text" class="wp-input" value="Your Trusted E-commerce Platform" id="site-tagline">
+                  <p class="wp-description">In a few words, explain what this site is about.</p>
+                </td>
+              </tr>
+              <tr>
+                <th>Admin Email</th>
+                <td>
+                  <input type="email" class="wp-input" value="admin@bazar.com" id="admin-email">
+                  <p class="wp-description">This address is used for admin purposes, like new user notification.</p>
+                </td>
+              </tr>
+              <tr>
+                <th>Timezone</th>
+                <td>
+                  <select class="wp-select" id="timezone">
+                    <option value="UTC+6" selected>UTC+6 (Dhaka)</option>
+                    <option value="UTC+0">UTC+0 (London)</option>
+                    <option value="UTC-5">UTC-5 (New York)</option>
+                  </select>
+                  <p class="wp-description">Choose the timezone for your site.</p>
+                </td>
+              </tr>
+              <tr>
+                <th>Date Format</th>
+                <td>
+                  <select class="wp-select" id="date-format">
+                    <option value="Y-m-d" selected>2024-01-31</option>
+                    <option value="m/d/Y">01/31/2024</option>
+                    <option value="d/m/Y">31/01/2024</option>
+                  </select>
+                  <p class="wp-description">Choose the date format for your site.</p>
+                </td>
+              </tr>
+            </table>
+          </form>
+        </div>
+
+        <div id="shipping-tab" class="wp-tab-content">
+          <form class="wp-form-table">
+            <table>
+              <tr>
+                <th>Base Delivery Fee</th>
+                <td>
+                  <input type="number" class="wp-input" value="50" id="base-fee">
+                  <p class="wp-description">Base delivery fee for all orders.</p>
+                </td>
+              </tr>
+              <tr>
+                <th>Extra Per Block</th>
+                <td>
+                  <input type="number" class="wp-input" value="20" id="extra-per-block">
+                  <p class="wp-description">Additional fee per weight block.</p>
+                </td>
+              </tr>
+              <tr>
+                <th>Block Grams</th>
+                <td>
+                  <input type="number" class="wp-input" value="500" id="block-grams">
+                  <p class="wp-description">Weight in grams per block.</p>
+                </td>
+              </tr>
+              <tr>
+                <th>Fallback Fee</th>
+                <td>
+                  <input type="number" class="wp-input" value="60" id="fallback-fee">
+                  <p class="wp-description">Default delivery fee when calculation fails.</p>
+                </td>
+              </tr>
+            </table>
+          </form>
+        </div>
+
+        <div id="payment-tab" class="wp-tab-content">
+          <form class="wp-form-table">
+            <table>
+              <tr>
+                <th>bKash</th>
+                <td>
+                  <label class="wp-checkbox">
+                    <input type="checkbox" checked id="bkash-enabled">
+                    Enable bKash payments
+                  </label>
+                  <div class="mt-3">
+                    <label class="wp-label">bKash Number</label>
+                    <input type="text" class="wp-input" value="01312345678" id="bkash-number">
+                  </div>
+                  <div class="mt-3">
+                    <label class="wp-label">Instructions</label>
+                    <textarea class="wp-textarea" id="bkash-instructions">Send money to the bKash number above and enter the transaction ID.</textarea>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <th>Nagad</th>
+                <td>
+                  <label class="wp-checkbox">
+                    <input type="checkbox" id="nagad-enabled">
+                    Enable Nagad payments
+                  </label>
+                  <div class="mt-3">
+                    <label class="wp-label">Nagad Number</label>
+                    <input type="text" class="wp-input" value="01701234567" id="nagad-number">
+                  </div>
+                  <div class="mt-3">
+                    <label class="wp-label">Instructions</label>
+                    <textarea class="wp-textarea" id="nagad-instructions">Send money to the Nagad number above and enter the transaction ID.</textarea>
+                  </div>
+                </td>
+              </tr>
+            </table>
+          </form>
+        </div>
+
+        <div id="email-tab" class="wp-tab-content">
+          <form class="wp-form-table">
+            <table>
+              <tr>
+                <th>From Email</th>
+                <td>
+                  <input type="email" class="wp-input" value="noreply@bazar.com" id="from-email">
+                  <p class="wp-description">Email address used for sending emails.</p>
+                </td>
+              </tr>
+              <tr>
+                <th>From Name</th>
+                <td>
+                  <input type="text" class="wp-input" value="Bazar" id="from-name">
+                  <p class="wp-description">Name displayed in email headers.</p>
+                </td>
+              </tr>
+              <tr>
+                <th>SMTP Host</th>
+                <td>
+                  <input type="text" class="wp-input" placeholder="smtp.gmail.com" id="smtp-host">
+                  <p class="wp-description">SMTP server hostname.</p>
+                </td>
+              </tr>
+              <tr>
+                <th>SMTP Port</th>
+                <td>
+                  <input type="number" class="wp-input" value="587" id="smtp-port">
+                  <p class="wp-description">SMTP server port.</p>
+                </td>
+              </tr>
+            </table>
+          </form>
+        </div>
+
+        <div class="mt-6">
+          <button class="wp-button">Save Changes</button>
+        </div>
+      </div>
+
       <!-- Other pages will be added in next steps -->
     </div>
   </div>
