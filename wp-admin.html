@@ -835,15 +835,28 @@
           <input type="text" placeholder="Search media..." class="wp-search-input">
         </div>
 
-        <div class="wp-media-upload" onclick="document.getElementById('media-file-input').click()">
-          <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-3"></i>
-          <p class="text-gray-600">Drop files here or click to upload</p>
-          <p class="text-sm text-gray-500">Maximum upload file size: 64 MB</p>
-          <input type="file" id="media-file-input" class="hidden" multiple accept="image/*">
+        <!-- Media Upload Area -->
+        <div class="wp-card mb-6">
+          <div class="wp-card-header">
+            Upload New Media
+          </div>
+          <div class="wp-card-body">
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-400 transition-colors">
+              <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
+              <p class="text-gray-600 mb-4">Drag and drop files here or click to browse</p>
+              <input type="file" id="media-file-input" multiple accept="image/*" class="hidden">
+              <button id="media-upload-trigger" class="wp-button">Select Files</button>
+            </div>
+            <div id="media-upload-message" class="mt-4 text-sm"></div>
+          </div>
         </div>
 
-        <div class="wp-media-preview" id="media-preview">
-          <!-- Media items will be loaded here -->
+        <div class="wp-card">
+          <div class="wp-card-body">
+            <div id="media-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              <!-- Media items will be loaded here -->
+            </div>
+          </div>
         </div>
       </div>
 
