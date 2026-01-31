@@ -1,6 +1,6 @@
 import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, getDocs, query, orderBy, where, doc, getDoc, setDoc } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, where, doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
 // WordPress Admin Navigation
 class WPAdmin {
@@ -91,11 +91,26 @@ class WPAdmin {
       case 'products':
         await this.loadProductsData();
         break;
+      case 'products-add':
+        await this.loadAddProductPage();
+        break;
       case 'orders':
         await this.loadOrdersData();
         break;
       case 'media':
         await this.loadMediaData();
+        break;
+      case 'chat':
+        await this.loadChatData();
+        break;
+      case 'payments':
+        await this.loadPaymentsData();
+        break;
+      case 'files':
+        await this.loadFilesData();
+        break;
+      case 'notes':
+        await this.loadNotesData();
         break;
       case 'plugins':
         await this.loadPluginsData();
@@ -105,6 +120,364 @@ class WPAdmin {
         break;
       default:
         console.log(`Loading ${page} page...`);
+    }
+  }
+
+  async loadAddProductPage() {
+    try {
+      // Load categories
+      const categoriesQuery = query(collection(db, 'categories'), orderBy('name'));
+      const querySnapshot = await getDocs(categoriesQuery);
+      
+      const categorySelect = document.getElementById('add-category');
+      const subcategorySelect = document.getElementById('add-subcategory');
+      
+      if (categorySelect) {
+        categorySelect.innerHTML = '<option value="">Select Category</option>';
+        querySnapshot.forEach((doc) => {
+          const category = doc.data();
+          const option = document.createElement('option');
+          option.value = category.name;
+          option.textContent = category.name;
+          categorySelect.appendChild(option);
+        });
+      }
+
+      // Setup product form
+      this.setupProductForm();
+      
+      console.log('Add product page loaded successfully');
+    } catch (error) {
+      console.error('Error loading add product page:', error);
+    }
+  }
+
+  setupProductForm() {
+    const form = document.getElementById('add-product-form');
+    if (!form) return;
+
+    // Variant management
+    const variantAddBtn = document.getElementById('variant-add');
+    const variantsList = document.getElementById('variants-list');
+    
+    if (variantAddBtn && variantsList) {
+      variantAddBtn.addEventListener('click', () => {
+        const variantRow = document.createElement('div');
+        variantRow.className = 'grid grid-cols-1 sm:grid-cols-12 gap-4 items-start mb-4 bg-gray-50 p-3 rounded-lg border border-gray-200';
+        variantRow.innerHTML = `
+          <div class="sm:col-span-4">
+            <label class="sm:hidden text-xs font-medium text-gray-500 mb-1 block">Weight Value</label>
+            <input type="number" step="0.01" min="0" name="weightValue" placeholder="1" class="wp-input">
+          </div>
+          <div class="sm:col-span-3">
+            <label class="sm:hidden text-xs font-medium text-gray-500 mb-1 block">Unit</label>
+            <select name="weightUnit" class="wp-select">
+              <option value="kg">kg (Weight)</option>
+              <option value="l">L (Liquid)</option>
+              <option value="pc">pc (Pieces)</option>
+            </select>
+          </div>
+          <div class="sm:col-span-3">
+            <label class="sm:hidden text-xs font-medium text-gray-500 mb-1 block">Price</label>
+            <div class="relative">
+              <span class="absolute left-3 top-2 text-gray-400">৳</span>
+              <input type="number" step="0.01" min="0" name="price" required placeholder="0.00" class="wp-input pl-7 font-semibold text-gray-700">
+            </div>
+          </div>
+          <div class="sm:col-span-2 flex items-center justify-end h-full pt-1">
+            <button type="button" onclick="this.parentElement.parentElement.remove()" class="text-red-500 hover:text-red-700">Remove</button>
+          </div>
+        `;
+        variantsList.appendChild(variantRow);
+      });
+    }
+
+    // Live preview
+    this.setupLivePreview();
+
+    // Form submission
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await this.saveProduct(form);
+    });
+  }
+
+  setupLivePreview() {
+    const titleInput = document.querySelector('input[name="title"]');
+    const priceInput = document.querySelector('input[name="price"]');
+    const weightValueInput = document.querySelector('input[name="weightValue"]');
+    const weightUnitSelect = document.querySelector('select[name="weightUnit"]');
+    
+    const previewTitle = document.getElementById('add-preview-title');
+    const previewPrice = document.getElementById('add-preview-price');
+    const previewExtra = document.getElementById('add-preview-extra');
+    
+    const updatePreview = () => {
+      if (previewTitle && titleInput) {
+        previewTitle.textContent = titleInput.value || 'Product Name';
+      }
+      
+      if (previewPrice && priceInput) {
+        previewPrice.textContent = `৳${parseFloat(priceInput.value || 0).toFixed(2)}`;
+      }
+      
+      if (previewExtra && weightValueInput && weightUnitSelect) {
+        const weight = weightValueInput.value || '1';
+        const unit = weightUnitSelect.value || 'kg';
+        previewExtra.textContent = `${weight} ${unit}`;
+      }
+    };
+    
+    if (titleInput) titleInput.addEventListener('input', updatePreview);
+    if (priceInput) priceInput.addEventListener('input', updatePreview);
+    if (weightValueInput) weightValueInput.addEventListener('input', updatePreview);
+    if (weightUnitSelect) weightUnitSelect.addEventListener('change', updatePreview);
+  }
+
+  async saveProduct(form) {
+    try {
+      const formData = new FormData(form);
+      const product = {
+        title: formData.get('title'),
+        category: formData.get('category'),
+        subcategory: formData.get('subcategory'),
+        description: formData.get('description'),
+        stock: Number(formData.get('stock')),
+        active: formData.get('active') === 'on',
+        variants: [],
+        createdAt: serverTimestamp()
+      };
+
+      // Collect variants
+      const weightValues = form.querySelectorAll('input[name="weightValue"]');
+      const weightUnits = form.querySelectorAll('select[name="weightUnit"]');
+      const prices = form.querySelectorAll('input[name="price"]');
+      
+      for (let i = 0; i < weightValues.length; i++) {
+        if (weightValues[i].value && prices[i].value) {
+          product.variants.push({
+            weight: Number(weightValues[i].value),
+            unit: weightUnits[i].value,
+            price: Number(prices[i].value)
+          });
+        }
+      }
+
+      // Save to Firestore
+      const productsRef = collection(db, 'products');
+      await setDoc(doc(productsRef), product);
+      
+      this.showNotification('Product added successfully!', 'success');
+      form.reset();
+      
+      // Navigate to products list
+      setTimeout(() => {
+        this.navigateToPage('products');
+      }, 1500);
+      
+    } catch (error) {
+      console.error('Error saving product:', error);
+      this.showNotification('Error saving product: ' + error.message, 'error');
+    }
+  }
+
+  async loadChatData() {
+    try {
+      // Load chat sessions
+      const chatSessions = document.getElementById('chat-sessions');
+      if (!chatSessions) return;
+
+      // Mock chat data - replace with real Firebase data
+      chatSessions.innerHTML = `
+        <div class="p-3 border-b hover:bg-gray-50 cursor-pointer">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="font-medium">Customer 1</div>
+              <div class="text-sm text-gray-500">Last message...</div>
+            </div>
+            <span class="text-xs text-gray-400">2m ago</span>
+          </div>
+        </div>
+        <div class="p-3 border-b hover:bg-gray-50 cursor-pointer">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="font-medium">Customer 2</div>
+              <div class="text-sm text-gray-500">How can I help?</div>
+            </div>
+            <span class="text-xs text-gray-400">5m ago</span>
+          </div>
+        </div>
+      `;
+
+      // Setup chat functionality
+      this.setupChatFunctionality();
+      
+      console.log('Chat data loaded successfully');
+    } catch (error) {
+      console.error('Error loading chat data:', error);
+    }
+  }
+
+  setupChatFunctionality() {
+    const chatSendBtn = document.getElementById('chat-send');
+    const chatReplyInput = document.getElementById('chat-reply');
+    
+    if (chatSendBtn && chatReplyInput) {
+      chatSendBtn.addEventListener('click', () => {
+        const message = chatReplyInput.value.trim();
+        if (message) {
+          // Send message logic here
+          chatReplyInput.value = '';
+          this.showNotification('Message sent!', 'success');
+        }
+      });
+      
+      chatReplyInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          chatSendBtn.click();
+        }
+      });
+    }
+  }
+
+  async loadPaymentsData() {
+    try {
+      // Load pending payments
+      const pendingPaymentsList = document.getElementById('pending-payments-list');
+      if (!pendingPaymentsList) return;
+
+      // Mock pending payments - replace with real Firebase data
+      pendingPaymentsList.innerHTML = `
+        <div class="border rounded-lg p-4">
+          <div class="flex justify-between items-start">
+            <div>
+              <div class="font-medium">Order #12345</div>
+              <div class="text-sm text-gray-600">bKash Payment</div>
+              <div class="text-sm">Transaction ID: 123456789</div>
+              <div class="text-sm">Amount: ৳1,250</div>
+            </div>
+            <div class="flex gap-2">
+              <button class="px-3 py-1 bg-green-600 text-white rounded text-sm">Approve</button>
+              <button class="px-3 py-1 bg-red-600 text-white rounded text-sm">Reject</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Setup payment settings form
+      this.setupPaymentSettings();
+      
+      console.log('Payments data loaded successfully');
+    } catch (error) {
+      console.error('Error loading payments data:', error);
+    }
+  }
+
+  setupPaymentSettings() {
+    const paymentForm = document.getElementById('payment-settings-form');
+    if (paymentForm) {
+      paymentForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        try {
+          const formData = new FormData(paymentForm);
+          const settings = {
+            bkash: {
+              enabled: formData.get('bkash_enabled') === 'on',
+              number: formData.get('bkash_number'),
+              accountName: formData.get('bkash_account_name'),
+              instructions: formData.get('bkash_instructions')
+            },
+            cod: {
+              enabled: formData.get('cod_enabled') === 'on',
+              instructions: formData.get('cod_instructions')
+            }
+          };
+
+          // Save to Firestore
+          const settingsRef = doc(db, 'settings', 'payments');
+          await setDoc(settingsRef, settings);
+          
+          this.showNotification('Payment settings saved!', 'success');
+        } catch (error) {
+          console.error('Error saving payment settings:', error);
+          this.showNotification('Error saving settings: ' + error.message, 'error');
+        }
+      });
+    }
+  }
+
+  async loadFilesData() {
+    try {
+      // Setup file upload
+      const uploadBtn = document.getElementById('fm-upload');
+      const fileInput = document.getElementById('fm-file');
+      
+      if (uploadBtn && fileInput) {
+        uploadBtn.addEventListener('click', () => {
+          if (fileInput.files.length > 0) {
+            // Upload logic here
+            this.showNotification('Files uploaded!', 'success');
+          }
+        });
+      }
+      
+      console.log('Files data loaded successfully');
+    } catch (error) {
+      console.error('Error loading files data:', error);
+    }
+  }
+
+  async loadNotesData() {
+    try {
+      // Load notes
+      const notesList = document.getElementById('notes-list');
+      if (notesList) {
+        // Mock notes - replace with real Firebase data
+        notesList.innerHTML = `
+          <div class="p-2 border rounded cursor-pointer hover:bg-gray-50">
+            <div class="font-medium">Sample Note</div>
+            <div class="text-sm text-gray-500">Click to edit...</div>
+          </div>
+        `;
+      }
+
+      // Setup notes functionality
+      this.setupNotesFunctionality();
+      
+      console.log('Notes data loaded successfully');
+    } catch (error) {
+      console.error('Error loading notes data:', error);
+    }
+  }
+
+  setupNotesFunctionality() {
+    const saveBtn = document.getElementById('note-save');
+    const titleInput = document.getElementById('note-title');
+    const contentInput = document.getElementById('note-content');
+    
+    if (saveBtn && titleInput && contentInput) {
+      saveBtn.addEventListener('click', async () => {
+        try {
+          const note = {
+            title: titleInput.value,
+            content: contentInput.value,
+            createdAt: serverTimestamp()
+          };
+
+          // Save to Firestore
+          const notesRef = collection(db, 'notes');
+          await setDoc(doc(notesRef), note);
+          
+          this.showNotification('Note saved!', 'success');
+          
+          // Clear form
+          titleInput.value = '';
+          contentInput.value = '';
+        } catch (error) {
+          console.error('Error saving note:', error);
+          this.showNotification('Error saving note: ' + error.message, 'error');
+        }
+      });
     }
   }
 
