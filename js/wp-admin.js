@@ -1,6 +1,6 @@
 import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, getDocs, query, orderBy, where, doc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, where, doc, getDoc, setDoc } from 'firebase/firestore';
 
 // WordPress Admin Navigation
 class WPAdmin {
@@ -300,6 +300,145 @@ class WPAdmin {
         }
       });
     });
+
+    // Tab functionality
+    this.setupTabs();
+
+    // Media upload functionality
+    this.setupMediaUpload();
+
+    // Settings save functionality
+    this.setupSettingsSave();
+  }
+
+  setupTabs() {
+    const tabButtons = document.querySelectorAll('.wp-tab');
+    const tabContents = document.querySelectorAll('.wp-tab-content');
+
+    tabButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const targetTab = button.getAttribute('data-tab');
+        
+        // Remove active class from all tabs and contents
+        tabButtons.forEach(btn => btn.classList.remove('active'));
+        tabContents.forEach(content => content.classList.remove('active'));
+        
+        // Add active class to clicked tab and corresponding content
+        button.classList.add('active');
+        const targetContent = document.getElementById(`${targetTab}-tab`);
+        if (targetContent) {
+          targetContent.classList.add('active');
+        }
+      });
+    });
+  }
+
+  setupMediaUpload() {
+    const fileInput = document.getElementById('media-file-input');
+    const mediaPreview = document.getElementById('media-preview');
+    
+    if (fileInput && mediaPreview) {
+      fileInput.addEventListener('change', (e) => {
+        const files = Array.from(e.target.files);
+        
+        files.forEach(file => {
+          if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+              const mediaItem = document.createElement('div');
+              mediaItem.className = 'wp-media-item';
+              mediaItem.innerHTML = `
+                <img src="${e.target.result}" alt="${file.name}">
+                <button class="remove-btn" onclick="this.parentElement.remove()">×</button>
+              `;
+              mediaPreview.appendChild(mediaItem);
+            };
+            
+            reader.readAsDataURL(file);
+          }
+        });
+      });
+    }
+  }
+
+  setupSettingsSave() {
+    const saveButtons = document.querySelectorAll('.wp-button');
+    saveButtons.forEach(button => {
+      if (button.textContent.includes('Save Changes')) {
+        button.addEventListener('click', () => {
+          this.saveSettings();
+        });
+      }
+    });
+  }
+
+  async saveSettings() {
+    try {
+      const settings = {
+        siteTitle: document.getElementById('site-title')?.value || 'Bazar',
+        siteTagline: document.getElementById('site-tagline')?.value || 'Your Trusted E-commerce Platform',
+        adminEmail: document.getElementById('admin-email')?.value || 'admin@bazar.com',
+        timezone: document.getElementById('timezone')?.value || 'UTC+6',
+        dateFormat: document.getElementById('date-format')?.value || 'Y-m-d',
+        shipping: {
+          baseFee: Number(document.getElementById('base-fee')?.value || 50),
+          extraPerBlock: Number(document.getElementById('extra-per-block')?.value || 20),
+          blockGrams: Number(document.getElementById('block-grams')?.value || 500),
+          fallbackFee: Number(document.getElementById('fallback-fee')?.value || 60)
+        },
+        payment: {
+          bkash: {
+            enabled: document.getElementById('bkash-enabled')?.checked || false,
+            number: document.getElementById('bkash-number')?.value || '01312345678',
+            instructions: document.getElementById('bkash-instructions')?.value || 'Send money to the bKash number above and enter the transaction ID.'
+          },
+          nagad: {
+            enabled: document.getElementById('nagad-enabled')?.checked || false,
+            number: document.getElementById('nagad-number')?.value || '01701234567',
+            instructions: document.getElementById('nagad-instructions')?.value || 'Send money to the Nagad number above and enter the transaction ID.'
+          }
+        },
+        email: {
+          fromEmail: document.getElementById('from-email')?.value || 'noreply@bazar.com',
+          fromName: document.getElementById('from-name')?.value || 'Bazar',
+          smtpHost: document.getElementById('smtp-host')?.value || '',
+          smtpPort: Number(document.getElementById('smtp-port')?.value || 587)
+        }
+      };
+
+      // Save to Firestore
+      const settingsRef = doc(db, 'settings', 'site');
+      await setDoc(settingsRef, settings);
+      
+      // Show success message
+      this.showNotification('Settings saved successfully!', 'success');
+      
+      console.log('Settings saved:', settings);
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      this.showNotification('Error saving settings: ' + error.message, 'error');
+    }
+  }
+
+  showNotification(message, type = 'success') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `wp-notification ${type}`;
+    notification.innerHTML = `
+      <p>${message}</p>
+    `;
+    
+    // Insert at the top of content area
+    const contentArea = document.querySelector('.wp-content-area');
+    if (contentArea) {
+      contentArea.insertBefore(notification, contentArea.firstChild);
+      
+      // Auto-remove after 3 seconds
+      setTimeout(() => {
+        notification.remove();
+      }, 3000);
+    }
   }
 
   handleSearch(searchTerm) {
