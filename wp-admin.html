@@ -538,9 +538,11 @@
 
         <div class="flex justify-between items-center mb-6">
           <h1 class="text-2xl font-bold">Products</h1>
-          <a href="#products/new" class="wp-button">
-            <i class="fas fa-plus"></i> Add New Product
-          </a>
+          <div class="flex gap-2">
+            <a href="#products/add" class="wp-button">
+              <i class="fas fa-plus"></i> Add New Product
+            </a>
+          </div>
         </div>
 
         <div class="wp-search-box">
@@ -559,18 +561,207 @@
                   <th>Stock</th>
                   <th>Status</th>
                   <th>Date</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody id="products-table-body">
-                <tr>
-                  <td colspan="6" class="text-center py-8 text-gray-500">
-                    No products found. <a href="#products/new" class="text-blue-600 hover:underline">Add your first product</a>
-                  </td>
-                </tr>
+                <!-- Products will be loaded here -->
               </tbody>
             </table>
           </div>
         </div>
+      </div>
+
+      <!-- Add Product Page -->
+      <div id="products-add-page" class="wp-page-content">
+        <div class="wp-breadcrumb">
+          <a href="#dashboard">Dashboard</a>
+          <span>></span>
+          <a href="#products">Products</a>
+          <span>></span>
+          <span>Add New Product</span>
+        </div>
+
+        <div class="flex justify-between items-center mb-6">
+          <h1 class="text-2xl font-bold">Add New Product</h1>
+          <button type="button" id="add-cancel-edit" class="hidden wp-button-secondary">
+            Cancel Editing
+          </button>
+        </div>
+
+        <form id="add-product-form" class="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
+          
+          <!-- Left Column: Product Details -->
+          <div class="xl:col-span-2 space-y-6">
+            
+            <!-- Card 1: Basic Info -->
+            <div class="wp-card">
+              <div class="wp-card-header">
+                Basic Information
+              </div>
+              <div class="wp-card-body">
+                <div class="wp-form-group">
+                  <label class="wp-label">Product Title</label>
+                  <input type="text" name="title" required class="wp-input" placeholder="e.g. Premium Miniket Rice">
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="wp-form-group">
+                    <label class="wp-label">Category</label>
+                    <select name="category" id="add-category" class="wp-select"></select>
+                  </div>
+                  <div class="wp-form-group">
+                    <label class="wp-label">Subcategory</label>
+                    <select name="subcategory" id="add-subcategory" class="wp-select"></select>
+                  </div>
+                </div>
+                <div class="wp-form-group">
+                  <label class="wp-label">Description</label>
+                  <textarea name="description" rows="3" class="wp-textarea" placeholder="Product details..."></textarea>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 2: Pricing & Variants -->
+            <div class="wp-card">
+              <div class="wp-card-header">
+                Pricing & Options
+              </div>
+              <div class="wp-card-body">
+                <!-- Header Labels -->
+                <div class="hidden sm:grid grid-cols-12 gap-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-1">
+                  <div class="col-span-4">Weight / Size</div>
+                  <div class="col-span-3">Unit</div>
+                  <div class="col-span-3">Price (৳)</div>
+                  <div class="col-span-2 text-right">Action</div>
+                </div>
+
+                <!-- Base Variant Row -->
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-start mb-4 bg-blue-50/50 p-3 rounded-lg border border-blue-100">
+                  <div class="sm:col-span-4">
+                    <label class="sm:hidden text-xs font-medium text-gray-500 mb-1 block">Weight Value</label>
+                    <input type="number" step="0.01" min="0" name="weightValue" placeholder="1" class="wp-input">
+                  </div>
+                  <div class="sm:col-span-3">
+                    <label class="sm:hidden text-xs font-medium text-gray-500 mb-1 block">Unit</label>
+                    <select name="weightUnit" class="wp-select">
+                      <option value="kg">kg (Weight)</option>
+                      <option value="l">L (Liquid)</option>
+                      <option value="pc">pc (Pieces)</option>
+                    </select>
+                  </div>
+                  <div class="sm:col-span-3">
+                    <label class="sm:hidden text-xs font-medium text-gray-500 mb-1 block">Price</label>
+                    <div class="relative">
+                      <span class="absolute left-3 top-2 text-gray-400">৳</span>
+                      <input type="number" step="0.01" min="0" name="price" required placeholder="0.00" class="wp-input pl-7 font-semibold text-gray-700">
+                    </div>
+                  </div>
+                  <div class="sm:col-span-2 flex items-center justify-end h-full pt-1">
+                    <span class="text-xs font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded">Default</span>
+                  </div>
+                </div>
+
+                <!-- Additional Variants Container -->
+                <div id="variants-list" class="space-y-3"></div>
+
+                <!-- Add Variant Button -->
+                <div class="mt-5 pt-4 border-t border-dashed border-gray-300">
+                  <button type="button" id="variant-add" class="flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors">
+                    <div class="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-lg leading-none">+</div>
+                    Add another option (Variant)
+                  </button>
+                </div>
+              </div>
+              
+              <!-- Footer: Stock & Active -->
+              <div class="wp-card-footer">
+                 <div class="wp-form-group">
+                    <label class="wp-label">Total Stock</label>
+                    <input type="number" name="stock" value="100" class="wp-input w-32">
+                 </div>
+                 <div class="flex items-center gap-2">
+                    <input id="add-active" type="checkbox" name="active" checked class="wp-checkbox">
+                    <label for="add-active" class="wp-label">Product is Active</label>
+                 </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Right Column: Media & Preview -->
+          <div class="space-y-6">
+            
+            <!-- Card 3: Media -->
+            <div class="wp-card">
+               <div class="wp-card-header">
+                 Product Images
+               </div>
+               <div class="wp-card-body">
+                 <!-- Main Image -->
+                 <div class="wp-form-group">
+                   <label class="wp-label">Main Image</label>
+                   <div class="flex gap-2">
+                     <button type="button" id="btn-image-library" class="wp-button-secondary flex-1">
+                       Select Image
+                     </button>
+                     <button type="button" id="btn-image-clear" class="wp-button-secondary px-3" title="Clear">×</button>
+                   </div>
+                   <input type="hidden" name="image">
+                   <input type="hidden" name="imageUrl">
+                 </div>
+                 
+                 <!-- Gallery -->
+                 <div class="wp-form-group">
+                   <label class="wp-label">Gallery (Optional)</label>
+                   <div class="flex gap-2">
+                     <button type="button" id="btn-gallery-library" class="wp-button-secondary flex-1">
+                       Select Gallery
+                     </button>
+                     <button type="button" id="btn-gallery-clear" class="wp-button-secondary px-3" title="Clear">×</button>
+                   </div>
+                   <input type="file" name="gallery" multiple class="hidden">
+                   <textarea name="galleryUrls" class="hidden"></textarea>
+                 </div>
+               </div>
+            </div>
+
+            <!-- Card 4: Live Preview -->
+            <div class="wp-card sticky top-24">
+              <div class="wp-card-header flex justify-between items-center">
+                Preview
+                <span class="text-[10px] uppercase bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold tracking-wide">Live</span>
+              </div>
+              <div class="wp-card-body">
+                <div class="border border-gray-100 rounded-lg overflow-hidden bg-white shadow-sm">
+                  <div class="aspect-square bg-gray-50 flex items-center justify-center relative overflow-hidden group">
+                     <img id="add-preview-image" src="" class="w-full h-full object-contain mix-blend-multiply hidden" alt="Preview">
+                     <div class="absolute inset-0 flex items-center justify-center text-gray-300 text-sm pointer-events-none" id="preview-placeholder">No Image</div>
+                  </div>
+                  <div class="p-3">
+                    <div class="flex justify-between items-start">
+                       <h4 id="add-preview-title" class="text-sm font-semibold text-gray-800 line-clamp-2 leading-tight min-h-[1.25rem]">Product Name</h4>
+                       <span id="add-preview-price" class="text-sm font-bold text-orange-600 whitespace-nowrap ml-2">৳0.00</span>
+                    </div>
+                    <div class="mt-1 flex items-center gap-2 text-xs text-gray-500">
+                      <span id="add-preview-extra">Weight</span>
+                    </div>
+                  </div>
+                </div>
+                <!-- Gallery Preview Thumbnails -->
+                <div id="add-preview-gallery" class="mt-3 grid grid-cols-4 gap-2"></div>
+              </div>
+              
+              <!-- Submit Button Area -->
+              <div class="wp-card-footer">
+                 <button type="submit" id="add-submit-btn" class="wp-button w-full">
+                   Add Product
+                 </button>
+                 <div id="admin-message" class="text-center mt-3 text-sm"></div>
+              </div>
+            </div>
+
+          </div>
+        </form>
       </div>
 
       <!-- Orders Page -->
@@ -910,7 +1101,194 @@
         </div>
       </div>
 
-      <!-- Tools Page -->
+      <!-- Chat Page -->
+      <div id="chat-page" class="wp-page-content">
+        <div class="wp-breadcrumb">
+          <a href="#dashboard">Dashboard</a>
+          <span>></span>
+          <span>Live Chat</span>
+        </div>
+
+        <div class="flex justify-between items-center mb-6">
+          <h1 class="text-2xl font-bold">Live Chat</h1>
+          <div class="flex items-center gap-2">
+            <span id="chat-status" class="text-sm text-gray-600">Status: Online</span>
+            <span id="chat-badge" class="hidden bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">0</span>
+          </div>
+        </div>
+
+        <div class="wp-card h-[600px] flex">
+          <div class="w-1/3 border-r flex flex-col">
+            <div class="p-3 border-b font-medium bg-gray-50">Chats</div>
+            <div id="chat-sessions" class="flex-1 overflow-y-auto">
+              <!-- Chat sessions will be loaded here -->
+            </div>
+          </div>
+          <div class="w-2/3 flex flex-col">
+            <div id="chat-meta" class="p-3 border-b bg-gray-50 text-sm">Select a chat</div>
+            <div id="chat-messages-admin" class="flex-1 p-4 overflow-y-auto space-y-3">
+              <!-- Messages will be loaded here -->
+            </div>
+            <div class="p-3 border-t flex gap-2">
+               <input id="chat-reply" type="text" class="flex-1 wp-input" placeholder="Reply...">
+               <button id="chat-send" class="wp-button">Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payments Page -->
+      <div id="payments-page" class="wp-page-content">
+        <div class="wp-breadcrumb">
+          <a href="#dashboard">Dashboard</a>
+          <span>></span>
+          <span>Payments</span>
+        </div>
+
+        <div class="flex justify-between items-center mb-6">
+          <h1 class="text-2xl font-bold">Payment Management</h1>
+          <div class="flex items-center gap-2">
+            <span id="payments-badge" class="hidden bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full">0</span>
+          </div>
+        </div>
+
+        <!-- Payment Methods Configuration -->
+        <div class="wp-card mb-6">
+          <div class="wp-card-header">
+            Payment Methods Configuration
+          </div>
+          <div class="wp-card-body">
+            <form id="payment-settings-form" class="space-y-6">
+              <!-- bKash Settings -->
+              <div class="border rounded-lg p-4">
+                <div class="flex items-center justify-between mb-4">
+                  <h4 class="font-medium">bKash (Manual Verification)</h4>
+                  <label class="flex items-center">
+                    <input type="checkbox" name="bkash_enabled" class="mr-2">
+                    <span class="text-sm">Enable</span>
+                  </label>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="wp-form-group">
+                    <label class="wp-label">bKash Number</label>
+                    <input type="text" name="bkash_number" placeholder="01xxxxxxxxx" class="wp-input">
+                  </div>
+                  <div class="wp-form-group">
+                    <label class="wp-label">Account Name</label>
+                    <input type="text" name="bkash_account_name" placeholder="Account holder name" class="wp-input">
+                  </div>
+                </div>
+                <div class="wp-form-group">
+                  <label class="wp-label">Payment Instructions</label>
+                  <textarea name="bkash_instructions" rows="3" class="wp-textarea" placeholder="Instructions for customers on how to pay via bKash"></textarea>
+                </div>
+              </div>
+
+              <!-- COD Settings -->
+              <div class="border rounded-lg p-4">
+                <div class="flex items-center justify-between mb-4">
+                  <h4 class="font-medium">Cash on Delivery (COD)</h4>
+                  <label class="flex items-center">
+                    <input type="checkbox" name="cod_enabled" class="mr-2">
+                    <span class="text-sm">Enable</span>
+                  </label>
+                </div>
+                <div class="wp-form-group">
+                  <label class="wp-label">COD Instructions</label>
+                  <textarea name="cod_instructions" rows="3" class="wp-textarea" placeholder="Instructions for cash on delivery"></textarea>
+                </div>
+              </div>
+
+              <button type="submit" class="wp-button">Save Payment Settings</button>
+              <div id="payment-settings-message" class="mt-3 text-sm"></div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Pending Payments Verification -->
+        <div class="wp-card">
+          <div class="wp-card-header">
+            Pending Payment Verifications
+          </div>
+          <div class="wp-card-body">
+            <div id="pending-payments-list" class="space-y-4">
+              <!-- Pending payments will be loaded here -->
+            </div>
+            <div id="no-pending-payments" class="text-center py-8 text-gray-500 hidden">
+              <div class="inline-flex items-center justify-center w-12 h-12 bg-gray-100 rounded-full mb-3">
+                <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+              </div>
+              <p>No pending payments to verify</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- File Manager Page -->
+      <div id="files-page" class="wp-page-content">
+        <div class="wp-breadcrumb">
+          <a href="#dashboard">Dashboard</a>
+          <span>></span>
+          <span>File Manager</span>
+        </div>
+
+        <div class="flex justify-between items-center mb-6">
+          <h1 class="text-2xl font-bold">File Manager</h1>
+        </div>
+
+        <div class="wp-card">
+          <div class="wp-card-header">
+            Upload Files
+          </div>
+          <div class="wp-card-body">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+               <input id="fm-file" type="file" multiple class="wp-input">
+               <select id="fm-folder" class="wp-select"><option value="main">main</option></select>
+               <button id="fm-upload" class="wp-button">Upload</button>
+            </div>
+            <div id="fm-msg"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notes Page -->
+      <div id="notes-page" class="wp-page-content">
+        <div class="wp-breadcrumb">
+          <a href="#dashboard">Dashboard</a>
+          <span>></span>
+          <span>Personal Notes</span>
+        </div>
+
+        <div class="flex justify-between items-center mb-6">
+          <h1 class="text-2xl font-bold">Personal Notes</h1>
+          <button id="note-new" class="wp-button-secondary">New Note</button>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <!-- List -->
+          <div class="md:col-span-1 border-r pr-4">
+            <div id="notes-list" class="space-y-2 max-h-[500px] overflow-y-auto"></div>
+          </div>
+          
+          <!-- Editor -->
+          <div class="md:col-span-2 space-y-4">
+            <div class="wp-form-group">
+              <label class="wp-label">Title</label>
+              <input id="note-title" type="text" class="wp-input" placeholder="Note title...">
+            </div>
+            <div class="wp-form-group">
+              <label class="wp-label">Content</label>
+              <textarea id="note-content" rows="10" class="wp-textarea" placeholder="Write something..."></textarea>
+            </div>
+            <div class="flex items-center justify-between">
+              <div id="note-message" class="text-sm"></div>
+              <button id="note-save" class="wp-button">Save Note</button>
+            </div>
+          </div>
+        </div>
+      </div>
       <div id="tools-page" class="wp-page-content">
         <div class="wp-breadcrumb">
           <a href="#dashboard">Dashboard</a>
@@ -1156,6 +1534,80 @@
     </div>
   </div>
 
+  <!-- Media Modal (Popup) -->
+  <div id="media-modal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-[60] backdrop-blur-sm">
+    <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden m-4 flex flex-col max-h-[90vh]">
+      <div class="px-6 py-4 border-b flex items-center justify-between bg-gray-50">
+        <h3 class="font-bold text-gray-800">Media Library</h3>
+        <button id="media-close" class="text-gray-500 hover:text-gray-800 bg-white border rounded-full p-1 w-8 h-8 flex items-center justify-center">×</button>
+      </div>
+      <div class="p-6 flex-1 overflow-hidden flex flex-col">
+        <div class="flex items-center gap-3 mb-4">
+          <label class="flex-1 cursor-pointer border-2 border-dashed border-blue-200 rounded-xl bg-blue-50 hover:bg-blue-100 flex items-center justify-center h-16 transition-colors group">
+             <span class="text-blue-600 font-medium group-hover:text-blue-700">Click to Upload Images</span>
+             <input id="media-upload" type="file" accept="image/*" multiple class="hidden"/>
+          </label>
+          <button id="media-upload-btn" class="hidden">Upload</button>
+        </div>
+        <div id="media-grid" class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3 overflow-y-auto p-1"></div>
+      </div>
+      <div class="px-6 py-4 border-t bg-gray-50 flex justify-end gap-3">
+        <div id="media-message" class="mr-auto text-sm self-center"></div>
+        <button id="media-crop-main" class="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 text-sm font-medium">Crop & Use</button>
+        <button id="media-use-main" class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm font-medium">Use Selected</button>
+        <button id="media-use-gallery" class="px-4 py-2 rounded-lg bg-gray-800 text-white hover:bg-gray-900 text-sm font-medium">Add to Gallery</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cropper Modal -->
+  <div id="cropper-modal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[70]">
+    <div class="bg-white w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden m-4">
+      <div class="flex justify-between items-center p-4 border-b">
+         <h3 class="font-bold">Crop Image</h3>
+         <button id="cropper-close" class="text-gray-500 hover:text-red-500">✕</button>
+      </div>
+      <div class="p-4 bg-black/5 h-[60vh]">
+         <img id="cropper-image" class="max-w-full max-h-full mx-auto block">
+      </div>
+      <div class="p-4 border-t flex justify-end gap-2">
+         <button id="cropper-cancel" class="px-4 py-2 rounded border hover:bg-gray-50">Cancel</button>
+         <button id="cropper-apply" class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700">Apply Crop</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Order Details Modal -->
+  <div id="order-modal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50">
+    <div class="bg-white w-full max-w-2xl m-4 rounded-xl shadow-lg flex flex-col max-h-[90vh]">
+       <div class="p-4 border-b flex justify-between items-center">
+         <h3 class="font-bold">Order Details</h3>
+         <button id="order-close">✕</button>
+       </div>
+       <div class="p-4 overflow-y-auto flex-1 space-y-4">
+          <div id="order-meta" class="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg border"></div>
+          <table class="w-full text-sm">
+             <thead class="bg-gray-100 text-gray-700"><tr><th class="p-2 text-left">Item</th><th class="p-2 text-right">Qty</th><th class="p-2 text-right">Total</th><th class="p-2"></th></tr></thead>
+             <tbody id="order-items" class="divide-y"></tbody>
+          </table>
+          <div class="flex items-center gap-2 mt-4 pt-4 border-t">
+             <select id="order-add-select" class="flex-1 border rounded px-2 py-1.5 text-sm"></select>
+             <input id="order-add-qty" type="number" value="1" class="w-16 border rounded px-2 py-1.5 text-sm">
+             <button id="order-add-btn" class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm">Add Item</button>
+          </div>
+          <div class="flex justify-between items-center text-lg font-bold pt-2">
+             <span>Total</span>
+             <span id="order-total">৳0.00</span>
+          </div>
+       </div>
+       <div class="p-4 border-t bg-gray-50 flex justify-end gap-2">
+         <button id="order-print" class="px-4 py-2 border bg-white rounded hover:bg-gray-50">Print Invoice</button>
+         <button id="order-save" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Save Changes</button>
+       </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
   <script type="module" src="js/wp-admin.js"></script>
 </body>
 </html>
