@@ -27,7 +27,7 @@ export function initAuthHeader() {
   wireGlobalLogout();
   const loginLink = document.getElementById('login-link');
   const logoutBtn = document.getElementById('logout-btn');
-  const adminLink = document.querySelector('a[href="admin.html"]');
+  const adminLink = document.querySelector('a[href="wp-admin.html"]');
   const nav = document.querySelector('header nav');
 
   // Apply Site Settings (title, logo, favicon) across pages
@@ -177,7 +177,7 @@ export function initAuthHeader() {
             'a[href="orders.html"]',
             'a[href="profile.html"]',
             'a[href="cart.html"]',
-            'a[href="admin.html"]',
+            'a[href="wp-admin.html"]',
             '#user-menu'
           ];
           links.forEach(sel => {
@@ -245,7 +245,7 @@ export function initLoginPage() {
     if (user) {
       // Redirect based on role
       getUserRole(user.uid)
-        .then(role => window.location.replace(role === 'admin' ? 'admin.html' : 'index.html'))
+        .then(role => window.location.replace(role === 'admin' ? 'wp-admin.html' : 'index.html'))
         .catch(() => window.location.replace('index.html'));
     }
   });
@@ -261,7 +261,7 @@ export function initLoginPage() {
     try {
       const cred = await signInWithEmailAndPassword(auth, email, password);
       const role = await getUserRole(cred.user.uid);
-      window.location.replace(role === 'admin' ? 'admin.html' : 'index.html');
+      window.location.replace(role === 'admin' ? 'wp-admin.html' : 'index.html');
     } catch (err) {
       errorBox.textContent = err.message;
       errorBox.classList.remove('hidden');
@@ -278,7 +278,7 @@ export function initSignupPage() {
     if (user) {
       // Redirect based on role
       getUserRole(user.uid)
-        .then(role => window.location.replace(role === 'admin' ? 'admin.html' : 'index.html'))
+        .then(role => window.location.replace(role === 'admin' ? 'wp-admin.html' : 'index.html'))
         .catch(() => window.location.replace('index.html'));
     }
   });

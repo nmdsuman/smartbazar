@@ -3,7 +3,7 @@
   try {
     // Do not render on admin pages
     const p = location.pathname.toLowerCase();
-    if (p.includes('admin.html')) return;
+    if (p.includes('wp-admin.html')) return;
 
     const nav = document.createElement('nav');
     nav.id = 'mobile-bottom-nav';
