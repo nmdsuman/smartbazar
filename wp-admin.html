@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bazar Admin — WordPress Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="data:,">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    /* WordPress Admin Styles */
+    .wp-admin {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+      background: #f1f1f1;
+    }
+    
+    .wp-admin-bar {
+      background: #1e1e1e;
+      color: #fff;
+      height: 32px;
+      font-size: 13px;
+    }
+    
+    .wp-admin-sidebar {
+      background: #1e1e1e;
+      width: 160px;
+      min-height: calc(100vh - 32px);
+      position: fixed;
+      left: 0;
+      top: 32px;
+      z-index: 1000;
+    }
+    
+    .wp-admin-main {
+      margin-left: 160px;
+      min-height: calc(100vh - 32px);
+      margin-top: 32px;
+    }
+    
+    .wp-menu-item {
+      color: #fff;
+      padding: 8px 12px;
+      font-size: 13px;
+      border-left: 4px solid transparent;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+    }
+    
+    .wp-menu-item:hover {
+      background: #3c434a;
+      border-left-color: #0073aa;
+    }
+    
+    .wp-menu-item.active {
+      background: #0073aa;
+      border-left-color: #0073aa;
+    }
+    
+    .wp-menu-item i {
+      width: 20px;
+      margin-right: 8px;
+    }
+    
+    .wp-content-area {
+      padding: 20px;
+    }
+    
+    .wp-card {
+      background: #fff;
+      border: 1px solid #ccd0d4;
+      box-shadow: 0 1px 1px rgba(0,0,0,0.04);
+      margin-bottom: 20px;
+    }
+    
+    .wp-card-header {
+      background: #fff;
+      border-bottom: 1px solid #ccd0d4;
+      padding: 8px 12px;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    
+    .wp-card-body {
+      padding: 12px;
+    }
+    
+    .wp-button {
+      background: #0073aa;
+      color: #fff;
+      border: none;
+      padding: 6px 12px;
+      font-size: 13px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .wp-button:hover {
+      background: #005a87;
+    }
+    
+    .wp-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    
+    .wp-table th {
+      background: #f6f7f7;
+      border-bottom: 1px solid #ccd0d4;
+      padding: 8px 10px;
+      text-align: left;
+      font-weight: 600;
+    }
+    
+    .wp-table td {
+      border-bottom: 1px solid #ccd0d4;
+      padding: 8px 10px;
+    }
+    
+    .wp-table tr:hover {
+      background: #f9f9f9;
+    }
+    
+    .wp-input {
+      width: 100%;
+      max-width: 400px;
+      padding: 6px 8px;
+      border: 1px solid #8c8f94;
+      font-size: 14px;
+    }
+    
+    .wp-input:focus {
+      border-color: #0073aa;
+      outline: none;
+      box-shadow: 0 0 0 1px #0073aa;
+    }
+    
+    .wp-select {
+      width: 100%;
+      max-width: 200px;
+      padding: 6px 8px;
+      border: 1px solid #8c8f94;
+      font-size: 14px;
+    }
+    
+    .wp-select:focus {
+      border-color: #0073aa;
+      outline: none;
+      box-shadow: 0 0 0 1px #0073aa;
+    }
+    
+    .wp-search-box {
+      position: relative;
+      margin-bottom: 20px;
+    }
+    
+    .wp-search-input {
+      width: 100%;
+      max-width: 300px;
+      padding: 6px 8px 6px 30px;
+      border: 1px solid #8c8f94;
+      font-size: 14px;
+    }
+    
+    .wp-search-icon {
+      position: absolute;
+      left: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #646970;
+    }
+    
+    .wp-welcome-panel {
+      background: #fff;
+      border: 1px solid #ccd0d4;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    
+    .wp-welcome-panel-header {
+      background: #f6f7f7;
+      border-bottom: 1px solid #ccd0d4;
+      padding: 15px;
+    }
+    
+    .wp-welcome-panel-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0;
+    }
+    
+    .wp-welcome-panel-content {
+      padding: 20px;
+    }
+    
+    .wp-welcome-panel-column {
+      display: inline-block;
+      vertical-align: top;
+      width: 32%;
+      margin-right: 2%;
+    }
+    
+    .wp-welcome-panel-column:last-child {
+      margin-right: 0;
+    }
+    
+    .wp-welcome-panel h4 {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 0 0 10px 0;
+    }
+    
+    .wp-welcome-panel p {
+      font-size: 13px;
+      color: #646970;
+      margin: 0 0 15px 0;
+    }
+    
+    .wp-welcome-panel a {
+      color: #0073aa;
+      text-decoration: none;
+    }
+    
+    .wp-welcome-panel a:hover {
+      text-decoration: underline;
+    }
+    
+    .wp-at-a-glance {
+      background: #fff;
+      border: 1px solid #ccd0d4;
+      margin-bottom: 20px;
+    }
+    
+    .wp-at-a-glance-header {
+      background: #f6f7f7;
+      border-bottom: 1px solid #ccd0d4;
+      padding: 8px 12px;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    
+    .wp-at-a-glance-content {
+      padding: 12px;
+    }
+    
+    .wp-at-a-glance-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+    
+    .wp-at-a-glance-item {
+      background: #f6f7f7;
+      border: 1px solid #ccd0d4;
+      padding: 10px;
+      min-width: 120px;
+      text-align: center;
+    }
+    
+    .wp-at-a-glance-count {
+      font-size: 24px;
+      font-weight: 600;
+      color: #0073aa;
+      margin-bottom: 5px;
+    }
+    
+    .wp-at-a-glance-label {
+      font-size: 12px;
+      color: #646970;
+      text-transform: uppercase;
+    }
+    
+    .wp-at-a-glance-item:hover {
+      background: #0073aa;
+      color: #fff;
+    }
+    
+    .wp-at-a-glance-item:hover .wp-at-a-glance-count {
+      color: #fff;
+    }
+    
+    .wp-at-a-glance-item:hover .wp-at-a-glance-label {
+      color: #fff;
+    }
+    
+    .wp-page-content {
+      display: none;
+    }
+    
+    .wp-page-content.active {
+      display: block;
+    }
+    
+    .wp-breadcrumb {
+      background: #fff;
+      border: 1px solid #ccd0d4;
+      padding: 8px 12px;
+      margin-bottom: 20px;
+      font-size: 13px;
+    }
+    
+    .wp-breadcrumb a {
+      color: #0073aa;
+      text-decoration: none;
+    }
+    
+    .wp-breadcrumb a:hover {
+      text-decoration: underline;
+    }
+    
+    .wp-breadcrumb span {
+      color: #646970;
+      margin: 0 5px;
+    }
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "firebase/app": "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js",
+      "firebase/auth": "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js",
+      "firebase/firestore": "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js",
+      "firebase/analytics": "https://www.gstatic.com/firebasejs/10.13.1/firebase-analytics.js",
+      "firebase/storage": "https://www.gstatic.com/firebasejs/10.13.1/firebase-storage.js"
+    }
+  }
+  </script>
+</head>
+<body class="wp-admin">
+  <!-- WordPress Admin Bar -->
+  <div class="wp-admin-bar flex items-center justify-between px-4">
+    <div class="flex items-center gap-4">
+      <a href="wp-admin.html" class="text-white hover:text-gray-300 flex items-center gap-2">
+        <i class="fas fa-wordpress"></i>
+        <span class="font-semibold">Bazar</span>
+      </a>
+      <span class="text-gray-400">|</span>
+      <span class="text-gray-300">Dashboard</span>
+    </div>
+    <div class="flex items-center gap-4">
+      <a href="#" class="text-white hover:text-gray-300">
+        <i class="fas fa-comments"></i>
+        <span class="ml-1">0</span>
+      </a>
+      <a href="#" class="text-white hover:text-gray-300">
+        <i class="fas fa-plus"></i>
+        <span class="ml-1">New</span>
+      </a>
+      <div class="flex items-center gap-2">
+        <img src="https://picsum.photos/seed/admin/32/32.jpg" alt="Admin" class="w-6 h-6 rounded-full">
+        <span class="text-white">Admin</span>
+        <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
+      </div>
+      <a href="index.html" class="text-white hover:text-gray-300">
+        <i class="fas fa-external-link-alt"></i>
+        <span class="ml-1">Visit Site</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- WordPress Sidebar -->
+  <div class="wp-admin-sidebar">
+    <div class="py-2">
+      <a href="#dashboard" class="wp-menu-item active" data-page="dashboard">
+        <i class="fas fa-tachometer-alt"></i>
+        <span>Dashboard</span>
+      </a>
+      <a href="#products" class="wp-menu-item" data-page="products">
+        <i class="fas fa-box"></i>
+        <span>Products</span>
+      </a>
+      <a href="#orders" class="wp-menu-item" data-page="orders">
+        <i class="fas fa-shopping-cart"></i>
+        <span>Orders</span>
+      </a>
+      <a href="#media" class="wp-menu-item" data-page="media">
+        <i class="fas fa-images"></i>
+        <span>Media</span>
+      </a>
+      <a href="#pages" class="wp-menu-item" data-page="pages">
+        <i class="fas fa-file"></i>
+        <span>Pages</span>
+      </a>
+      <a href="#posts" class="wp-menu-item" data-page="posts">
+        <i class="fas fa-newspaper"></i>
+        <span>Posts</span>
+      </a>
+      <a href="#comments" class="wp-menu-item" data-page="comments">
+        <i class="fas fa-comments"></i>
+        <span>Comments</span>
+      </a>
+      <a href="#plugins" class="wp-menu-item" data-page="plugins">
+        <i class="fas fa-plug"></i>
+        <span>Plugins</span>
+      </a>
+      <a href="#users" class="wp-menu-item" data-page="users">
+        <i class="fas fa-users"></i>
+        <span>Users</span>
+      </a>
+      <a href="#tools" class="wp-menu-item" data-page="tools">
+        <i class="fas fa-tools"></i>
+        <span>Tools</span>
+      </a>
+      <a href="#settings" class="wp-menu-item" data-page="settings">
+        <i class="fas fa-cog"></i>
+        <span>Settings</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- WordPress Main Content -->
+  <div class="wp-admin-main">
+    <div class="wp-content-area">
+      <!-- Dashboard Page -->
+      <div id="dashboard-page" class="wp-page-content active">
+        <div class="wp-welcome-panel">
+          <div class="wp-welcome-panel-header">
+            <h2 class="wp-welcome-panel-title">Welcome to Bazar Admin!</h2>
+          </div>
+          <div class="wp-welcome-panel-content">
+            <div class="wp-welcome-panel-column">
+              <h4>Get Started</h4>
+              <p>Welcome to your WordPress dashboard! This is where you can manage your products, orders, and more.</p>
+              <a href="#products" class="text-blue-600 hover:underline">Add Your First Product</a>
+            </div>
+            <div class="wp-welcome-panel-column">
+              <h4>Next Steps</h4>
+              <p>Configure your store settings, add products, and start selling!</p>
+              <a href="#settings" class="text-blue-600 hover:underline">Configure Settings</a>
+            </div>
+            <div class="wp-welcome-panel-column">
+              <h4>More Actions</h4>
+              <p>Manage your media library, install plugins, and customize your site.</p>
+              <a href="#media" class="text-blue-600 hover:underline">Manage Media</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div>
+            <div class="wp-at-a-glance">
+              <div class="wp-at-a-glance-header">
+                At a Glance
+              </div>
+              <div class="wp-at-a-glance-content">
+                <div class="wp-at-a-glance-items">
+                  <div class="wp-at-a-glance-item">
+                    <div class="wp-at-a-glance-count">0</div>
+                    <div class="wp-at-a-glance-label">Products</div>
+                  </div>
+                  <div class="wp-at-a-glance-item">
+                    <div class="wp-at-a-glance-count">0</div>
+                    <div class="wp-at-a-glance-label">Orders</div>
+                  </div>
+                  <div class="wp-at-a-glance-item">
+                    <div class="wp-at-a-glance-count">0</div>
+                    <div class="wp-at-a-glance-label">Pages</div>
+                  </div>
+                  <div class="wp-at-a-glance-item">
+                    <div class="wp-at-a-glance-count">0</div>
+                    <div class="wp-at-a-glance-label">Posts</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="wp-card">
+              <div class="wp-card-header">
+                Activity
+              </div>
+              <div class="wp-card-body">
+                <div class="border-b pb-3 mb-3">
+                  <div class="font-semibold text-sm">Welcome to Bazar Admin!</div>
+                  <div class="text-xs text-gray-500">
+                    <span>Just now</span> by <a href="#" class="text-blue-600 hover:underline">Admin</a>
+                  </div>
+                </div>
+                <div class="pb-3">
+                  <div class="font-semibold text-sm">System initialized</div>
+                  <div class="text-xs text-gray-500">
+                    <span>Just now</span> by <a href="#" class="text-blue-600 hover:underline">System</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="wp-card">
+              <div class="wp-card-header">
+                Quick Draft
+              </div>
+              <div class="wp-card-body">
+                <input type="text" placeholder="Title" class="wp-input mb-3">
+                <textarea placeholder="What's on your mind?" class="wp-input h-20 mb-3"></textarea>
+                <button class="wp-button">Save Draft</button>
+              </div>
+            </div>
+
+            <div class="wp-card">
+              <div class="wp-card-header">
+                WordPress Events and News
+              </div>
+              <div class="wp-card-body">
+                <div class="border-b pb-3 mb-3">
+                  <div class="font-semibold text-sm">
+                    <a href="#" class="text-blue-600 hover:underline">WordPress 6.5 "Regina" Available</a>
+                  </div>
+                  <div class="text-xs text-gray-500 mb-2">March 26, 2024</div>
+                  <div class="text-xs text-gray-600">
+                    The latest WordPress version is now available with improved performance and security features.
+                  </div>
+                </div>
+                <div>
+                  <div class="font-semibold text-sm">
+                    <a href="#" class="text-blue-600 hover:underline">WooCommerce 8.0 Released</a>
+                  </div>
+                  <div class="text-xs text-gray-500 mb-2">March 20, 2024</div>
+                  <div class="text-xs text-gray-600">
+                    Major update to WooCommerce with new features and improvements.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Products Page -->
+      <div id="products-page" class="wp-page-content">
+        <div class="wp-breadcrumb">
+          <a href="#dashboard">Dashboard</a>
+          <span>></span>
+          <span>Products</span>
+        </div>
+
+        <div class="flex justify-between items-center mb-6">
+          <h1 class="text-2xl font-bold">Products</h1>
+          <a href="#products/new" class="wp-button">
+            <i class="fas fa-plus"></i> Add New Product
+          </a>
+        </div>
+
+        <div class="wp-search-box">
+          <i class="fas fa-search wp-search-icon"></i>
+          <input type="text" placeholder="Search products..." class="wp-search-input">
+        </div>
+
+        <div class="wp-card">
+          <div class="wp-card-body">
+            <table class="wp-table">
+              <thead>
+                <tr>
+                  <th><input type="checkbox" class="w-4 h-4"></th>
+                  <th>Product</th>
+                  <th>Price</th>
+                  <th>Stock</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody id="products-table-body">
+                <tr>
+                  <td colspan="6" class="text-center py-8 text-gray-500">
+                    No products found. <a href="#products/new" class="text-blue-600 hover:underline">Add your first product</a>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Orders Page -->
+      <div id="orders-page" class="wp-page-content">
+        <div class="wp-breadcrumb">
+          <a href="#dashboard">Dashboard</a>
+          <span>></span>
+          <span>Orders</span>
+        </div>
+
+        <div class="flex justify-between items-center mb-6">
+          <h1 class="text-2xl font-bold">Orders</h1>
+          <div class="flex gap-2">
+            <select class="wp-select">
+              <option>All Status</option>
+              <option>Pending</option>
+              <option>Processing</option>
+              <option>Completed</option>
+              <option>Cancelled</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="wp-search-box">
+          <i class="fas fa-search wp-search-icon"></i>
+          <input type="text" placeholder="Search orders..." class="wp-search-input">
+        </div>
+
+        <div class="wp-card">
+          <div class="wp-card-body">
+            <table class="wp-table">
+              <thead>
+                <tr>
+                  <th>Order</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                  <th>Total</th>
+                  <th>Customer</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="orders-table-body">
+                <tr>
+                  <td colspan="6" class="text-center py-8 text-gray-500">
+                    No orders found.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Other pages will be added in next steps -->
+    </div>
+  </div>
+
+  <script type="module" src="js/wp-admin.js"></script>
+</body>
+</html>
