@@ -288,10 +288,64 @@
     
     .wp-page-content {
       display: none;
+      padding: 2rem;
     }
     
     .wp-page-content.active {
       display: block;
+    }
+    
+    /* Product Card Styles */
+    .wp-product-card {
+      transition: all 0.3s ease;
+    }
+    
+    .wp-product-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+    
+    .wp-product-card .absolute.inset-0 {
+      transition: all 0.3s ease;
+    }
+    
+    .wp-product-card:hover .absolute.inset-0 {
+      background-color: rgba(0, 0, 0, 0.7);
+    }
+    
+    .wp-product-card .product-edit,
+    .wp-product-card .product-view,
+    .wp-product-card .product-delete {
+      transform: translateY(10px);
+      opacity: 0;
+      transition: all 0.3s ease;
+    }
+    
+    .wp-product-card:hover .product-edit,
+    .wp-product-card:hover .product-view,
+    .wp-product-card:hover .product-delete {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    
+    .wp-product-card .product-edit {
+      transition-delay: 0.1s;
+    }
+    
+    .wp-product-card .product-view {
+      transition-delay: 0.2s;
+    }
+    
+    .wp-product-card .product-delete {
+      transition-delay: 0.3s;
+    }
+    
+    /* Line clamp utility */
+    .line-clamp-2 {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
     
     .wp-breadcrumb {
@@ -550,25 +604,21 @@
           <input type="text" placeholder="Search products..." class="wp-search-input">
         </div>
 
-        <div class="wp-card">
-          <div class="wp-card-body">
-            <table class="wp-table">
-              <thead>
-                <tr>
-                  <th><input type="checkbox" class="w-4 h-4"></th>
-                  <th>Product</th>
-                  <th>Price</th>
-                  <th>Stock</th>
-                  <th>Status</th>
-                  <th>Date</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="products-table-body">
-                <!-- Products will be loaded here -->
-              </tbody>
-            </table>
+        <!-- WordPress-style Product Grid -->
+        <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <!-- Products will be loaded here -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="products-empty" class="text-center py-12 hidden">
+          <div class="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+            <i class="fas fa-box text-2xl text-gray-400"></i>
           </div>
+          <h3 class="text-lg font-medium text-gray-900 mb-2">No products found</h3>
+          <p class="text-gray-500 mb-4">Get started by creating your first product.</p>
+          <a href="#products/add" class="wp-button">
+            <i class="fas fa-plus"></i> Add New Product
+          </a>
         </div>
       </div>
 

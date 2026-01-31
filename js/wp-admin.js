@@ -549,53 +549,168 @@ class WPAdmin {
 
   async loadProductsData() {
     try {
+      // Load products from Firestore
       const productsQuery = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
       const querySnapshot = await getDocs(productsQuery);
       
-      const tbody = document.getElementById('products-table-body');
-      if (!tbody) return;
+      const productsGrid = document.getElementById('products-grid');
+      const productsEmpty = document.getElementById('products-empty');
+      
+      if (!productsGrid) return;
 
       if (querySnapshot.empty) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="6" class="text-center py-8 text-gray-500">
-              No products found. <a href="#products/new" class="text-blue-600 hover:underline">Add your first product</a>
-            </td>
-          </tr>
-        `;
+        productsGrid.innerHTML = '';
+        if (productsEmpty) productsEmpty.classList.remove('hidden');
         return;
       }
 
-      tbody.innerHTML = '';
+      if (productsEmpty) productsEmpty.classList.add('hidden');
+      
+      productsGrid.innerHTML = '';
+      
       querySnapshot.forEach((doc) => {
-        const product = doc.data();
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td><input type="checkbox" class="w-4 h-4"></td>
-          <td>
-            <div class="flex items-center gap-3">
-              ${product.image ? `<img src="${product.image}" alt="${product.title}" class="w-10 h-10 object-cover rounded">` : '<div class="w-10 h-10 bg-gray-200 rounded flex items-center justify-center text-gray-500 text-xs">No img</div>'}
-              <div>
-                <div class="font-semibold">${product.title || 'Untitled Product'}</div>
-                <div class="text-xs text-gray-500">SKU: ${product.sku || 'N/A'}</div>
-              </div>
-            </div>
-          </td>
-          <td>৳${(product.price || 0).toFixed(2)}</td>
-          <td>${product.stock || 0}</td>
-          <td>
-            <span class="wp-status wp-status-${product.status === 'published' ? 'published' : 'draft'}">
-              ${product.status || 'draft'}
-            </span>
-          </td>
-          <td>${new Date(product.createdAt?.toDate || Date.now()).toLocaleDateString()}</td>
-        `;
-        tbody.appendChild(row);
+        const product = { id: doc.id, ...doc.data() };
+        const productCard = this.createProductCard(product);
+        productsGrid.appendChild(productCard);
       });
 
       console.log('Products data loaded successfully');
     } catch (error) {
       console.error('Error loading products data:', error);
+    }
+  }
+
+  createProductCard(product) {
+    const card = document.createElement('div');
+    card.className = 'wp-product-card relative group bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-all duration-200';
+    
+    // Get first variant price or default
+    const price = product.variants && product.variants.length > 0 
+      ? `৳${product.variants[0].price}` 
+      : '৳0';
+    
+    // Get main image or placeholder
+    const imageUrl = product.image || product.imageUrl || 'https://via.placeholder.com/300x200?text=No+Image';
+    
+    card.innerHTML = `
+      <!-- Product Image -->
+      <div class="relative h-48 bg-gray-100 overflow-hidden">
+        <img src="${imageUrl}" alt="${product.title}" class="w-full h-full object-cover">
+        
+        <!-- Hover Overlay -->
+        <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
+          <div class="flex flex-col gap-2">
+            <button class="product-edit bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700 transition-colors" data-id="${product.id}">
+              <i class="fas fa-edit mr-2"></i>Edit
+            </button>
+            <button class="product-view bg-gray-600 text-white px-4 py-2 rounded text-sm hover:bg-gray-700 transition-colors" data-id="${product.id}">
+              <i class="fas fa-eye mr-2"></i>View
+            </button>
+            <button class="product-delete bg-red-600 text-white px-4 py-2 rounded text-sm hover:bg-red-700 transition-colors" data-id="${product.id}">
+              <i class="fas fa-trash mr-2"></i>Delete
+            </button>
+          </div>
+        </div>
+        
+        <!-- Status Badge -->
+        <div class="absolute top-2 right-2">
+          <span class="wp-status ${product.active ? 'wp-status-published' : 'wp-status-draft'}">
+            ${product.active ? 'Active' : 'Inactive'}
+          </span>
+        </div>
+      </div>
+      
+      <!-- Product Info -->
+      <div class="p-4">
+        <h3 class="font-semibold text-gray-900 mb-2 line-clamp-2">${product.title}</h3>
+        
+        <div class="flex items-center justify-between text-sm text-gray-600 mb-2">
+          <span class="font-medium text-lg text-gray-900">${price}</span>
+          <span>Stock: ${product.stock || 0}</span>
+        </div>
+        
+        <div class="flex items-center justify-between text-xs text-gray-500">
+          <span>${product.category || 'No category'}</span>
+          <span>${product.variants ? product.variants.length : 0} variants</span>
+        </div>
+      </div>
+      
+      <!-- Quick Actions (Always Visible) -->
+      <div class="px-4 pb-4 flex gap-2">
+        <button class="product-quick-edit flex-1 bg-gray-100 text-gray-700 px-3 py-2 rounded text-sm hover:bg-gray-200 transition-colors" data-id="${product.id}">
+          <i class="fas fa-edit mr-1"></i>Quick Edit
+        </button>
+        <button class="product-quick-view flex-1 bg-gray-100 text-gray-700 px-3 py-2 rounded text-sm hover:bg-gray-200 transition-colors" data-id="${product.id}">
+          <i class="fas fa-eye mr-1"></i>View
+        </button>
+      </div>
+    `;
+    
+    // Add event listeners
+    this.setupProductCardEvents(card, product);
+    
+    return card;
+  }
+
+  setupProductCardEvents(card, product) {
+    // Edit button
+    const editBtn = card.querySelector('.product-edit');
+    if (editBtn) {
+      editBtn.addEventListener('click', () => {
+        this.editProduct(product.id);
+      });
+    }
+    
+    // Quick edit button
+    const quickEditBtn = card.querySelector('.product-quick-edit');
+    if (quickEditBtn) {
+      quickEditBtn.addEventListener('click', () => {
+        this.quickEditProduct(product.id);
+      });
+    }
+    
+    // View button
+    const viewBtn = card.querySelector('.product-view, .product-quick-view');
+    if (viewBtn) {
+      viewBtn.addEventListener('click', () => {
+        this.viewProduct(product.id);
+      });
+    }
+    
+    // Delete button
+    const deleteBtn = card.querySelector('.product-delete');
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', () => {
+        if (confirm(`Are you sure you want to delete "${product.title}"?`)) {
+          this.deleteProduct(product.id);
+        }
+      });
+    }
+  }
+
+  editProduct(productId) {
+    // Navigate to edit page
+    window.location.hash = `products/edit/${productId}`;
+  }
+
+  quickEditProduct(productId) {
+    // Open quick edit modal
+    this.showNotification('Quick edit feature coming soon!', 'info');
+  }
+
+  viewProduct(productId) {
+    // Open product view modal
+    this.showNotification('Product view feature coming soon!', 'info');
+  }
+
+  async deleteProduct(productId) {
+    try {
+      await deleteDoc(doc(db, 'products', productId));
+      this.showNotification('Product deleted successfully!', 'success');
+      await this.loadProductsData();
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      this.showNotification('Failed to delete product: ' + error.message, 'error');
     }
   }
 
