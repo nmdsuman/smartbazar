@@ -1,11 +1,14 @@
 import { auth, db } from './firebase-config.js';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, getDocs, query, orderBy, where, doc, getDoc, setDoc, updateDoc, serverTimestamp, deleteDoc, addDoc } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, where, doc, getDoc, setDoc, updateDoc, serverTimestamp, deleteDoc, addDoc, onSnapshot } from 'firebase/firestore';
 
 // WordPress Admin Navigation
 class WPAdmin {
   constructor() {
     this.currentPage = 'dashboard';
+    this.currentChatId = null;
+    this.chatUnsubscribe = null;
+    this.messagesUnsubscribe = null;
     this.init();
   }
 
@@ -326,31 +329,37 @@ class WPAdmin {
 
   async loadChatData() {
     try {
-      // Load chat sessions
+      // Load chat sessions from Firebase
       const chatSessions = document.getElementById('chat-sessions');
+      const chatMessages = document.getElementById('chat-messages-admin');
+      const chatMeta = document.getElementById('chat-meta');
+      
       if (!chatSessions) return;
 
-      // Mock chat data - replace with real Firebase data
-      chatSessions.innerHTML = `
-        <div class="p-3 border-b hover:bg-gray-50 cursor-pointer">
-          <div class="flex items-center justify-between">
-            <div>
-              <div class="font-medium">Customer 1</div>
-              <div class="text-sm text-gray-500">Last message...</div>
-            </div>
-            <span class="text-xs text-gray-400">2m ago</span>
-          </div>
-        </div>
-        <div class="p-3 border-b hover:bg-gray-50 cursor-pointer">
-          <div class="flex items-center justify-between">
-            <div>
-              <div class="font-medium">Customer 2</div>
-              <div class="text-sm text-gray-500">How can I help?</div>
-            </div>
-            <span class="text-xs text-gray-400">5m ago</span>
-          </div>
-        </div>
-      `;
+      // Listen for new chat sessions in real-time
+      const chatsQuery = query(collection(db, 'chats'), orderBy('lastMessage', 'desc'));
+      const unsubscribe = onSnapshot(chatsQuery, (snapshot) => {
+        chatSessions.innerHTML = '';
+        
+        if (snapshot.empty) {
+          chatSessions.innerHTML = '<div class="p-4 text-center text-gray-500">No chat sessions</div>';
+          return;
+        }
+
+        snapshot.forEach((doc) => {
+          const chat = { id: doc.id, ...doc.data() };
+          const chatItem = this.createChatSessionItem(chat);
+          chatSessions.appendChild(chatItem);
+        });
+
+        // Auto-select first chat if none selected
+        if (!this.currentChatId && snapshot.docs.length > 0) {
+          this.selectChat(snapshot.docs[0].id);
+        }
+      });
+
+      // Store unsubscribe function for cleanup
+      this.chatUnsubscribe = unsubscribe;
 
       // Setup chat functionality
       this.setupChatFunctionality();
@@ -361,25 +370,186 @@ class WPAdmin {
     }
   }
 
+  createChatSessionItem(chat) {
+    const item = document.createElement('div');
+    item.className = 'p-3 border-b hover:bg-gray-50 cursor-pointer transition-colors';
+    item.dataset.chatId = chat.id;
+    
+    const lastMessage = chat.lastMessage || 'No messages yet';
+    const lastTime = chat.lastMessageTime ? this.formatTime(chat.lastMessageTime.toDate()) : 'Just now';
+    const unreadCount = chat.unreadCount || 0;
+    
+    item.innerHTML = `
+      <div class="flex items-center justify-between">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center justify-between">
+            <div class="font-medium text-gray-900 truncate">${chat.customerName || 'Anonymous'}</div>
+            ${unreadCount > 0 ? `<span class="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">${unreadCount}</span>` : ''}
+          </div>
+          <div class="text-sm text-gray-500 truncate">${lastMessage}</div>
+        </div>
+        <span class="text-xs text-gray-400 ml-2">${lastTime}</span>
+      </div>
+    `;
+    
+    item.addEventListener('click', () => {
+      this.selectChat(chat.id);
+    });
+    
+    return item;
+  }
+
+  async selectChat(chatId) {
+    try {
+      this.currentChatId = chatId;
+      
+      // Update UI
+      document.querySelectorAll('#chat-sessions > div').forEach(item => {
+        item.classList.remove('bg-blue-50', 'border-l-4', 'border-blue-500');
+      });
+      
+      const selectedItem = document.querySelector(`[data-chat-id="${chatId}"]`);
+      if (selectedItem) {
+        selectedItem.classList.add('bg-blue-50', 'border-l-4', 'border-blue-500');
+      }
+      
+      // Load chat messages
+      const messagesQuery = query(collection(db, 'chats', chatId, 'messages'), orderBy('timestamp', 'asc'));
+      const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
+        this.displayMessages(snapshot.docs);
+      });
+      
+      // Update chat meta
+      const chatDoc = await getDoc(doc(db, 'chats', chatId));
+      if (chatDoc.exists()) {
+        const chat = chatDoc.data();
+        document.getElementById('chat-meta').innerHTML = `
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="font-medium">${chat.customerName || 'Anonymous'}</div>
+              <div class="text-xs text-gray-500">${chat.customerEmail || 'No email'}</div>
+            </div>
+            <div class="text-xs text-gray-400">
+              Started: ${chat.createdAt ? this.formatTime(chat.createdAt.toDate()) : 'Just now'}
+            </div>
+          </div>
+        `;
+        
+        // Mark as read
+        if (chat.unreadCount > 0) {
+          await updateDoc(doc(db, 'chats', chatId), { unreadCount: 0 });
+        }
+      }
+      
+      // Cleanup previous listener
+      if (this.messagesUnsubscribe) {
+        this.messagesUnsubscribe();
+      }
+      this.messagesUnsubscribe = unsubscribe;
+      
+    } catch (error) {
+      console.error('Error selecting chat:', error);
+    }
+  }
+
+  displayMessages(messages) {
+    const messagesContainer = document.getElementById('chat-messages-admin');
+    if (!messagesContainer) return;
+    
+    messagesContainer.innerHTML = '';
+    
+    messages.forEach((doc) => {
+      const message = { id: doc.id, ...doc.data() };
+      const messageEl = this.createMessageElement(message);
+      messagesContainer.appendChild(messageEl);
+    });
+    
+    // Scroll to bottom
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  }
+
+  createMessageElement(message) {
+    const div = document.createElement('div');
+    const isAdmin = message.sender === 'admin';
+    const time = message.timestamp ? this.formatTime(message.timestamp.toDate()) : 'Just now';
+    
+    div.className = `flex ${isAdmin ? 'justify-end' : 'justify-start'} mb-3`;
+    div.innerHTML = `
+      <div class="max-w-xs lg:max-w-md">
+        <div class="${isAdmin ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-900'} rounded-lg px-4 py-2">
+          <div class="text-sm">${message.text}</div>
+        </div>
+        <div class="text-xs text-gray-500 mt-1 ${isAdmin ? 'text-right' : 'text-left'}">${time}</div>
+      </div>
+    `;
+    
+    return div;
+  }
+
+  formatTime(date) {
+    const now = new Date();
+    const diff = now - date;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    if (days < 7) return `${days}d ago`;
+    return date.toLocaleDateString();
+  }
+
   setupChatFunctionality() {
     const chatSendBtn = document.getElementById('chat-send');
     const chatReplyInput = document.getElementById('chat-reply');
     
     if (chatSendBtn && chatReplyInput) {
       chatSendBtn.addEventListener('click', () => {
-        const message = chatReplyInput.value.trim();
-        if (message) {
-          // Send message logic here
-          chatReplyInput.value = '';
-          this.showNotification('Message sent!', 'success');
-        }
+        this.sendChatMessage();
       });
       
+      // Send on Enter key
       chatReplyInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-          chatSendBtn.click();
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          this.sendChatMessage();
         }
       });
+    }
+  }
+
+  async sendChatMessage() {
+    const chatReplyInput = document.getElementById('chat-reply');
+    const message = chatReplyInput.value.trim();
+    
+    if (!message || !this.currentChatId) return;
+    
+    try {
+      // Add message to chat
+      await addDoc(collection(db, 'chats', this.currentChatId, 'messages'), {
+        text: message,
+        sender: 'admin',
+        timestamp: serverTimestamp(),
+        senderName: 'Admin'
+      });
+      
+      // Update chat session with last message
+      await updateDoc(doc(db, 'chats', this.currentChatId), {
+        lastMessage: message,
+        lastMessageTime: serverTimestamp(),
+        lastMessageBy: 'admin'
+      });
+      
+      // Clear input
+      chatReplyInput.value = '';
+      
+      // Show success notification
+      this.showNotification('Message sent!', 'success');
+      
+    } catch (error) {
+      console.error('Error sending message:', error);
+      this.showNotification('Failed to send message: ' + error.message, 'error');
     }
   }
 
